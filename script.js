@@ -14,7 +14,8 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// Elementos DOM - Auth
+// ========== ELEMENTOS DOM ==========
+// Auth
 const authContainer = document.getElementById('auth-container');
 const app = document.getElementById('app');
 const tabLogin = document.getElementById('tab-login');
@@ -30,12 +31,15 @@ const btnResetPassword = document.getElementById('btn-reset-password');
 const resetEmail = document.getElementById('reset-email');
 const rememberMe = document.getElementById('remember-me');
 
-// Elementos DOM - App
+// App
 const userPhoto = document.getElementById('user-photo');
 const userName = document.getElementById('user-name');
+const userStatus = document.getElementById('user-status');
 const usersList = document.getElementById('users-list');
+const totalUsers = document.getElementById('total-users');
 const chatPartnerName = document.getElementById('chat-partner-name');
 const chatPartnerPhoto = document.getElementById('chat-partner-photo');
+const chatPartnerStatus = document.getElementById('chat-partner-status');
 const messagesContainer = document.getElementById('messages-container');
 const messageInput = document.getElementById('message-input');
 const btnSend = document.getElementById('btn-send');
@@ -44,17 +48,16 @@ const imageUpload = document.getElementById('image-upload');
 const searchUser = document.getElementById('search-user');
 const btnLogout = document.getElementById('btn-logout');
 
-// Variáveis de estado
+// ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
 let selectedUserId = null;
 let messagesUnsubscribe = null;
+let usersUnsubscribe = null;
+let onlineStatusInterval = null;
 
-// Emojis regionais
-const cametaEmojis = ['🦀', '🌊', '🐟', '🚣', '🌴', '☀️', '🎣'];
+// ========== FUNÇÕES DE AUTENTICAÇÃO ==========
 
-// ==================== FUNÇÕES DE AUTENTICAÇÃO ====================
-
-// Alternar entre abas de login e cadastro
+// Alternar abas
 tabLogin.addEventListener('click', () => {
     tabLogin.classList.add('active');
     tabRegister.classList.remove('active');
@@ -77,34 +80,15 @@ loginForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('login-password').value;
     
     try {
-        // Configurar persistência baseada no checkbox "Lembrar-me"
         const persistence = rememberMe.checked 
             ? firebase.auth.Auth.Persistence.LOCAL 
             : firebase.auth.Auth.Persistence.SESSION;
         
         await auth.setPersistence(persistence);
-        
-        // Fazer login
         await auth.signInWithEmailAndPassword(email, password);
-        
-        // Limpar formulário
         loginForm.reset();
     } catch (error) {
-        let errorMessage = 'Erro ao fazer login. ';
-        switch (error.code) {
-            case 'auth/user-not-found':
-                errorMessage += 'Usuário não encontrado.';
-                break;
-            case 'auth/wrong-password':
-                errorMessage += 'Senha incorreta.';
-                break;
-            case 'auth/invalid-email':
-                errorMessage += 'E-mail inválido.';
-                break;
-            default:
-                errorMessage += error.message;
-        }
-        alert(errorMessage);
+        handleAuthError(error);
     }
 });
 
@@ -117,7 +101,6 @@ registerForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('register-password').value;
     const confirmPassword = document.getElementById('register-confirm-password').value;
     
-    // Validações
     if (password.length < 6) {
         alert('A senha deve ter no mínimo 6 caracteres.');
         return;
@@ -129,60 +112,37 @@ registerForm.addEventListener('submit', async (e) => {
     }
     
     try {
-        // Criar usuário no Firebase Auth
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         
-        // Atualizar perfil do usuário com o nome
         await userCredential.user.updateProfile({
             displayName: name
         });
         
-        // Criar documento do usuário no Firestore
         await db.collection('users').doc(userCredential.user.uid).set({
             uid: userCredential.user.uid,
             name: name,
             email: email,
             photoURL: userCredential.user.photoURL || null,
+            online: true,
             lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-            region: 'Cametá-PA',
-            favoriteEmoji: cametaEmojis[Math.floor(Math.random() * cametaEmojis.length)],
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        // Limpar formulário
         registerForm.reset();
-        
         alert('Cadastro realizado com sucesso!');
     } catch (error) {
-        let errorMessage = 'Erro ao cadastrar. ';
-        switch (error.code) {
-            case 'auth/email-already-in-use':
-                errorMessage += 'Este e-mail já está em uso.';
-                break;
-            case 'auth/invalid-email':
-                errorMessage += 'E-mail inválido.';
-                break;
-            case 'auth/weak-password':
-                errorMessage += 'Senha muito fraca.';
-                break;
-            default:
-                errorMessage += error.message;
-        }
-        alert(errorMessage);
+        handleAuthError(error);
     }
 });
 
-// Login com Google (função unificada)
+// Login com Google
 async function handleGoogleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
     
     try {
-        // Usar persistência LOCAL para Google (sempre lembrar)
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        
         const result = await auth.signInWithPopup(provider);
         
-        // Verificar se é primeiro login e criar documento no Firestore
         const userRef = db.collection('users').doc(result.user.uid);
         const userDoc = await userRef.get();
         
@@ -192,14 +152,13 @@ async function handleGoogleLogin() {
                 name: result.user.displayName,
                 email: result.user.email,
                 photoURL: result.user.photoURL,
+                online: true,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                region: 'Cametá-PA',
-                favoriteEmoji: cametaEmojis[Math.floor(Math.random() * cametaEmojis.length)],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
     } catch (error) {
-        alert('Erro no login com Google: ' + error.message);
+        handleAuthError(error);
     }
 }
 
@@ -234,96 +193,161 @@ btnResetPassword.addEventListener('click', async () => {
     
     try {
         await auth.sendPasswordResetEmail(email);
-        alert('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+        alert('E-mail de recuperação enviado!');
         forgotModal.classList.remove('show');
         resetEmail.value = '';
     } catch (error) {
-        let errorMessage = 'Erro ao enviar e-mail. ';
-        switch (error.code) {
-            case 'auth/user-not-found':
-                errorMessage += 'Usuário não encontrado.';
-                break;
-            case 'auth/invalid-email':
-                errorMessage += 'E-mail inválido.';
-                break;
-            default:
-                errorMessage += error.message;
-        }
-        alert(errorMessage);
+        handleAuthError(error);
     }
 });
 
-// Verificar se há credenciais salvas (lembrar-me)
+// Tratamento de erros de autenticação
+function handleAuthError(error) {
+    let message = 'Erro de autenticação. ';
+    switch (error.code) {
+        case 'auth/user-not-found':
+            message += 'Usuário não encontrado.';
+            break;
+        case 'auth/wrong-password':
+            message += 'Senha incorreta.';
+            break;
+        case 'auth/email-already-in-use':
+            message += 'Este e-mail já está em uso.';
+            break;
+        case 'auth/invalid-email':
+            message += 'E-mail inválido.';
+            break;
+        case 'auth/weak-password':
+            message += 'Senha muito fraca.';
+            break;
+        default:
+            message += error.message;
+    }
+    alert(message);
+}
+
+// ========== ESTADO DE AUTENTICAÇÃO ==========
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
         authContainer.classList.add('hidden');
         app.classList.remove('hidden');
         
-        // Atualiza dados do usuário na interface
-        userPhoto.src = user.photoURL || 'https://via.placeholder.com/40/002776/FFFFFF?text=🦀';
-        userName.textContent = user.displayName || 'Camarataense';
+        // Atualizar interface do usuário
+        userPhoto.src = user.photoURL || 'https://via.placeholder.com/45/002776/ffffff?text=User';
+        userName.textContent = user.displayName || 'Usuário';
         
-        // Atualizar lastSeen no Firestore
-        await db.collection('users').doc(user.uid).update({
-            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        // Atualizar status online no Firestore
+        await updateUserOnlineStatus(true);
         
-        // Carrega lista de usuários
+        // Configurar heartbeat para manter status online
+        setupOnlineStatus();
+        
+        // Carregar usuários e conversas
         loadUsers();
+        
+        // Atualizar lastSeen ao fechar a página
+        window.addEventListener('beforeunload', () => {
+            updateUserOnlineStatus(false);
+        });
     } else {
         // Usuário deslogado
         currentUser = null;
         authContainer.classList.remove('hidden');
         app.classList.add('hidden');
-        if (messagesUnsubscribe) messagesUnsubscribe();
         
-        // Limpar seleções
+        // Cleanup
+        if (messagesUnsubscribe) messagesUnsubscribe();
+        if (usersUnsubscribe) usersUnsubscribe();
+        if (onlineStatusInterval) clearInterval(onlineStatusInterval);
+        
         selectedUserId = null;
     }
 });
 
-// Logout
-btnLogout.addEventListener('click', async () => {
-    try {
-        await auth.signOut();
-    } catch (error) {
-        alert('Erro ao sair: ' + error.message);
-    }
-});
-
-// ==================== FUNÇÕES DO CHAT ====================
-
-// Carrega lista de usuários (exceto o atual)
-async function loadUsers() {
-    const querySnapshot = await db.collection('users')
-        .where('uid', '!=', currentUser.uid)
-        .orderBy('lastSeen', 'desc')
-        .get();
+// Atualizar status online do usuário
+async function updateUserOnlineStatus(online) {
+    if (!currentUser) return;
     
-    renderUsers(querySnapshot.docs.map(doc => doc.data()));
+    try {
+        await db.collection('users').doc(currentUser.uid).update({
+            online: online,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (error) {
+        console.error('Erro ao atualizar status:', error);
+    }
 }
 
-// Renderiza lista de usuários
+// Configurar heartbeat para manter status online
+function setupOnlineStatus() {
+    // Atualizar a cada 30 segundos
+    onlineStatusInterval = setInterval(() => {
+        updateUserOnlineStatus(true);
+    }, 30000);
+}
+
+// ========== FUNÇÕES DO CHAT ==========
+
+// Carregar lista de usuários
+function loadUsers() {
+    if (usersUnsubscribe) usersUnsubscribe();
+    
+    usersUnsubscribe = db.collection('users')
+        .where('uid', '!=', currentUser.uid)
+        .onSnapshot((snapshot) => {
+            const users = [];
+            snapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+            
+            // Ordenar: online primeiro, depois por lastSeen
+            users.sort((a, b) => {
+                if (a.online && !b.online) return -1;
+                if (!a.online && b.online) return 1;
+                return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
+            });
+            
+            renderUsers(users);
+            totalUsers.textContent = `${users.length} usuário${users.length !== 1 ? 's' : ''}`;
+        });
+}
+
+// Renderizar lista de usuários
 function renderUsers(users) {
     usersList.innerHTML = '';
+    
     users.forEach(user => {
         const li = document.createElement('li');
-        li.className = 'user-item' + (selectedUserId === user.uid ? ' active' : '');
+        li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
         li.dataset.uid = user.uid;
+        
+        const lastSeen = user.lastSeen ? formatLastSeen(user.lastSeen.toDate()) : '';
+        const status = user.online ? '🟢 Online' : `⚪ Offline ${lastSeen}`;
+        
         li.innerHTML = `
-            <img src="${user.photoURL || 'https://via.placeholder.com/45/FFD100/002776?text=🦀'}" alt="avatar">
-            <div class="user-info">
+            <img src="${user.photoURL || 'https://via.placeholder.com/45/cccccc/666666?text=User'}" alt="avatar">
+            <div class="user-item-info">
                 <h4>${user.name}</h4>
-                <p>${user.region || 'Cametá-PA'} ${user.favoriteEmoji || '🦀'}</p>
+                <p>${status}</p>
             </div>
         `;
+        
         li.addEventListener('click', () => selectUser(user));
         usersList.appendChild(li);
     });
 }
 
-// Filtro de usuários
+// Formatar última visualização
+function formatLastSeen(date) {
+    const now = new Date();
+    const diffMinutes = Math.floor((now - date) / 60000);
+    
+    if (diffMinutes < 1) return 'agora mesmo';
+    if (diffMinutes < 60) return `há ${diffMinutes} min`;
+    if (diffMinutes < 1440) return `há ${Math.floor(diffMinutes / 60)} h`;
+    return date.toLocaleDateString('pt-BR');
+}
+
+// Filtrar usuários
 searchUser.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('.user-item').forEach(item => {
@@ -332,30 +356,34 @@ searchUser.addEventListener('input', (e) => {
     });
 });
 
-// Seleciona um usuário para conversar
+// Selecionar usuário para conversar
 async function selectUser(user) {
     selectedUserId = user.uid;
     
-    // Remove classe active de todos e adiciona no selecionado
+    // Atualizar seleção na lista
     document.querySelectorAll('.user-item').forEach(item => {
         item.classList.toggle('active', item.dataset.uid === user.uid);
     });
     
-    // Atualiza cabeçalho do chat
-    chatPartnerName.textContent = `${user.name} ${user.favoriteEmoji || '🦀'}`;
-    chatPartnerPhoto.src = user.photoURL || 'https://via.placeholder.com/40/FFD100/002776?text=🦀';
+    // Atualizar cabeçalho do chat
+    chatPartnerName.textContent = user.name;
+    chatPartnerPhoto.src = user.photoURL || 'https://via.placeholder.com/45/cccccc/666666?text=User';
+    chatPartnerStatus.textContent = user.online ? '🟢 Online' : '⚪ Offline';
     
-    // Habilita input de mensagem
+    // Habilitar input
     messageInput.disabled = false;
     btnSend.disabled = false;
     btnAttach.disabled = false;
     messageInput.focus();
     
-    // Carrega mensagens da conversa
+    // Esconder mensagem de boas-vindas
+    document.querySelector('.welcome-message')?.remove();
+    
+    // Carregar mensagens
     await loadMessages(user.uid);
 }
 
-// Carrega mensagens em tempo real
+// Carregar mensagens em tempo real
 async function loadMessages(otherUid) {
     if (messagesUnsubscribe) messagesUnsubscribe();
     
@@ -368,20 +396,51 @@ async function loadMessages(otherUid) {
         .onSnapshot((snapshot) => {
             const messages = [];
             snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
-            renderMessages(messages, otherUid);
-        }, (error) => {
-            console.error('Erro ao carregar as conversas:', error);
+            renderMessages(messages);
+            
+            // Marcar mensagens como lidas
+            markMessagesAsRead(conversationId);
         });
 }
 
-// Gera ID único para conversa
+// Gerar ID da conversa
 function getConversationId(uid1, uid2) {
     return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
 }
 
-// Renderiza mensagens
+// Marcar mensagens como lidas
+async function markMessagesAsRead(conversationId) {
+    if (!currentUser || !selectedUserId) return;
+    
+    const messagesRef = db.collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .where('senderId', '==', selectedUserId)
+        .where('read', '==', false);
+    
+    const snapshot = await messagesRef.get();
+    
+    const batch = db.batch();
+    snapshot.forEach(doc => {
+        batch.update(doc.ref, { read: true });
+    });
+    
+    await batch.commit();
+}
+
+// Renderizar mensagens
 function renderMessages(messages) {
     messagesContainer.innerHTML = '';
+    
+    if (messages.length === 0) {
+        messagesContainer.innerHTML = `
+            <div class="welcome-message">
+                <p>Inicie uma conversa com ${chatPartnerName.textContent}!</p>
+            </div>
+        `;
+        return;
+    }
+    
     messages.forEach(msg => {
         const isSent = msg.senderId === currentUser.uid;
         const div = document.createElement('div');
@@ -389,7 +448,7 @@ function renderMessages(messages) {
         
         if (msg.type === 'image') {
             div.innerHTML = `
-                <img src="${msg.imageUrl}" alt="imagem" onclick="window.open('${msg.imageUrl}', '_blank')">
+                <img src="${msg.imageUrl}" alt="imagem" onclick="window.open('${msg.imageUrl}', '_blank')" style="max-width: 200px;">
                 <small>${formatTime(msg.timestamp)}</small>
             `;
         } else {
@@ -406,14 +465,14 @@ function renderMessages(messages) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// Formata timestamp
+// Formatar hora
 function formatTime(timestamp) {
     if (!timestamp) return '';
     const date = timestamp.toDate();
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-// Envia mensagem de texto
+// Enviar mensagem de texto
 btnSend.addEventListener('click', async () => {
     const text = messageInput.value.trim();
     if (!text || !selectedUserId) return;
@@ -427,13 +486,15 @@ btnSend.addEventListener('click', async () => {
             .add({
                 text: text,
                 senderId: currentUser.uid,
+                receiverId: selectedUserId,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                type: 'text'
+                type: 'text',
+                read: false
             });
         
         messageInput.value = '';
     } catch (error) {
-        alert('Erro ao enviar a mensagem: ' + error.message);
+        alert('Erro ao enviar mensagem: ' + error.message);
     }
 });
 
@@ -446,46 +507,55 @@ imageUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file || !selectedUserId) return;
     
-    // Validar tipo de arquivo
     if (!file.type.startsWith('image/')) {
-        alert('Por favor, selecione apenas imagens.');
+        alert('Selecione apenas imagens.');
         return;
     }
     
-    // Validar tamanho (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
         alert('A imagem deve ter no máximo 5MB.');
         return;
     }
     
-    // Upload para o Storage
-    const storageRef = storage.ref(`chat-images/cameta/${currentUser.uid}/${Date.now()}_${file.name}`);
-    const uploadTask = storageRef.put(file);
+    try {
+        const storageRef = storage.ref(`chat-images/${currentUser.uid}/${Date.now()}_${file.name}`);
+        await storageRef.put(file);
+        const imageUrl = await storageRef.getDownloadURL();
+        
+        const conversationId = getConversationId(currentUser.uid, selectedUserId);
+        
+        await db.collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .add({
+                imageUrl: imageUrl,
+                senderId: currentUser.uid,
+                receiverId: selectedUserId,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                type: 'image',
+                read: false
+            });
+    } catch (error) {
+        alert('Erro ao enviar imagem: ' + error.message);
+    }
     
-    uploadTask.on('state_changed', 
-        null,
-        (error) => alert('Erro no upload da imagem: ' + error.message),
-        async () => {
-            const imageUrl = await uploadTask.snapshot.ref.getDownloadURL();
-            
-            const conversationId = getConversationId(currentUser.uid, selectedUserId);
-            await db.collection('conversations')
-                .doc(conversationId)
-                .collection('messages')
-                .add({
-                    imageUrl: imageUrl,
-                    senderId: currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'image'
-                });
-        }
-    );
+    imageUpload.value = '';
 });
 
-// Atalho Enter para enviar
+// Atalho Enter
 messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         btnSend.click();
+    }
+});
+
+// Logout
+btnLogout.addEventListener('click', async () => {
+    try {
+        await updateUserOnlineStatus(false);
+        await auth.signOut();
+    } catch (error) {
+        alert('Erro ao sair: ' + error.message);
     }
 });
