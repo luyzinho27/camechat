@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CameChat - Conectando Cametá</title>
+    <title>CameChat - Conectando Pessoas</title>
     <link rel="stylesheet" href="style.css">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -17,7 +17,7 @@
         <div class="auth-box">
             <div class="auth-header">
                 <h1>CameChat</h1>
-                <p class="slogan">Conectando a terra do caranguejo</p>
+                <p class="subtitle">Faça login ou crie sua conta</p>
             </div>
             
             <!-- Abas de navegação -->
@@ -46,7 +46,7 @@
                     <a href="#" id="forgot-password" class="forgot-link">Esqueceu a senha?</a>
                 </div>
                 
-                <button type="submit" class="btn-cameta btn-login">Entrar</button>
+                <button type="submit" class="btn-primary">Entrar</button>
                 
                 <div class="divider">
                     <span>ou</span>
@@ -77,7 +77,7 @@
                     <input type="password" id="register-confirm-password" placeholder="Digite novamente" required>
                 </div>
                 
-                <button type="submit" class="btn-cameta btn-register">Criar conta</button>
+                <button type="submit" class="btn-primary">Criar conta</button>
                 
                 <div class="divider">
                     <span>ou</span>
@@ -96,46 +96,59 @@
                     <h3>Recuperar senha</h3>
                     <p>Digite seu e-mail para receber o link de redefinição:</p>
                     <input type="email" id="reset-email" placeholder="seu@email.com" class="modal-input">
-                    <button id="btn-reset-password" class="btn-cameta btn-reset">Enviar link</button>
+                    <button id="btn-reset-password" class="btn-primary">Enviar link</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- App principal (inicialmente oculto) -->
+    <!-- App principal -->
     <div id="app" class="app hidden">
         <!-- Sidebar -->
         <aside class="sidebar">
             <header class="sidebar-header">
                 <img id="user-photo" src="" alt="foto" class="user-avatar">
-                <span id="user-name"></span>
+                <div class="user-info-header">
+                    <span id="user-name"></span>
+                    <small id="user-status">Online</small>
+                </div>
                 <button id="btn-logout" class="logout-btn">Sair</button>
             </header>
-            <div class="ad-space-sidebar">
-                <p>Anuncie aqui • Compre no comércio de Cametá</p>
-            </div>
+            
             <div class="search-box">
-                <input type="text" id="search-user" placeholder="Buscar ribeirinho...">
+                <input type="text" id="search-user" placeholder="Buscar usuário...">
             </div>
+            
+            <div class="users-header">
+                <h3>Conversas</h3>
+                <span id="total-users"></span>
+            </div>
+            
             <ul id="users-list" class="users-list"></ul>
-            <div class="ad-space-bottom">
-                <p>⭐ Apoiador: Associação Comercial de Cametá ⭐</p>
-            </div>
         </aside>
 
         <!-- Área de chat -->
         <main class="chat-area">
             <header class="chat-header" id="chat-header">
                 <img id="chat-partner-photo" src="" alt="foto" class="partner-avatar">
-                <span id="chat-partner-name">Selecione um carangueijeiro</span>
-                <div class="header-emoji">🦀</div>
+                <div class="chat-partner-info">
+                    <span id="chat-partner-name">Selecione um usuário</span>
+                    <small id="chat-partner-status"></small>
+                </div>
             </header>
-            <div id="messages-container" class="messages-container"></div>
+            
+            <div id="messages-container" class="messages-container">
+                <div class="welcome-message">
+                    <h3>Bem-vindo ao CameChat! 👋</h3>
+                    <p>Selecione um usuário para começar a conversar.</p>
+                </div>
+            </div>
+            
             <div class="message-input-area">
                 <input type="text" id="message-input" placeholder="Digite sua mensagem..." disabled>
                 <input type="file" id="image-upload" accept="image/*" style="display: none;">
-                <button id="btn-attach" class="attach-btn" disabled>📎</button>
-                <button id="btn-send" class="send-btn" disabled>Enviar</button>
+                <button id="btn-attach" class="btn-icon" disabled title="Anexar imagem">📎</button>
+                <button id="btn-send" class="btn-icon btn-send" disabled title="Enviar mensagem">➤</button>
             </div>
         </main>
     </div>
