@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CameChat - Conectando Cametá</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+    <!-- Tela de Login/Cadastro -->
+    <div id="auth-container" class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>CameChat</h1>
+                <p class="slogan">Conectando a terra do caranguejo</p>
+            </div>
+            
+            <!-- Abas de navegação -->
+            <div class="auth-tabs">
+                <button id="tab-login" class="auth-tab active">Entrar</button>
+                <button id="tab-register" class="auth-tab">Cadastrar</button>
+            </div>
+            
+            <!-- Formulário de Login -->
+            <form id="login-form" class="auth-form active">
+                <div class="form-group">
+                    <label for="login-email">E-mail</label>
+                    <input type="email" id="login-email" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Senha</label>
+                    <input type="password" id="login-password" placeholder="••••••••" required>
+                </div>
+                
+                <div class="form-options">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="remember-me">
+                        <span class="checkmark"></span>
+                        Lembrar-me
+                    </label>
+                    <a href="#" id="forgot-password" class="forgot-link">Esqueceu a senha?</a>
+                </div>
+                
+                <button type="submit" class="btn-cameta btn-login">Entrar</button>
+                
+                <div class="divider">
+                    <span>ou</span>
+                </div>
+                
+                <button type="button" id="btn-google-login" class="btn-google">
+                    <img src="https://www.google.com/favicon.ico" alt="Google" class="google-icon">
+                    Entrar com Google
+                </button>
+            </form>
+            
+            <!-- Formulário de Cadastro -->
+            <form id="register-form" class="auth-form">
+                <div class="form-group">
+                    <label for="register-name">Nome completo</label>
+                    <input type="text" id="register-name" placeholder="Seu nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">E-mail</label>
+                    <input type="email" id="register-email" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Senha</label>
+                    <input type="password" id="register-password" placeholder="Mínimo 6 caracteres" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password">Confirmar senha</label>
+                    <input type="password" id="register-confirm-password" placeholder="Digite novamente" required>
+                </div>
+                
+                <button type="submit" class="btn-cameta btn-register">Criar conta</button>
+                
+                <div class="divider">
+                    <span>ou</span>
+                </div>
+                
+                <button type="button" id="btn-google-register" class="btn-google">
+                    <img src="https://www.google.com/favicon.ico" alt="Google" class="google-icon">
+                    Cadastrar com Google
+                </button>
+            </form>
+            
+            <!-- Modal de recuperação de senha -->
+            <div id="forgot-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h3>Recuperar senha</h3>
+                    <p>Digite seu e-mail para receber o link de redefinição:</p>
+                    <input type="email" id="reset-email" placeholder="seu@email.com" class="modal-input">
+                    <button id="btn-reset-password" class="btn-cameta btn-reset">Enviar link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App principal (inicialmente oculto) -->
+    <div id="app" class="app hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <img id="user-photo" src="" alt="foto" class="user-avatar">
+                <span id="user-name"></span>
+                <button id="btn-logout" class="logout-btn">Sair</button>
+            </header>
+            <div class="ad-space-sidebar">
+                <p>Anuncie aqui • Compre no comércio de Cametá</p>
+            </div>
+            <div class="search-box">
+                <input type="text" id="search-user" placeholder="Buscar ribeirinho...">
+            </div>
+            <ul id="users-list" class="users-list"></ul>
+            <div class="ad-space-bottom">
+                <p>⭐ Apoiador: Associação Comercial de Cametá ⭐</p>
+            </div>
+        </aside>
+
+        <!-- Área de chat -->
+        <main class="chat-area">
+            <header class="chat-header" id="chat-header">
+                <img id="chat-partner-photo" src="" alt="foto" class="partner-avatar">
+                <span id="chat-partner-name">Selecione um carangueijeiro</span>
+                <div class="header-emoji">🦀</div>
+            </header>
+            <div id="messages-container" class="messages-container"></div>
+            <div class="message-input-area">
+                <input type="text" id="message-input" placeholder="Digite sua mensagem..." disabled>
+                <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                <button id="btn-attach" class="attach-btn" disabled>📎</button>
+                <button id="btn-send" class="send-btn" disabled>Enviar</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
