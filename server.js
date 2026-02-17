@@ -51,13 +51,18 @@ const upload = multer({
 });
 
 app.use(cors());
-app.use('/images', express.static(imagesRoot));
+app.use('/images', express.static(imagesRoot, {
+    etag: true,
+    maxAge: '365d',
+    immutable: true
+}));
 app.use(express.static(__dirname));
 
 app.post('/api/upload-profile', upload.single('photo'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
     }
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
     const url = `/images/profile/${req.file.filename}`;
     return res.json({ url });
 });
