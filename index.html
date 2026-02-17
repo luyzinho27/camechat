@@ -124,6 +124,7 @@
 
     <!-- App principal -->
     <div id="app" class="app hidden">
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
         <!-- Sidebar -->
         <aside class="sidebar">
             <header class="sidebar-header">
@@ -159,13 +160,17 @@
         <!-- Área de chat -->
         <div class="main-panel">
             <main id="chat-panel" class="chat-area">
-            <header class="chat-header" id="chat-header">
-                <img id="chat-partner-photo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" data-default-src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" alt="foto" class="partner-avatar">
-                <div class="chat-partner-info">
-                    <span id="chat-partner-name">Selecione um usuário</span>
-                    <small id="chat-partner-status"></small>
-                </div>
-            </header>
+                <header class="chat-header" id="chat-header">
+                    <button id="btn-toggle-sidebar" class="btn-icon btn-toggle-sidebar" title="Contatos">&#9776;</button>
+                    <img id="chat-partner-photo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" data-default-src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" alt="foto" class="partner-avatar clickable">
+                    <div class="chat-partner-info clickable">
+                        <span id="chat-partner-name">Selecione um usuário</span>
+                        <small id="chat-partner-status"></small>
+                        <span id="call-indicator" class="call-indicator hidden">Em chamada</span>
+                    </div>
+                    <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de v??deo">&#128249;</button>
+                    <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">📞</button>
+                </header>
                 
                 <div id="messages-container" class="messages-container">
                     <div class="welcome-message">
@@ -192,7 +197,14 @@
                     </div>
                 </header>
 
-                <div class="admin-metrics">
+                <div id="admin-tabs" class="admin-tabs">
+                    <button class="admin-tab active" type="button" data-tab="metrics">M&eacute;tricas</button>
+                    <button class="admin-tab" type="button" data-tab="users">Usu&aacute;rios</button>
+                    <button class="admin-tab" type="button" data-tab="create">Novo</button>
+                </div>
+
+                <div id="admin-metrics-section" class="admin-section">
+                    <div class="admin-metrics">
                     <div class="metric-card">
                         <span class="metric-label">Total de usuários</span>
                         <strong id="metric-total-users">0</strong>
@@ -207,13 +219,15 @@
                     </div>
                 </div>
 
+                </div>
+
                 <div class="admin-grid">
-                    <div class="admin-users">
+                    <div id="admin-users-section" class="admin-section admin-users">
                         <h3>Usuários cadastrados</h3>
                         <ul id="admin-users-list" class="admin-users-list"></ul>
                     </div>
 
-                    <div class="admin-create">
+                    <div id="admin-create-section" class="admin-section admin-create">
                         <h3>Criar usuário</h3>
                         <form id="admin-create-form">
                             <div class="form-group">
@@ -265,6 +279,74 @@
             </section>
         </div>
     </div>
+
+    <!-- Modal de foto de perfil -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content profile-modal-content">
+            <span id="profile-close-modal" class="close-modal">&times;</span>
+            <h3>Foto de perfil</h3>
+            <div class="profile-cropper">
+                <div id="profile-crop-frame" class="crop-frame">
+                    <img id="profile-crop-image" src="" alt="Foto de perfil">
+                </div>
+            </div>
+            <div class="crop-controls">
+                <label for="profile-zoom">Zoom</label>
+                <input type="range" id="profile-zoom" min="1" max="3" step="0.01" value="1">
+                <button id="profile-center-btn" class="btn-google" type="button">Centralizar</button>
+            </div>
+            <input type="file" id="profile-photo-input" accept="image/*" class="modal-input">
+            <div class="profile-actions">
+                <button id="profile-save-btn" class="btn-primary">Salvar</button>
+                <button id="profile-cancel-btn" class="btn-google" type="button">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de dados do amigo -->
+    <div id="friend-modal" class="modal">
+        <div class="modal-content friend-modal-content">
+            <span id="friend-close-modal" class="close-modal">&times;</span>
+            <h3>Dados do amigo</h3>
+            <div class="friend-preview">
+                <img id="friend-preview-image" src="" alt="Foto do amigo">
+            </div>
+            <div class="friend-details">
+                <p><strong>Nome:</strong> <span id="friend-detail-name"></span></p>
+                <p><strong>E-mail:</strong> <span id="friend-detail-email"></span></p>
+                <p><strong>Status:</strong> <span id="friend-detail-status"></span> <span id="friend-blocked-badge" class="blocked-badge hidden">Bloqueado</span></p>
+            </div>
+            <div class="friend-actions">
+                <button id="friend-remove-btn" class="btn-google" type="button">Excluir amigo</button>
+                <button id="friend-block-btn" class="btn-primary" type="button">Bloquear amigo</button>
+                <button id="friend-unblock-btn" class="btn-google hidden" type="button">Desbloquear amigo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de chamada de voz -->
+    <div id="call-modal" class="modal">
+        <div class="modal-content call-modal-content">
+            <h3 id="call-title">Chamada de voz</h3>
+            <p id="call-status">Chamando...</p>
+            <div class="call-user">
+                <img id="call-user-photo" src="" alt="Foto do amigo">
+                <strong id="call-user-name"></strong>
+            </div>
+            <div id="call-media" class="call-media hidden">
+                <video id="remote-video" autoplay playsinline></video>
+                <video id="local-video" autoplay muted playsinline></video>
+            </div>
+            <div class="call-actions">
+                <button id="call-accept-btn" class="btn-primary" type="button">Atender</button>
+                <button id="call-reject-btn" class="btn-google" type="button">Recusar</button>
+                <button id="call-hangup-btn" class="btn-google" type="button">Desligar</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="local-audio" autoplay muted></audio>
+    <audio id="remote-audio" autoplay></audio>
 
     <script src="script.js"></script>
 </body>
