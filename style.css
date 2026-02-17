@@ -871,6 +871,12 @@ body {
     border-bottom: 1px solid #f0f0f0;
 }
 
+.admin-user-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .admin-user-meta strong {
     display: block;
     color: #333;
@@ -893,6 +899,17 @@ body {
     font-weight: 600;
 }
 
+.admin-status-pill {
+    margin-left: 6px;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #ffe7e7;
+    color: #b00020;
+    font-size: 11px;
+    font-weight: 600;
+}
+
 .admin-edit-btn {
     background: #002776;
     color: white;
@@ -905,6 +922,20 @@ body {
 
 .admin-edit-btn:hover {
     background: #E30613;
+}
+
+.admin-delete-btn {
+    background: #b00020;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.admin-delete-btn:hover {
+    background: #8a0018;
 }
 
 /* Scrollbar */
