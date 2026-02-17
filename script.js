@@ -1191,7 +1191,12 @@ async function startCall(callType = 'audio') {
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
-    await callDocRef.update({ offer });
+    await callDocRef.update({
+        offer: {
+            type: offer.type,
+            sdp: offer.sdp
+        }
+    });
 
     calleeCandidatesUnsubscribe = callDocRef.collection('calleeCandidates')
         .onSnapshot(snapshot => {
@@ -1272,6 +1277,16 @@ async function handleIncomingCall(callDoc) {
     if (btnCall) btnCall.disabled = true;
     if (btnVideoCall) btnVideoCall.disabled = true;
 
+    if (callDocUnsubscribe) callDocUnsubscribe();
+    callDocUnsubscribe = callDocRef.onSnapshot(snapshot => {
+        const latest = snapshot.data();
+        if (!latest) return;
+        activeCallData = { ...(activeCallData || {}), ...latest };
+        if (latest.status === 'ended' || latest.status === 'rejected') {
+            resetCallState();
+        }
+    });
+
     updateCallMediaVisibility(currentCallType);
     setCallButtonsVisibility('incoming');
     updateCallIndicator('incoming', currentCallType);
@@ -1346,7 +1361,10 @@ async function acceptIncomingCall() {
     callPhase = 'active';
 
     await callDocRef.update({
-        answer,
+        answer: {
+            type: answer.type,
+            sdp: answer.sdp
+        },
         status: 'accepted',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -1360,6 +1378,7 @@ async function acceptIncomingCall() {
             });
         });
 
+    if (callDocUnsubscribe) callDocUnsubscribe();
     callDocUnsubscribe = callDocRef.onSnapshot(snapshot => {
         const data = snapshot.data();
         if (!data) return;
