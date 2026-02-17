@@ -239,7 +239,7 @@ async function ensureUserDocument(user, options = {}) {
 
 async function uploadProfilePhoto(user, file) {
     const safeName = file.name.replace(/[^\w.-]/g, '_');
-    const storageRef = storage.ref(`profile-photos/${user.uid}/${Date.now()}_${safeName}`);
+    const storageRef = storage.ref(`images/profile/${user.uid}/${Date.now()}_${safeName}`);
     await storageRef.put(file);
     return storageRef.getDownloadURL();
 }
@@ -546,6 +546,11 @@ function subscribeToCurrentUserDoc() {
         .onSnapshot((doc) => {
             if (!doc.exists) return;
             const data = doc.data() || {};
+            if (data.disabled) {
+                alert('Sua conta foi desativada por um administrador.');
+                auth.signOut();
+                return;
+            }
             currentUserProfile = { ...(currentUserProfile || {}), ...data };
             currentUserRole = data.role || currentUserRole || 'user_chat';
             currentFriends = Array.isArray(data.friends) ? data.friends : [];
@@ -587,7 +592,9 @@ async function findUserByEmail(email) {
 
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() };
+    const data = { id: doc.id, ...doc.data() };
+    if (data.disabled) return null;
+    return data;
 }
 
 async function addFriendByEmail(email) {
@@ -666,17 +673,24 @@ function renderAdminUsers(users) {
     users.forEach(user => {
         const li = document.createElement('li');
         li.className = 'admin-user-item';
+        const isDisabled = user.disabled === true;
         li.innerHTML = `
             <div class="admin-user-meta">
                 <strong>${user.name || 'Usuário'}</strong>
                 <span>${user.email || ''}</span>
                 <span class="admin-role-pill">${user.role || 'user_chat'}</span>
+                ${isDisabled ? '<span class="admin-status-pill">Desativado</span>' : ''}
             </div>
-            <button class="admin-edit-btn" type="button">Editar</button>
+            <div class="admin-user-actions">
+                <button class="admin-edit-btn" type="button">Editar</button>
+                <button class="admin-delete-btn" type="button">Excluir</button>
+            </div>
         `;
 
         const editButton = li.querySelector('.admin-edit-btn');
+        const deleteButton = li.querySelector('.admin-delete-btn');
         editButton.addEventListener('click', () => openAdminEditModal(user));
+        deleteButton.addEventListener('click', () => handleAdminDeleteUser(user));
         adminUsersList.appendChild(li);
     });
 }
@@ -724,6 +738,58 @@ async function createUserAsAdmin({ name, email, password, role }) {
             console.warn('Erro ao sair do auth secundário:', error);
         }
         await secondary.delete();
+    }
+}
+
+async function removeUserFromFriends(userId) {
+    const snapshot = await db.collection('users')
+        .where('friends', 'array-contains', userId)
+        .get();
+
+    if (snapshot.empty) return;
+
+    let batch = db.batch();
+    let opCount = 0;
+
+    for (const doc of snapshot.docs) {
+        batch.update(doc.ref, {
+            friends: firebase.firestore.FieldValue.arrayRemove(userId)
+        });
+        opCount += 1;
+
+        if (opCount >= 450) {
+            await batch.commit();
+            batch = db.batch();
+            opCount = 0;
+        }
+    }
+
+    if (opCount > 0) {
+        await batch.commit();
+    }
+}
+
+async function handleAdminDeleteUser(user) {
+    if (!user || currentUserRole !== 'administrador') return;
+    if (user.uid === currentUser.uid) {
+        alert('Você não pode excluir o seu próprio usuário.');
+        return;
+    }
+
+    const confirmed = confirm(`Deseja excluir o usuário ${user.name || user.email || ''}?`);
+    if (!confirmed) return;
+
+    try {
+        await db.collection('users').doc(user.uid).set({
+            disabled: true,
+            deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        await removeUserFromFriends(user.uid);
+        alert('Usuário desativado com sucesso.');
+    } catch (error) {
+        alert('Erro ao excluir usuário: ' + error.message);
     }
 }
 
@@ -827,7 +893,7 @@ function loadUsers() {
 function renderFriendUsers() {
     if (!Array.isArray(allUsersCache)) return;
     const friendSet = new Set(currentFriends || []);
-    const friends = allUsersCache.filter(user => friendSet.has(user.uid));
+    const friends = allUsersCache.filter(user => friendSet.has(user.uid) && !user.disabled);
 
     // Ordenar: online primeiro, depois por lastSeen
     friends.sort((a, b) => {
