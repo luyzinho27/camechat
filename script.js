@@ -221,11 +221,16 @@ async function ensureUserDocument(user, options = {}) {
     const data = snapshot.data() || {};
     const updates = {};
 
+    const shouldUpdateName = options.name && (!data.name || data.name === 'Usuário');
+    const shouldUpdateEmail = options.email && (!data.email || data.email === '');
+    const shouldUpdateEmailLower = emailLower && (!data.emailLower || data.emailLower !== emailLower);
+    const shouldUpdatePhoto = options.photoURL && (!data.photoURL || data.photoURL === null);
+
     if (!data.role && options.role) updates.role = options.role;
-    if (!data.name && options.name) updates.name = options.name;
-    if (!data.email && options.email) updates.email = options.email;
-    if (!data.emailLower && emailLower) updates.emailLower = emailLower;
-    if (!data.photoURL && options.photoURL) updates.photoURL = options.photoURL;
+    if (shouldUpdateName) updates.name = options.name;
+    if (shouldUpdateEmail) updates.email = options.email;
+    if (shouldUpdateEmailLower) updates.emailLower = emailLower;
+    if (shouldUpdatePhoto) updates.photoURL = options.photoURL;
     if (!Array.isArray(data.friends)) updates.friends = [];
 
     if (Object.keys(updates).length > 0) {
