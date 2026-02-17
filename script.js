@@ -22,11 +22,15 @@ const tabLogin = document.getElementById('tab-login');
 const tabRegister = document.getElementById('tab-register');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
+const registerPhotoInput = document.getElementById('register-photo');
+const registerPhotoPreview = document.getElementById('register-photo-preview');
+const registerRole = document.getElementById('register-role');
+const registerRoleAdminOption = document.getElementById('register-role-admin');
 const btnGoogleLogin = document.getElementById('btn-google-login');
 const btnGoogleRegister = document.getElementById('btn-google-register');
 const forgotPasswordLink = document.getElementById('forgot-password');
 const forgotModal = document.getElementById('forgot-modal');
-const closeModal = document.querySelector('.close-modal');
+const closeModal = document.getElementById('forgot-close-modal');
 const btnResetPassword = document.getElementById('btn-reset-password');
 const resetEmail = document.getElementById('reset-email');
 const rememberMe = document.getElementById('remember-me');
@@ -35,6 +39,7 @@ const rememberMe = document.getElementById('remember-me');
 const userPhoto = document.getElementById('user-photo');
 const userName = document.getElementById('user-name');
 const userStatus = document.getElementById('user-status');
+const userRoleBadge = document.getElementById('user-role-badge');
 const usersList = document.getElementById('users-list');
 const totalUsers = document.getElementById('total-users');
 const chatPartnerName = document.getElementById('chat-partner-name');
@@ -44,16 +49,48 @@ const messagesContainer = document.getElementById('messages-container');
 const messageInput = document.getElementById('message-input');
 const btnSend = document.getElementById('btn-send');
 const btnAttach = document.getElementById('btn-attach');
-const imageUpload = document.getElementById('image-upload');
+const fileUpload = document.getElementById('file-upload');
+const btnEmoji = document.getElementById('btn-emoji');
+const emojiPicker = document.getElementById('emoji-picker');
 const searchUser = document.getElementById('search-user');
+const friendEmailInput = document.getElementById('friend-email');
+const btnAddFriend = document.getElementById('btn-add-friend');
+const btnAdminPanel = document.getElementById('btn-admin-panel');
 const btnLogout = document.getElementById('btn-logout');
+
+// Admin panel
+const chatPanel = document.getElementById('chat-panel');
+const adminPanel = document.getElementById('admin-panel');
+const metricTotalUsers = document.getElementById('metric-total-users');
+const metricTotalAdmins = document.getElementById('metric-total-admins');
+const metricOnlineUsers = document.getElementById('metric-online-users');
+const adminUsersList = document.getElementById('admin-users-list');
+const adminCreateForm = document.getElementById('admin-create-form');
+const adminCreateName = document.getElementById('admin-create-name');
+const adminCreateEmail = document.getElementById('admin-create-email');
+const adminCreatePassword = document.getElementById('admin-create-password');
+const adminCreateRole = document.getElementById('admin-create-role');
+const adminEditModal = document.getElementById('admin-edit-modal');
+const adminEditClose = document.getElementById('admin-edit-close');
+const adminEditName = document.getElementById('admin-edit-name');
+const adminEditEmail = document.getElementById('admin-edit-email');
+const adminEditRole = document.getElementById('admin-edit-role');
+const adminEditSave = document.getElementById('admin-edit-save');
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
+let currentUserProfile = null;
+let currentUserRole = 'user_chat';
+let currentFriends = [];
+let allUsersCache = [];
 let selectedUserId = null;
 let messagesUnsubscribe = null;
 let usersUnsubscribe = null;
+let adminUsersUnsubscribe = null;
 let onlineStatusInterval = null;
+let currentUserDocUnsubscribe = null;
+let editingUserId = null;
+let registerPhotoPreviewUrl = null;
 
 // ========== FUNÇÕES DE AUTENTICAÇÃO ==========
 
@@ -70,7 +107,142 @@ tabRegister.addEventListener('click', () => {
     tabLogin.classList.remove('active');
     registerForm.classList.add('active');
     loginForm.classList.remove('active');
+    updateRegisterRoleAvailability();
 });
+
+if (registerPhotoInput) {
+    registerPhotoInput.addEventListener('change', () => {
+        const file = registerPhotoInput.files[0];
+
+        if (registerPhotoPreviewUrl) {
+            URL.revokeObjectURL(registerPhotoPreviewUrl);
+            registerPhotoPreviewUrl = null;
+        }
+
+        if (!file) {
+            if (registerPhotoPreview) {
+                registerPhotoPreview.src = '';
+                registerPhotoPreview.style.display = 'none';
+            }
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            alert('Selecione apenas imagens.');
+            registerPhotoInput.value = '';
+            if (registerPhotoPreview) {
+                registerPhotoPreview.src = '';
+                registerPhotoPreview.style.display = 'none';
+            }
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('A foto deve ter no máximo 5MB.');
+            registerPhotoInput.value = '';
+            if (registerPhotoPreview) {
+                registerPhotoPreview.src = '';
+                registerPhotoPreview.style.display = 'none';
+            }
+            return;
+        }
+
+        registerPhotoPreviewUrl = URL.createObjectURL(file);
+        if (registerPhotoPreview) {
+            registerPhotoPreview.src = registerPhotoPreviewUrl;
+            registerPhotoPreview.style.display = 'block';
+        }
+    });
+}
+
+async function checkAdminExists() {
+    try {
+        const snapshot = await db.collection('users')
+            .where('role', '==', 'administrador')
+            .limit(1)
+            .get();
+        return !snapshot.empty;
+    } catch (error) {
+        console.warn('Erro ao verificar administrador:', error);
+        return null;
+    }
+}
+
+async function resolveRoleForSignup(requestedRole) {
+    const normalizedRole = requestedRole === 'administrador' ? 'administrador' : 'user_chat';
+    const adminExists = await checkAdminExists();
+    if (adminExists === false) {
+        return 'administrador';
+    }
+    if (adminExists === true && normalizedRole === 'administrador') {
+        return 'user_chat';
+    }
+    if (adminExists === null && normalizedRole === 'administrador') {
+        return 'user_chat';
+    }
+    return normalizedRole;
+}
+
+async function updateRegisterRoleAvailability() {
+    if (!registerRoleAdminOption) return;
+    const adminExists = await checkAdminExists();
+    const disableAdmin = adminExists !== false;
+    registerRoleAdminOption.disabled = disableAdmin;
+    registerRoleAdminOption.textContent = disableAdmin ? 'Administrador (indisponível)' : 'Administrador';
+    if (disableAdmin && registerRole && registerRole.value === 'administrador') {
+        registerRole.value = 'user_chat';
+    }
+}
+
+async function ensureUserDocument(user, options = {}) {
+    const userRef = db.collection('users').doc(user.uid);
+    const snapshot = await userRef.get();
+    const emailValue = options.email || user.email || '';
+    const emailLower = emailValue ? emailValue.toLowerCase() : '';
+    const baseData = {
+        uid: user.uid,
+        name: options.name || user.displayName || 'Usuário',
+        email: emailValue,
+        emailLower: emailLower,
+        photoURL: options.photoURL ?? user.photoURL ?? null,
+        role: options.role || 'user_chat',
+        friends: Array.isArray(options.friends) ? options.friends : [],
+        online: true,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: options.createdBy || null
+    };
+
+    if (!snapshot.exists) {
+        await userRef.set(baseData);
+        return baseData;
+    }
+
+    const data = snapshot.data() || {};
+    const updates = {};
+
+    if (!data.role && options.role) updates.role = options.role;
+    if (!data.name && options.name) updates.name = options.name;
+    if (!data.email && options.email) updates.email = options.email;
+    if (!data.emailLower && emailLower) updates.emailLower = emailLower;
+    if (!data.photoURL && options.photoURL) updates.photoURL = options.photoURL;
+    if (!Array.isArray(data.friends)) updates.friends = [];
+
+    if (Object.keys(updates).length > 0) {
+        updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        await userRef.update(updates);
+        return { ...data, ...updates };
+    }
+
+    return data;
+}
+
+async function uploadProfilePhoto(user, file) {
+    const safeName = file.name.replace(/[^\w.-]/g, '_');
+    const storageRef = storage.ref(`profile-photos/${user.uid}/${Date.now()}_${safeName}`);
+    await storageRef.put(file);
+    return storageRef.getDownloadURL();
+}
 
 // Login com email/senha
 loginForm.addEventListener('submit', async (e) => {
@@ -100,6 +272,23 @@ registerForm.addEventListener('submit', async (e) => {
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
     const confirmPassword = document.getElementById('register-confirm-password').value;
+    const requestedRole = registerRole ? registerRole.value : 'user_chat';
+    const photoFile = registerPhotoInput ? registerPhotoInput.files[0] : null;
+
+    if (!photoFile) {
+        alert('Selecione uma foto de perfil.');
+        return;
+    }
+
+    if (!photoFile.type.startsWith('image/')) {
+        alert('Selecione apenas imagens.');
+        return;
+    }
+
+    if (photoFile.size > 5 * 1024 * 1024) {
+        alert('A foto deve ter no máximo 5MB.');
+        return;
+    }
     
     if (password.length < 6) {
         alert('A senha deve ter no mínimo 6 caracteres.');
@@ -113,22 +302,32 @@ registerForm.addEventListener('submit', async (e) => {
     
     try {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        
+
+        const photoUrl = await uploadProfilePhoto(userCredential.user, photoFile);
         await userCredential.user.updateProfile({
-            displayName: name
+            displayName: name,
+            photoURL: photoUrl
         });
-        
-        await db.collection('users').doc(userCredential.user.uid).set({
-            uid: userCredential.user.uid,
+
+        const resolvedRole = await resolveRoleForSignup(requestedRole);
+        await ensureUserDocument(userCredential.user, {
             name: name,
             email: email,
-            photoURL: userCredential.user.photoURL || null,
-            online: true,
-            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            role: resolvedRole,
+            photoURL: photoUrl
         });
         
         registerForm.reset();
+        if (registerRole) registerRole.value = 'user_chat';
+        if (registerPhotoPreview) {
+            registerPhotoPreview.src = '';
+            registerPhotoPreview.style.display = 'none';
+        }
+        if (registerPhotoPreviewUrl) {
+            URL.revokeObjectURL(registerPhotoPreviewUrl);
+            registerPhotoPreviewUrl = null;
+        }
+        await updateRegisterRoleAvailability();
         alert('Cadastro realizado com sucesso!');
     } catch (error) {
         handleAuthError(error);
@@ -136,34 +335,31 @@ registerForm.addEventListener('submit', async (e) => {
 });
 
 // Login com Google
-async function handleGoogleLogin() {
+async function handleGoogleLogin(requestedRole) {
     const provider = new firebase.auth.GoogleAuthProvider();
     
     try {
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         const result = await auth.signInWithPopup(provider);
         
-        const userRef = db.collection('users').doc(result.user.uid);
-        const userDoc = await userRef.get();
-        
-        if (!userDoc.exists) {
-            await userRef.set({
-                uid: result.user.uid,
-                name: result.user.displayName,
-                email: result.user.email,
-                photoURL: result.user.photoURL,
-                online: true,
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
+        const resolvedRole = await resolveRoleForSignup(requestedRole);
+        await ensureUserDocument(result.user, {
+            name: result.user.displayName || result.user.email?.split('@')[0] || 'Usuário',
+            email: result.user.email,
+            role: resolvedRole,
+            photoURL: result.user.photoURL || null
+        });
     } catch (error) {
+        if (error.code === 'auth/popup-blocked') {
+            await auth.signInWithRedirect(provider);
+            return;
+        }
         handleAuthError(error);
     }
 }
 
-btnGoogleLogin.addEventListener('click', handleGoogleLogin);
-btnGoogleRegister.addEventListener('click', handleGoogleLogin);
+btnGoogleLogin.addEventListener('click', () => handleGoogleLogin());
+btnGoogleRegister.addEventListener('click', () => handleGoogleLogin(registerRole ? registerRole.value : 'user_chat'));
 
 // Recuperação de senha
 forgotPasswordLink.addEventListener('click', (e) => {
@@ -180,6 +376,14 @@ window.addEventListener('click', (e) => {
     if (e.target === forgotModal) {
         forgotModal.classList.remove('show');
         resetEmail.value = '';
+    }
+    if (adminEditModal && e.target === adminEditModal) {
+        closeAdminEditModal();
+    }
+    if (emojiPicker && !emojiPicker.classList.contains('hidden')) {
+        if (!emojiPicker.contains(e.target) && e.target !== btnEmoji) {
+            emojiPicker.classList.add('hidden');
+        }
     }
 });
 
@@ -220,6 +424,21 @@ function handleAuthError(error) {
         case 'auth/weak-password':
             message += 'Senha muito fraca.';
             break;
+        case 'auth/unauthorized-domain':
+            message += 'Domínio não autorizado. Adicione este domínio em Authentication > Settings > Authorized domains.';
+            break;
+        case 'auth/popup-blocked':
+            message += 'Pop-up bloqueado pelo navegador. Libere o pop-up e tente novamente.';
+            break;
+        case 'auth/popup-closed-by-user':
+            message += 'Pop-up fechado antes de concluir o login.';
+            break;
+        case 'auth/cancelled-popup-request':
+            message += 'Outra solicitação de login já está em andamento.';
+            break;
+        case 'auth/operation-not-allowed':
+            message += 'Operação não permitida. Verifique se o provedor está habilitado no Firebase.';
+            break;
         default:
             message += error.message;
     }
@@ -232,10 +451,25 @@ auth.onAuthStateChanged(async (user) => {
         currentUser = user;
         authContainer.classList.add('hidden');
         app.classList.remove('hidden');
-        
+
+        const fallbackRole = await resolveRoleForSignup('user_chat');
+        currentUserProfile = await ensureUserDocument(user, {
+            name: user.displayName || 'Usuário',
+            email: user.email || '',
+            role: fallbackRole,
+            photoURL: user.photoURL || null
+        });
+        currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
+
         // Atualizar interface do usuário
-        userPhoto.src = user.photoURL || 'https://via.placeholder.com/45/002776/ffffff?text=User';
-        userName.textContent = user.displayName || 'Usuário';
+        userPhoto.src = currentUserProfile.photoURL || user.photoURL || 'https://via.placeholder.com/45/002776/ffffff?text=User';
+        userName.textContent = currentUserProfile.name || user.displayName || 'Usuário';
+        userStatus.textContent = 'Online';
+        updateRoleBadge(currentUserRole);
+        updateRegisterRoleAvailability();
+        setAdminAccess(currentUserRole === 'administrador');
+
+        subscribeToCurrentUserDoc();
         
         // Atualizar status online no Firestore
         await updateUserOnlineStatus(true);
@@ -253,15 +487,30 @@ auth.onAuthStateChanged(async (user) => {
     } else {
         // Usuário deslogado
         currentUser = null;
+        currentUserProfile = null;
+        currentUserRole = 'user_chat';
         authContainer.classList.remove('hidden');
         app.classList.add('hidden');
+        updateRoleBadge('user_chat');
+        setAdminAccess(false);
+        updateRegisterRoleAvailability();
         
         // Cleanup
         if (messagesUnsubscribe) messagesUnsubscribe();
         if (usersUnsubscribe) usersUnsubscribe();
+        if (adminUsersUnsubscribe) adminUsersUnsubscribe();
+        if (currentUserDocUnsubscribe) currentUserDocUnsubscribe();
+        messagesUnsubscribe = null;
+        usersUnsubscribe = null;
+        adminUsersUnsubscribe = null;
+        currentUserDocUnsubscribe = null;
         if (onlineStatusInterval) clearInterval(onlineStatusInterval);
         
         selectedUserId = null;
+        if (btnEmoji) btnEmoji.disabled = true;
+        if (btnAttach) btnAttach.disabled = true;
+        if (btnSend) btnSend.disabled = true;
+        if (messageInput) messageInput.disabled = true;
     }
 });
 
@@ -270,10 +519,11 @@ async function updateUserOnlineStatus(online) {
     if (!currentUser) return;
     
     try {
-        await db.collection('users').doc(currentUser.uid).update({
+        await db.collection('users').doc(currentUser.uid).set({
+            uid: currentUser.uid,
             online: online,
             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }, { merge: true });
     } catch (error) {
         console.error('Erro ao atualizar status:', error);
     }
@@ -287,6 +537,277 @@ function setupOnlineStatus() {
     }, 30000);
 }
 
+function subscribeToCurrentUserDoc() {
+    if (!currentUser) return;
+    if (currentUserDocUnsubscribe) currentUserDocUnsubscribe();
+
+    currentUserDocUnsubscribe = db.collection('users')
+        .doc(currentUser.uid)
+        .onSnapshot((doc) => {
+            if (!doc.exists) return;
+            const data = doc.data() || {};
+            currentUserProfile = { ...(currentUserProfile || {}), ...data };
+            currentUserRole = data.role || currentUserRole || 'user_chat';
+            currentFriends = Array.isArray(data.friends) ? data.friends : [];
+
+            if (data.name) userName.textContent = data.name;
+            if (data.photoURL) userPhoto.src = data.photoURL;
+
+            updateRoleBadge(currentUserRole);
+            setAdminAccess(currentUserRole === 'administrador');
+
+            if (currentUserRole === 'administrador') {
+                if (!adminUsersUnsubscribe) {
+                    loadAdminUsers();
+                }
+            } else if (adminUsersUnsubscribe) {
+                adminUsersUnsubscribe();
+                adminUsersUnsubscribe = null;
+            }
+
+            renderFriendUsers();
+        });
+}
+
+async function findUserByEmail(email) {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) return null;
+
+    let snapshot = await db.collection('users')
+        .where('emailLower', '==', normalized)
+        .limit(1)
+        .get();
+
+    if (snapshot.empty) {
+        snapshot = await db.collection('users')
+            .where('email', '==', email.trim())
+            .limit(1)
+            .get();
+    }
+
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() };
+}
+
+async function addFriendByEmail(email) {
+    if (!currentUser) return;
+    const user = await findUserByEmail(email);
+    if (!user) {
+        alert('Usuário não encontrado.');
+        return;
+    }
+    if (user.uid === currentUser.uid) {
+        alert('Você já é este usuário.');
+        return;
+    }
+    if (currentFriends.includes(user.uid)) {
+        alert('Este usuário já está na sua lista de amigos.');
+        return;
+    }
+    await db.collection('users').doc(currentUser.uid).set({
+        friends: firebase.firestore.FieldValue.arrayUnion(user.uid)
+    }, { merge: true });
+    alert('Usuário adicionado à sua lista de amigos.');
+}
+
+function updateRoleBadge(role) {
+    if (!userRoleBadge) return;
+    if (role === 'administrador') {
+        userRoleBadge.textContent = 'Administrador';
+        userRoleBadge.classList.remove('hidden');
+    } else {
+        userRoleBadge.classList.add('hidden');
+    }
+}
+
+function setAdminPanelVisible(show) {
+    if (!chatPanel || !adminPanel) return;
+    adminPanel.classList.toggle('hidden', !show);
+    chatPanel.classList.toggle('hidden', show);
+    if (btnAdminPanel) {
+        btnAdminPanel.textContent = show ? 'Chat' : 'Admin';
+    }
+}
+
+function setAdminAccess(isAdmin) {
+    if (!btnAdminPanel) return;
+    btnAdminPanel.classList.toggle('hidden', !isAdmin);
+    if (!isAdmin) {
+        setAdminPanelVisible(false);
+    }
+}
+
+function loadAdminUsers() {
+    if (!adminUsersList || currentUserRole !== 'administrador') return;
+    if (adminUsersUnsubscribe) adminUsersUnsubscribe();
+
+    adminUsersUnsubscribe = db.collection('users')
+        .onSnapshot((snapshot) => {
+            const users = [];
+            snapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+            users.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+            renderAdminUsers(users);
+
+            const total = users.length;
+            const admins = users.filter(user => user.role === 'administrador').length;
+            const online = users.filter(user => user.online).length;
+
+            if (metricTotalUsers) metricTotalUsers.textContent = total;
+            if (metricTotalAdmins) metricTotalAdmins.textContent = admins;
+            if (metricOnlineUsers) metricOnlineUsers.textContent = online;
+        });
+}
+
+function renderAdminUsers(users) {
+    adminUsersList.innerHTML = '';
+
+    users.forEach(user => {
+        const li = document.createElement('li');
+        li.className = 'admin-user-item';
+        li.innerHTML = `
+            <div class="admin-user-meta">
+                <strong>${user.name || 'Usuário'}</strong>
+                <span>${user.email || ''}</span>
+                <span class="admin-role-pill">${user.role || 'user_chat'}</span>
+            </div>
+            <button class="admin-edit-btn" type="button">Editar</button>
+        `;
+
+        const editButton = li.querySelector('.admin-edit-btn');
+        editButton.addEventListener('click', () => openAdminEditModal(user));
+        adminUsersList.appendChild(li);
+    });
+}
+
+function openAdminEditModal(user) {
+    if (!adminEditModal || !user) return;
+    editingUserId = user.uid;
+    adminEditName.value = user.name || '';
+    adminEditEmail.value = user.email || '';
+    adminEditRole.value = user.role || 'user_chat';
+    adminEditModal.classList.add('show');
+}
+
+function closeAdminEditModal() {
+    if (!adminEditModal) return;
+    adminEditModal.classList.remove('show');
+    editingUserId = null;
+}
+
+async function createUserAsAdmin({ name, email, password, role }) {
+    const secondaryName = `Secondary-${Date.now()}`;
+    const secondary = firebase.initializeApp(firebaseConfig, secondaryName);
+    try {
+        const secondaryAuth = secondary.auth();
+        const userCredential = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+        await userCredential.user.updateProfile({ displayName: name });
+
+        await db.collection('users').doc(userCredential.user.uid).set({
+            uid: userCredential.user.uid,
+            name: name,
+            email: email,
+            emailLower: email.toLowerCase(),
+            photoURL: userCredential.user.photoURL || null,
+            role: role,
+            friends: [],
+            online: false,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdBy: currentUser.uid
+        });
+    } finally {
+        try {
+            await secondary.auth().signOut();
+        } catch (error) {
+            console.warn('Erro ao sair do auth secundário:', error);
+        }
+        await secondary.delete();
+    }
+}
+
+if (btnAdminPanel) {
+    btnAdminPanel.addEventListener('click', () => {
+        const isVisible = adminPanel && !adminPanel.classList.contains('hidden');
+        setAdminPanelVisible(!isVisible);
+    });
+}
+
+if (adminEditClose) {
+    adminEditClose.addEventListener('click', closeAdminEditModal);
+}
+
+if (adminEditSave) {
+    adminEditSave.addEventListener('click', async () => {
+        if (!editingUserId || currentUserRole !== 'administrador') return;
+        const name = adminEditName.value.trim();
+        const role = adminEditRole.value === 'administrador' ? 'administrador' : 'user_chat';
+
+        if (!name) {
+            alert('Digite um nome válido.');
+            return;
+        }
+
+        try {
+            await db.collection('users').doc(editingUserId).update({
+                name: name,
+                role: role,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (editingUserId === currentUser.uid) {
+                currentUserRole = role;
+                if (currentUserProfile) {
+                    currentUserProfile.name = name;
+                    currentUserProfile.role = role;
+                }
+                userName.textContent = name;
+                updateRoleBadge(currentUserRole);
+                setAdminAccess(currentUserRole === 'administrador');
+                if (currentUserRole !== 'administrador') {
+                    setAdminPanelVisible(false);
+                }
+            }
+
+            closeAdminEditModal();
+        } catch (error) {
+            alert('Erro ao atualizar usuário: ' + error.message);
+        }
+    });
+}
+
+if (adminCreateForm) {
+    adminCreateForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (currentUserRole !== 'administrador') return;
+
+        const name = adminCreateName.value.trim();
+        const email = adminCreateEmail.value.trim();
+        const password = adminCreatePassword.value;
+        const role = adminCreateRole.value === 'administrador' ? 'administrador' : 'user_chat';
+
+        if (!name || !email || !password) {
+            alert('Preencha todos os campos.');
+            return;
+        }
+
+        if (password.length < 6) {
+            alert('A senha deve ter no mínimo 6 caracteres.');
+            return;
+        }
+
+        try {
+            await createUserAsAdmin({ name, email, password, role });
+            adminCreateForm.reset();
+            adminCreateRole.value = 'user_chat';
+            alert('Usuário criado com sucesso!');
+        } catch (error) {
+            handleAuthError(error);
+        }
+    });
+}
+
 // ========== FUNÇÕES DO CHAT ==========
 
 // Carregar lista de usuários
@@ -298,23 +819,46 @@ function loadUsers() {
         .onSnapshot((snapshot) => {
             const users = [];
             snapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
-            
-            // Ordenar: online primeiro, depois por lastSeen
-            users.sort((a, b) => {
-                if (a.online && !b.online) return -1;
-                if (!a.online && b.online) return 1;
-                return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
-            });
-            
-            renderUsers(users);
-            totalUsers.textContent = `${users.length} usuário${users.length !== 1 ? 's' : ''}`;
+            allUsersCache = users;
+            renderFriendUsers();
         });
+}
+
+function renderFriendUsers() {
+    if (!Array.isArray(allUsersCache)) return;
+    const friendSet = new Set(currentFriends || []);
+    const friends = allUsersCache.filter(user => friendSet.has(user.uid));
+
+    // Ordenar: online primeiro, depois por lastSeen
+    friends.sort((a, b) => {
+        if (a.online && !b.online) return -1;
+        if (!a.online && b.online) return 1;
+        return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
+    });
+
+    renderUsers(friends);
+    if (totalUsers) {
+        totalUsers.textContent = `${friends.length} contato${friends.length !== 1 ? 's' : ''}`;
+    }
 }
 
 // Renderizar lista de usuários
 function renderUsers(users) {
     usersList.innerHTML = '';
-    
+
+    if (!users || users.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'user-item empty';
+        li.innerHTML = `
+            <div class="user-item-info">
+                <h4>Nenhum contato</h4>
+                <p>Adicione um amigo pelo e-mail acima.</p>
+            </div>
+        `;
+        usersList.appendChild(li);
+        return;
+    }
+
     users.forEach(user => {
         const li = document.createElement('li');
         li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
@@ -326,7 +870,7 @@ function renderUsers(users) {
         li.innerHTML = `
             <img src="${user.photoURL || 'https://via.placeholder.com/45/cccccc/666666?text=User'}" alt="avatar">
             <div class="user-item-info">
-                <h4>${user.name}</h4>
+                <h4>${user.name || 'Usuário'}</h4>
                 <p>${status}</p>
             </div>
         `;
@@ -366,7 +910,7 @@ async function selectUser(user) {
     });
     
     // Atualizar cabeçalho do chat
-    chatPartnerName.textContent = user.name;
+    chatPartnerName.textContent = user.name || 'Usuário';
     chatPartnerPhoto.src = user.photoURL || 'https://via.placeholder.com/45/cccccc/666666?text=User';
     chatPartnerStatus.textContent = user.online ? '🟢 Online' : '⚪ Offline';
     
@@ -374,7 +918,10 @@ async function selectUser(user) {
     messageInput.disabled = false;
     btnSend.disabled = false;
     btnAttach.disabled = false;
+    if (btnEmoji) btnEmoji.disabled = false;
     messageInput.focus();
+
+    if (emojiPicker) emojiPicker.classList.add('hidden');
     
     // Esconder mensagem de boas-vindas
     document.querySelector('.welcome-message')?.remove();
@@ -446,14 +993,37 @@ function renderMessages(messages) {
         const div = document.createElement('div');
         div.className = `message ${isSent ? 'sent' : 'received'}`;
         
-        if (msg.type === 'image') {
+        const messageType = msg.type || (msg.imageUrl ? 'image' : 'text');
+        if (messageType === 'image') {
+            const imageUrl = msg.imageUrl || msg.fileUrl;
+            if (imageUrl) {
+                div.innerHTML = `
+                    <img src="${imageUrl}" alt="imagem" onclick="window.open('${imageUrl}', '_blank')" style="max-width: 200px;">
+                    <small>${formatTime(msg.timestamp)}</small>
+                `;
+            } else {
+                div.innerHTML = `
+                    <p>Imagem indisponível.</p>
+                    <small>${formatTime(msg.timestamp)}</small>
+                `;
+            }
+        } else if (messageType === 'file') {
+            const fileUrl = msg.fileUrl || msg.imageUrl || '#';
+            const fileName = msg.fileName || 'Arquivo';
+            const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
-                <img src="${msg.imageUrl}" alt="imagem" onclick="window.open('${msg.imageUrl}', '_blank')" style="max-width: 200px;">
+                <div class="file-attachment">
+                    <span class="file-icon">📎</span>
+                    <div class="file-info">
+                        <a href="${fileUrl}" target="_blank" rel="noopener">${fileName}</a>
+                        <small>${fileSize}</small>
+                    </div>
+                </div>
                 <small>${formatTime(msg.timestamp)}</small>
             `;
         } else {
             div.innerHTML = `
-                <p>${msg.text}</p>
+                <p>${msg.text || ''}</p>
                 <small>${formatTime(msg.timestamp)}</small>
             `;
         }
@@ -470,6 +1040,26 @@ function formatTime(timestamp) {
     if (!timestamp) return '';
     const date = timestamp.toDate();
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0 || !bytes) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const size = (bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1);
+    return `${size} ${units[index]}`;
+}
+
+function insertAtCursor(input, text) {
+    if (!input) return;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const before = input.value.slice(0, start);
+    const after = input.value.slice(end);
+    input.value = `${before}${text}${after}`;
+    const newPos = start + text.length;
+    input.setSelectionRange(newPos, newPos);
+    input.focus();
 }
 
 // Enviar mensagem de texto
@@ -498,29 +1088,31 @@ btnSend.addEventListener('click', async () => {
     }
 });
 
-// Anexar imagem
+// Anexar arquivo
 btnAttach.addEventListener('click', () => {
-    imageUpload.click();
+    fileUpload.click();
 });
 
-imageUpload.addEventListener('change', async (e) => {
+fileUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
-    if (!file || !selectedUserId) return;
-    
-    if (!file.type.startsWith('image/')) {
-        alert('Selecione apenas imagens.');
+    if (!file || !selectedUserId) {
+        fileUpload.value = '';
         return;
     }
     
-    if (file.size > 5 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 5MB.');
+    const maxSize = 20 * 1024 * 1024;
+    if (file.size > maxSize) {
+        alert('O arquivo deve ter no máximo 20MB.');
+        fileUpload.value = '';
         return;
     }
+    
+    const isImage = file.type && file.type.startsWith('image/');
     
     try {
-        const storageRef = storage.ref(`chat-images/${currentUser.uid}/${Date.now()}_${file.name}`);
+        const storageRef = storage.ref(`chat-files/${currentUser.uid}/${Date.now()}_${file.name}`);
         await storageRef.put(file);
-        const imageUrl = await storageRef.getDownloadURL();
+        const fileUrl = await storageRef.getDownloadURL();
         
         const conversationId = getConversationId(currentUser.uid, selectedUserId);
         
@@ -528,19 +1120,62 @@ imageUpload.addEventListener('change', async (e) => {
             .doc(conversationId)
             .collection('messages')
             .add({
-                imageUrl: imageUrl,
+                fileUrl: fileUrl,
+                fileName: file.name,
+                fileType: file.type || 'application/octet-stream',
+                fileSize: file.size,
+                imageUrl: isImage ? fileUrl : null,
                 senderId: currentUser.uid,
                 receiverId: selectedUserId,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                type: 'image',
+                type: isImage ? 'image' : 'file',
                 read: false
             });
     } catch (error) {
-        alert('Erro ao enviar imagem: ' + error.message);
+        alert('Erro ao enviar arquivo: ' + error.message);
     }
     
-    imageUpload.value = '';
+    fileUpload.value = '';
 });
+
+if (btnEmoji) {
+    btnEmoji.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!emojiPicker) return;
+        emojiPicker.classList.toggle('hidden');
+    });
+}
+
+if (emojiPicker) {
+    emojiPicker.addEventListener('emoji-click', (event) => {
+        insertAtCursor(messageInput, event.detail.unicode);
+    });
+}
+
+if (btnAddFriend) {
+    btnAddFriend.addEventListener('click', async () => {
+        const email = friendEmailInput ? friendEmailInput.value.trim() : '';
+        if (!email) {
+            alert('Digite o e-mail do usuário.');
+            return;
+        }
+        try {
+            await addFriendByEmail(email);
+            if (friendEmailInput) friendEmailInput.value = '';
+        } catch (error) {
+            alert('Erro ao adicionar amigo: ' + error.message);
+        }
+    });
+}
+
+if (friendEmailInput) {
+    friendEmailInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            btnAddFriend?.click();
+        }
+    });
+}
 
 // Atalho Enter
 messageInput.addEventListener('keypress', (e) => {
@@ -559,3 +1194,5 @@ btnLogout.addEventListener('click', async () => {
         alert('Erro ao sair: ' + error.message);
     }
 });
+
+updateRegisterRoleAvailability();
