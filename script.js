@@ -405,14 +405,12 @@ registerForm.addEventListener('submit', async (e) => {
             console.warn('Falha no upload via backend, usando fallback base64.', uploadError);
         }
 
-        if (!photoUrl) {
-            try {
-                photoData = await createProfileImageDataUrl(photoFile);
-            } catch (error) {
-                console.error('Erro ao processar a foto:', error);
-                alert('Não foi possível processar a foto. Tente outra imagem.');
-                return;
-            }
+        try {
+            photoData = await createProfileImageDataUrl(photoFile);
+        } catch (error) {
+            console.error('Erro ao processar a foto:', error);
+            alert('Não foi possível processar a foto. Tente outra imagem.');
+            return;
         }
 
         await ensureUserDocument(userCredential.user, {
@@ -560,7 +558,13 @@ auth.onAuthStateChanged(async (user) => {
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
 
         // Atualizar interface do usuário
-        userPhoto.src = currentUserProfile.photoURL || currentUserProfile.photoData || user.photoURL || 'https://via.placeholder.com/45/002776/ffffff?text=User';
+        const fallbackPhoto = currentUserProfile.photoData || 'https://via.placeholder.com/45/002776/ffffff?text=User';
+        userPhoto.src = fallbackPhoto;
+        if (currentUserProfile.photoURL) {
+            hydratePhotoFromUrl(userPhoto, currentUserProfile.photoURL, fallbackPhoto);
+        } else if (user.photoURL) {
+            hydratePhotoFromUrl(userPhoto, user.photoURL, fallbackPhoto);
+        }
         userName.textContent = currentUserProfile.name || user.displayName || 'Usuário';
         userStatus.textContent = 'Online';
         updateRoleBadge(currentUserRole);
@@ -680,6 +684,18 @@ function subscribeToCurrentUserDoc() {
 
             renderFriendUsers();
         });
+}
+
+function hydratePhotoFromUrl(imgEl, url, fallback) {
+    if (!imgEl || !url) return;
+    const image = new Image();
+    image.onload = () => {
+        imgEl.src = url;
+    };
+    image.onerror = () => {
+        if (fallback) imgEl.src = fallback;
+    };
+    image.src = url;
 }
 
 async function findUserByEmail(email) {
@@ -1041,13 +1057,20 @@ function renderUsers(users) {
         const lastSeen = user.lastSeen ? formatLastSeen(user.lastSeen.toDate()) : '';
         const status = user.online ? '🟢 Online' : `⚪ Offline ${lastSeen}`;
         
+        const fallbackPhoto = user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
         li.innerHTML = `
-            <img src="${user.photoURL || user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User'}" alt="avatar">
+            <img src="${fallbackPhoto}" data-photo-url="${user.photoURL || ''}" alt="avatar">
             <div class="user-item-info">
                 <h4>${user.name || 'Usuário'}</h4>
                 <p>${status}</p>
             </div>
         `;
+
+        const avatar = li.querySelector('img');
+        const photoUrl = user.photoURL || '';
+        if (photoUrl) {
+            hydratePhotoFromUrl(avatar, photoUrl, fallbackPhoto);
+        }
         
         li.addEventListener('click', () => selectUser(user));
         usersList.appendChild(li);
@@ -1085,7 +1108,11 @@ async function selectUser(user) {
     
     // Atualizar cabeçalho do chat
     chatPartnerName.textContent = user.name || 'Usuário';
-    chatPartnerPhoto.src = user.photoURL || user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
+    const fallbackPhoto = user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
+    chatPartnerPhoto.src = fallbackPhoto;
+    if (user.photoURL) {
+        hydratePhotoFromUrl(chatPartnerPhoto, user.photoURL, fallbackPhoto);
+    }
     chatPartnerStatus.textContent = user.online ? '🟢 Online' : '⚪ Offline';
     
     // Habilitar input
