@@ -201,7 +201,7 @@ async function ensureUserDocument(user, options = {}) {
     const emailLower = emailValue ? emailValue.toLowerCase() : '';
     const baseData = {
         uid: user.uid,
-        name: options.name || user.displayName || 'Usuário',
+        name: options.name || user.displayName || '',
         email: emailValue,
         emailLower: emailLower,
         photoURL: options.photoURL ?? user.photoURL ?? null,
@@ -221,10 +221,10 @@ async function ensureUserDocument(user, options = {}) {
     const data = snapshot.data() || {};
     const updates = {};
 
-    const shouldUpdateName = options.name && (!data.name || data.name === 'Usuário');
-    const shouldUpdateEmail = options.email && (!data.email || data.email === '');
-    const shouldUpdateEmailLower = emailLower && (!data.emailLower || data.emailLower !== emailLower);
-    const shouldUpdatePhoto = options.photoURL && (!data.photoURL || data.photoURL === null);
+    const shouldUpdateName = options.name && data.name !== options.name;
+    const shouldUpdateEmail = options.email && data.email !== options.email;
+    const shouldUpdateEmailLower = emailLower && data.emailLower !== emailLower;
+    const shouldUpdatePhoto = options.photoURL && data.photoURL !== options.photoURL;
 
     if (!data.role && options.role) updates.role = options.role;
     if (shouldUpdateName) updates.name = options.name;
@@ -308,19 +308,31 @@ registerForm.addEventListener('submit', async (e) => {
     try {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
 
-        const photoUrl = await uploadProfilePhoto(userCredential.user, photoFile);
         await userCredential.user.updateProfile({
-            displayName: name,
-            photoURL: photoUrl
+            displayName: name
         });
 
         const resolvedRole = await resolveRoleForSignup(requestedRole);
         await ensureUserDocument(userCredential.user, {
             name: name,
             email: email,
-            role: resolvedRole,
-            photoURL: photoUrl
+            role: resolvedRole
         });
+
+        let photoUrl = '';
+        try {
+            photoUrl = await uploadProfilePhoto(userCredential.user, photoFile);
+            await userCredential.user.updateProfile({
+                photoURL: photoUrl
+            });
+            await db.collection('users').doc(userCredential.user.uid).set({
+                photoURL: photoUrl,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (uploadError) {
+            alert('Erro ao enviar a foto de perfil. Verifique as regras do Storage e tente novamente.');
+            console.error('Erro no upload da foto:', uploadError);
+        }
         
         registerForm.reset();
         if (registerRole) registerRole.value = 'user_chat';
@@ -459,7 +471,7 @@ auth.onAuthStateChanged(async (user) => {
 
         const fallbackRole = await resolveRoleForSignup('user_chat');
         currentUserProfile = await ensureUserDocument(user, {
-            name: user.displayName || 'Usuário',
+            name: user.displayName || '',
             email: user.email || '',
             role: fallbackRole,
             photoURL: user.photoURL || null
