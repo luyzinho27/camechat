@@ -10,6 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 </head>
 <body>
     <!-- Tela de Login/Cadastro -->
@@ -61,6 +62,13 @@
             <!-- Formulário de Cadastro -->
             <form id="register-form" class="auth-form">
                 <div class="form-group">
+                    <label for="register-photo">Foto de perfil</label>
+                    <input type="file" id="register-photo" accept="image/*" required>
+                    <div class="photo-preview">
+                        <img id="register-photo-preview" src="" alt="Prévia da foto">
+                    </div>
+                </div>
+                <div class="form-group">
                     <label for="register-name">Nome completo</label>
                     <input type="text" id="register-name" placeholder="Seu nome" required>
                 </div>
@@ -75,6 +83,14 @@
                 <div class="form-group">
                     <label for="register-confirm-password">Confirmar senha</label>
                     <input type="password" id="register-confirm-password" placeholder="Digite novamente" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-role">Tipo de usuário</label>
+                    <select id="register-role" required>
+                        <option value="user_chat" selected>Usuário do chat</option>
+                        <option value="administrador" id="register-role-admin">Administrador</option>
+                    </select>
+                    <small class="form-hint">O primeiro cadastro será administrador automaticamente.</small>
                 </div>
                 
                 <button type="submit" class="btn-primary">Criar conta</button>
@@ -92,7 +108,7 @@
             <!-- Modal de recuperação de senha -->
             <div id="forgot-modal" class="modal">
                 <div class="modal-content">
-                    <span class="close-modal">&times;</span>
+                    <span id="forgot-close-modal" class="close-modal">&times;</span>
                     <h3>Recuperar senha</h3>
                     <p>Digite seu e-mail para receber o link de redefinição:</p>
                     <input type="email" id="reset-email" placeholder="seu@email.com" class="modal-input">
@@ -111,12 +127,21 @@
                 <div class="user-info-header">
                     <span id="user-name"></span>
                     <small id="user-status">Online</small>
+                    <span id="user-role-badge" class="role-badge hidden">Administrador</span>
                 </div>
-                <button id="btn-logout" class="logout-btn">Sair</button>
+                <div class="sidebar-actions">
+                    <button id="btn-admin-panel" class="admin-btn hidden">Admin</button>
+                    <button id="btn-logout" class="logout-btn">Sair</button>
+                </div>
             </header>
             
             <div class="search-box">
                 <input type="text" id="search-user" placeholder="Buscar usuário...">
+            </div>
+
+            <div class="add-friend-box">
+                <input type="email" id="friend-email" placeholder="E-mail para adicionar">
+                <button id="btn-add-friend" class="btn-add-friend" type="button">Adicionar</button>
             </div>
             
             <div class="users-header">
@@ -128,29 +153,113 @@
         </aside>
 
         <!-- Área de chat -->
-        <main class="chat-area">
-            <header class="chat-header" id="chat-header">
-                <img id="chat-partner-photo" src="" alt="foto" class="partner-avatar">
-                <div class="chat-partner-info">
-                    <span id="chat-partner-name">Selecione um usuário</span>
-                    <small id="chat-partner-status"></small>
+        <div class="main-panel">
+            <main id="chat-panel" class="chat-area">
+                <header class="chat-header" id="chat-header">
+                    <img id="chat-partner-photo" src="" alt="foto" class="partner-avatar">
+                    <div class="chat-partner-info">
+                        <span id="chat-partner-name">Selecione um usuário</span>
+                        <small id="chat-partner-status"></small>
+                    </div>
+                </header>
+                
+                <div id="messages-container" class="messages-container">
+                    <div class="welcome-message">
+                        <h3>Bem-vindo ao CameChat! 👋</h3>
+                        <p>Selecione um usuário para começar a conversar.</p>
+                    </div>
                 </div>
-            </header>
-            
-            <div id="messages-container" class="messages-container">
-                <div class="welcome-message">
-                    <h3>Bem-vindo ao CameChat! 👋</h3>
-                    <p>Selecione um usuário para começar a conversar.</p>
+                
+                <div class="message-input-area">
+                    <input type="text" id="message-input" placeholder="Digite sua mensagem..." disabled>
+                    <input type="file" id="file-upload" style="display: none;">
+                    <button id="btn-attach" class="btn-icon" disabled title="Anexar arquivo">📎</button>
+                    <button id="btn-emoji" class="btn-icon" disabled title="Emojis">😊</button>
+                    <button id="btn-send" class="btn-icon btn-send" disabled title="Enviar mensagem">➤</button>
                 </div>
-            </div>
-            
-            <div class="message-input-area">
-                <input type="text" id="message-input" placeholder="Digite sua mensagem..." disabled>
-                <input type="file" id="image-upload" accept="image/*" style="display: none;">
-                <button id="btn-attach" class="btn-icon" disabled title="Anexar imagem">📎</button>
-                <button id="btn-send" class="btn-icon btn-send" disabled title="Enviar mensagem">➤</button>
-            </div>
-        </main>
+                <emoji-picker id="emoji-picker" class="emoji-picker hidden"></emoji-picker>
+            </main>
+
+            <section id="admin-panel" class="admin-panel hidden">
+                <header class="admin-header">
+                    <div>
+                        <h2>Painel do Administrador</h2>
+                        <p>Gerencie usuários e visualize métricas do sistema.</p>
+                    </div>
+                </header>
+
+                <div class="admin-metrics">
+                    <div class="metric-card">
+                        <span class="metric-label">Total de usuários</span>
+                        <strong id="metric-total-users">0</strong>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Administradores</span>
+                        <strong id="metric-total-admins">0</strong>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Usuários online</span>
+                        <strong id="metric-online-users">0</strong>
+                    </div>
+                </div>
+
+                <div class="admin-grid">
+                    <div class="admin-users">
+                        <h3>Usuários cadastrados</h3>
+                        <ul id="admin-users-list" class="admin-users-list"></ul>
+                    </div>
+
+                    <div class="admin-create">
+                        <h3>Criar usuário</h3>
+                        <form id="admin-create-form">
+                            <div class="form-group">
+                                <label for="admin-create-name">Nome</label>
+                                <input type="text" id="admin-create-name" placeholder="Nome completo" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="admin-create-email">E-mail</label>
+                                <input type="email" id="admin-create-email" placeholder="email@dominio.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="admin-create-password">Senha</label>
+                                <input type="password" id="admin-create-password" placeholder="Mínimo 6 caracteres" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="admin-create-role">Tipo de usuário</label>
+                                <select id="admin-create-role" required>
+                                    <option value="user_chat" selected>Usuário do chat</option>
+                                    <option value="administrador">Administrador</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary">Criar usuário</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="admin-edit-modal" class="modal">
+                    <div class="modal-content">
+                        <span id="admin-edit-close" class="close-modal">&times;</span>
+                        <h3>Editar usuário</h3>
+                        <div class="form-group">
+                            <label for="admin-edit-name">Nome</label>
+                            <input type="text" id="admin-edit-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-edit-email">E-mail</label>
+                            <input type="email" id="admin-edit-email" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-edit-role">Tipo de usuário</label>
+                            <select id="admin-edit-role" required>
+                                <option value="user_chat">Usuário do chat</option>
+                                <option value="administrador">Administrador</option>
+                            </select>
+                        </div>
+                        <button id="admin-edit-save" class="btn-primary">Salvar alterações</button>
+                    </div>
+                </div>
+            </section>
+        </div>
     </div>
 
     <script src="script.js"></script>
