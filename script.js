@@ -69,6 +69,7 @@ const btnAdminPanel = document.getElementById('btn-admin-panel');
 const btnLogout = document.getElementById('btn-logout');
 const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
+const ADMIN_TAB_STORAGE_KEY = 'camechat_admin_tab';
 
 // Admin panel
 const chatPanel = document.getElementById('chat-panel');
@@ -120,6 +121,7 @@ const callIndicator = document.getElementById('call-indicator');
 const callModal = document.getElementById('call-modal');
 const callTitle = document.getElementById('call-title');
 const callStatus = document.getElementById('call-status');
+const callCountdown = document.getElementById('call-countdown');
 const callUserPhoto = document.getElementById('call-user-photo');
 const callUserName = document.getElementById('call-user-name');
 const callMedia = document.getElementById('call-media');
@@ -174,6 +176,12 @@ let callPhase = null;
 let currentCallType = null;
 let ringtoneInterval = null;
 let ringtoneContext = null;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchTracking = false;
+let callCountdownInterval = null;
+let callCountdownRemaining = 0;
+let callCountdownBaseStatus = '';
 
 // ========== FUNÇÕES DE AUTENTICAÇÃO ==========
 
@@ -906,6 +914,48 @@ function stopRingtone() {
     }
 }
 
+function clearCallCountdown() {
+    if (callCountdownInterval) {
+        clearInterval(callCountdownInterval);
+    }
+    callCountdownInterval = null;
+    callCountdownRemaining = 0;
+    if (callStatus && callPhase === 'outgoing' && callCountdownBaseStatus) {
+        callStatus.textContent = callCountdownBaseStatus;
+    }
+    callCountdownBaseStatus = '';
+    if (callCountdown) {
+        callCountdown.classList.add('hidden');
+        callCountdown.textContent = '';
+    }
+}
+
+function startCallCountdown(seconds, baseStatus = 'Aguardando resposta') {
+    clearCallCountdown();
+    callCountdownRemaining = seconds;
+    callCountdownBaseStatus = baseStatus;
+    if (callCountdown) {
+        callCountdown.textContent = `${callCountdownRemaining}s`;
+        callCountdown.classList.remove('hidden');
+    }
+    if (callStatus && baseStatus) {
+        callStatus.textContent = `${baseStatus} (${callCountdownRemaining}s)`;
+    }
+    callCountdownInterval = setInterval(() => {
+        callCountdownRemaining -= 1;
+        if (callCountdownRemaining <= 0) {
+            clearCallCountdown();
+            return;
+        }
+        if (callCountdown) {
+            callCountdown.textContent = `${callCountdownRemaining}s`;
+        }
+        if (callStatus && baseStatus) {
+            callStatus.textContent = `${baseStatus} (${callCountdownRemaining}s)`;
+        }
+    }, 1000);
+}
+
 function startRingtone(mode = 'incoming') {
     stopRingtone();
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -989,6 +1039,7 @@ function resetCallState() {
     if (callUserPhoto) callUserPhoto.classList.remove('hidden');
     updateCallIndicator(null);
     stopRingtone();
+    clearCallCountdown();
 }
 
 function updateCallModal({ title, status, user }) {
@@ -1008,6 +1059,40 @@ function setCallButtonsVisibility(mode) {
     callAcceptBtn.classList.toggle('hidden', mode !== 'incoming');
     callRejectBtn.classList.toggle('hidden', mode !== 'incoming');
     callHangupBtn.classList.toggle('hidden', mode === 'incoming');
+}
+
+function waitForOffer(timeoutMs = 5000) {
+    if (!callDocRef) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+        let settled = false;
+        const timeout = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            if (unsubscribe) unsubscribe();
+            resolve(null);
+        }, timeoutMs);
+
+        const unsubscribe = callDocRef.onSnapshot((snapshot) => {
+            const data = snapshot.data();
+            if (!data) return;
+            if (data.offer) {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                unsubscribe();
+                resolve(data.offer);
+                return;
+            }
+            if (data.status === 'ended' || data.status === 'rejected') {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                unsubscribe();
+                resolve(null);
+            }
+        });
+    });
 }
 
 async function preparePeerConnection(options = {}) {
@@ -1128,6 +1213,7 @@ async function startCall(callType = 'audio') {
                 callTimeout = null;
             }
             stopRingtone();
+            clearCallCountdown();
             updateCallIndicator('active', currentCallType || callType);
             updateCallModal({
                 title: callType === 'video' ? 'Chamada de v??deo' : 'Chamada de voz',
@@ -1149,6 +1235,7 @@ async function startCall(callType = 'audio') {
         user: selectedFriendData
     });
     startRingtone('outgoing');
+    startCallCountdown(40, 'Aguardando resposta');
 
     callTimeout = setTimeout(async () => {
         if (callDocRef) {
@@ -1158,7 +1245,7 @@ async function startCall(callType = 'audio') {
             }, { merge: true });
         }
         resetCallState();
-    }, 30000);
+    }, 40000);
 }
 
 
@@ -1234,14 +1321,25 @@ async function acceptIncomingCall() {
         }
     };
 
-    const offer = activeCallData.offer;
-    if (!offer) {
-        alert('Não foi possível atender esta chamada.');
+    let resolvedOffer = activeCallData.offer;
+    if (!resolvedOffer && callDocRef) {
+        try {
+            const freshDoc = await callDocRef.get();
+            resolvedOffer = freshDoc.data()?.offer || null;
+        } catch (error) {
+            resolvedOffer = null;
+        }
+    }
+    if (!resolvedOffer) {
+        resolvedOffer = await waitForOffer(5000);
+    }
+    if (!resolvedOffer) {
+        alert('N??o foi poss??vel atender esta chamada.');
         resetCallState();
         return;
     }
 
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(resolvedOffer));
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
@@ -1272,6 +1370,7 @@ async function acceptIncomingCall() {
 
     setCallButtonsVisibility('active');
     stopRingtone();
+    clearCallCountdown();
     updateCallIndicator('active', currentCallType || activeCallData.type || 'audio');
     updateCallModal({
         title: (currentCallType || activeCallData.type) === 'video' ? 'Chamada de v??deo' : 'Chamada de voz',
@@ -1408,7 +1507,8 @@ function setAdminPanelVisible(show) {
         btnAdminPanel.textContent = show ? 'Chat' : 'Admin';
     }
     if (show) {
-        setAdminTab(adminPanel.dataset.activeTab || 'metrics');
+        const storedTab = getStoredAdminTab();
+        setAdminTab(storedTab || adminPanel.dataset.activeTab || 'metrics');
     }
 }
 
@@ -1424,6 +1524,7 @@ function setAdminTab(tab) {
     if (!adminPanel || !adminTabs) return;
     const safeTab = tab || 'metrics';
     adminPanel.dataset.activeTab = safeTab;
+    storeAdminTab(safeTab);
     const buttons = adminTabs.querySelectorAll('.admin-tab');
     buttons.forEach(button => {
         button.classList.toggle('active', button.dataset.tab === safeTab);
@@ -1433,9 +1534,31 @@ function setAdminTab(tab) {
 function setSidebarOpen(open) {
     if (!app) return;
     app.classList.toggle('sidebar-open', open);
+    document.body.classList.toggle('sidebar-open', open);
     if (sidebarOverlay) {
         sidebarOverlay.classList.toggle('show', open);
     }
+}
+
+function getStoredAdminTab() {
+    try {
+        const value = localStorage.getItem(ADMIN_TAB_STORAGE_KEY);
+        return value || null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function storeAdminTab(tab) {
+    try {
+        localStorage.setItem(ADMIN_TAB_STORAGE_KEY, tab);
+    } catch (error) {
+        // ignore
+    }
+}
+
+function isMobileLayout() {
+    return window.matchMedia('(max-width: 900px)').matches;
 }
 
 function loadAdminUsers() {
@@ -1607,13 +1730,46 @@ if (sidebarOverlay) {
     });
 }
 
+document.addEventListener('touchstart', (event) => {
+    if (!isMobileLayout()) return;
+    if (!event.touches || event.touches.length !== 1) return;
+    touchTracking = true;
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+});
+
+document.addEventListener('touchend', (event) => {
+    if (!touchTracking) return;
+    touchTracking = false;
+    if (!isMobileLayout()) return;
+    if (!event.changedTouches || event.changedTouches.length !== 1) return;
+
+    const endX = event.changedTouches[0].clientX;
+    const endY = event.changedTouches[0].clientY;
+    const deltaX = endX - touchStartX;
+    const deltaY = Math.abs(endY - touchStartY);
+
+    if (deltaY > 80) return;
+    const swipeDistance = 70;
+    const fromLeftEdge = touchStartX < 30;
+    const sidebarIsOpen = app?.classList.contains('sidebar-open');
+
+    if (deltaX > swipeDistance && fromLeftEdge && !sidebarIsOpen) {
+        setSidebarOpen(true);
+    }
+
+    if (deltaX < -swipeDistance && sidebarIsOpen) {
+        setSidebarOpen(false);
+    }
+});
+
 if (adminTabs) {
     adminTabs.querySelectorAll('.admin-tab').forEach(tabButton => {
         tabButton.addEventListener('click', () => {
             setAdminTab(tabButton.dataset.tab);
         });
     });
-    setAdminTab(adminPanel?.dataset?.activeTab || 'metrics');
+    setAdminTab(getStoredAdminTab() || adminPanel?.dataset?.activeTab || 'metrics');
 }
 
 if (adminEditClose) {
