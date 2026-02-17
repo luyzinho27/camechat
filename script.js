@@ -9,6 +9,13 @@ const firebaseConfig = {
 };
 
 const BACKEND_BASE_URL = (window.CAMECHAT_BACKEND_URL || '').replace(/\/$/, '');
+const RTC_CONFIG = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+};
 
 // Inicializa Firebase
 firebase.initializeApp(firebaseConfig);
@@ -60,6 +67,8 @@ const friendEmailInput = document.getElementById('friend-email');
 const btnAddFriend = document.getElementById('btn-add-friend');
 const btnAdminPanel = document.getElementById('btn-admin-panel');
 const btnLogout = document.getElementById('btn-logout');
+const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
 
 // Admin panel
 const chatPanel = document.getElementById('chat-panel');
@@ -79,6 +88,48 @@ const adminEditName = document.getElementById('admin-edit-name');
 const adminEditEmail = document.getElementById('admin-edit-email');
 const adminEditRole = document.getElementById('admin-edit-role');
 const adminEditSave = document.getElementById('admin-edit-save');
+const adminTabs = document.getElementById('admin-tabs');
+
+// Profile modal
+const profileModal = document.getElementById('profile-modal');
+const profileCloseModal = document.getElementById('profile-close-modal');
+const profileCropFrame = document.getElementById('profile-crop-frame');
+const profileCropImage = document.getElementById('profile-crop-image');
+const profileZoom = document.getElementById('profile-zoom');
+const profileCenterBtn = document.getElementById('profile-center-btn');
+const profilePhotoInput = document.getElementById('profile-photo-input');
+const profileSaveBtn = document.getElementById('profile-save-btn');
+const profileCancelBtn = document.getElementById('profile-cancel-btn');
+
+// Friend modal
+const friendModal = document.getElementById('friend-modal');
+const friendCloseModal = document.getElementById('friend-close-modal');
+const friendPreviewImage = document.getElementById('friend-preview-image');
+const friendDetailName = document.getElementById('friend-detail-name');
+const friendDetailEmail = document.getElementById('friend-detail-email');
+const friendDetailStatus = document.getElementById('friend-detail-status');
+const friendBlockedBadge = document.getElementById('friend-blocked-badge');
+const friendRemoveBtn = document.getElementById('friend-remove-btn');
+const friendBlockBtn = document.getElementById('friend-block-btn');
+const friendUnblockBtn = document.getElementById('friend-unblock-btn');
+
+// Call modal
+const btnCall = document.getElementById('btn-call');
+const btnVideoCall = document.getElementById('btn-video-call');
+const callIndicator = document.getElementById('call-indicator');
+const callModal = document.getElementById('call-modal');
+const callTitle = document.getElementById('call-title');
+const callStatus = document.getElementById('call-status');
+const callUserPhoto = document.getElementById('call-user-photo');
+const callUserName = document.getElementById('call-user-name');
+const callMedia = document.getElementById('call-media');
+const localVideo = document.getElementById('local-video');
+const remoteVideo = document.getElementById('remote-video');
+const callAcceptBtn = document.getElementById('call-accept-btn');
+const callRejectBtn = document.getElementById('call-reject-btn');
+const callHangupBtn = document.getElementById('call-hangup-btn');
+const localAudio = document.getElementById('local-audio');
+const remoteAudio = document.getElementById('remote-audio');
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -94,6 +145,35 @@ let onlineStatusInterval = null;
 let currentUserDocUnsubscribe = null;
 let editingUserId = null;
 let registerPhotoPreviewUrl = null;
+let profilePhotoPreviewUrl = null;
+let pendingProfilePhotoFile = null;
+let cropBaseScale = 1;
+let cropScale = 1;
+let cropOffsetX = 0;
+let cropOffsetY = 0;
+let cropDragging = false;
+let cropStartX = 0;
+let cropStartY = 0;
+let cropStartOffsetX = 0;
+let cropStartOffsetY = 0;
+let profileCropReady = false;
+let selectedFriendData = null;
+let callDocRef = null;
+let callDocUnsubscribe = null;
+let incomingCallUnsubscribe = null;
+let callerCandidatesUnsubscribe = null;
+let calleeCandidatesUnsubscribe = null;
+let peerConnection = null;
+let localStream = null;
+let remoteStream = null;
+let currentCallId = null;
+let currentCallRole = null;
+let activeCallData = null;
+let callTimeout = null;
+let callPhase = null;
+let currentCallType = null;
+let ringtoneInterval = null;
+let ringtoneContext = null;
 
 // ========== FUNÇÕES DE AUTENTICAÇÃO ==========
 
@@ -211,6 +291,7 @@ async function ensureUserDocument(user, options = {}) {
         photoData: options.photoData ?? null,
         role: options.role || 'user_chat',
         friends: Array.isArray(options.friends) ? options.friends : [],
+        blocked: Array.isArray(options.blocked) ? options.blocked : [],
         online: true,
         lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -240,6 +321,7 @@ async function ensureUserDocument(user, options = {}) {
     if (shouldUpdatePhoto) updates.photoURL = options.photoURL ?? null;
     if (shouldUpdatePhotoData) updates.photoData = options.photoData ?? null;
     if (!Array.isArray(data.friends)) updates.friends = [];
+    if (!Array.isArray(data.blocked)) updates.blocked = [];
 
     if (Object.keys(updates).length > 0) {
         updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -473,6 +555,12 @@ window.addEventListener('click', (e) => {
         forgotModal.classList.remove('show');
         resetEmail.value = '';
     }
+    if (profileModal && e.target === profileModal) {
+        closeProfileModal();
+    }
+    if (friendModal && e.target === friendModal) {
+        closeFriendModal();
+    }
     if (adminEditModal && e.target === adminEditModal) {
         closeAdminEditModal();
     }
@@ -581,6 +669,8 @@ auth.onAuthStateChanged(async (user) => {
         
         // Carregar usuários e conversas
         loadUsers();
+
+        listenForIncomingCalls();
         
         // Atualizar lastSeen ao fechar a página
         window.addEventListener('beforeunload', () => {
@@ -602,23 +692,30 @@ auth.onAuthStateChanged(async (user) => {
         }
         chatPartnerName.textContent = 'Selecione um usuário';
         chatPartnerStatus.textContent = '';
+        selectedFriendData = null;
         
         // Cleanup
         if (messagesUnsubscribe) messagesUnsubscribe();
         if (usersUnsubscribe) usersUnsubscribe();
         if (adminUsersUnsubscribe) adminUsersUnsubscribe();
         if (currentUserDocUnsubscribe) currentUserDocUnsubscribe();
+        if (incomingCallUnsubscribe) incomingCallUnsubscribe();
         messagesUnsubscribe = null;
         usersUnsubscribe = null;
         adminUsersUnsubscribe = null;
         currentUserDocUnsubscribe = null;
+        incomingCallUnsubscribe = null;
         if (onlineStatusInterval) clearInterval(onlineStatusInterval);
-        
+
         selectedUserId = null;
         if (btnEmoji) btnEmoji.disabled = true;
         if (btnAttach) btnAttach.disabled = true;
         if (btnSend) btnSend.disabled = true;
         if (messageInput) messageInput.disabled = true;
+        if (btnCall) btnCall.disabled = true;
+        if (btnVideoCall) btnVideoCall.disabled = true;
+        setSidebarOpen(false);
+        resetCallState();
     }
 });
 
@@ -662,6 +759,9 @@ function subscribeToCurrentUserDoc() {
             currentUserProfile = { ...(currentUserProfile || {}), ...data };
             currentUserRole = data.role || currentUserRole || 'user_chat';
             currentFriends = Array.isArray(data.friends) ? data.friends : [];
+            if (!Array.isArray(currentUserProfile.blocked)) {
+                currentUserProfile.blocked = [];
+            }
 
             if (data.name) userName.textContent = data.name;
             if (data.photoURL) {
@@ -696,6 +796,532 @@ function hydratePhotoFromUrl(imgEl, url, fallback) {
         if (fallback) imgEl.src = fallback;
     };
     image.src = url;
+}
+
+function updateCropTransform() {
+    if (!profileCropImage || !profileCropFrame || !profileCropReady) return;
+    const frameSize = profileCropFrame.clientWidth;
+    const displayWidth = profileCropImage.naturalWidth * cropScale;
+    const displayHeight = profileCropImage.naturalHeight * cropScale;
+    const maxOffsetX = Math.max(0, (displayWidth - frameSize) / 2);
+    const maxOffsetY = Math.max(0, (displayHeight - frameSize) / 2);
+
+    cropOffsetX = Math.min(maxOffsetX, Math.max(-maxOffsetX, cropOffsetX));
+    cropOffsetY = Math.min(maxOffsetY, Math.max(-maxOffsetY, cropOffsetY));
+
+    profileCropImage.style.transform = `translate(-50%, -50%) translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropScale})`;
+}
+
+function resetCropPosition() {
+    cropOffsetX = 0;
+    cropOffsetY = 0;
+    updateCropTransform();
+}
+
+function initCropper() {
+    if (!profileCropImage || !profileCropFrame) return;
+    const frameSize = profileCropFrame.clientWidth;
+    cropBaseScale = Math.max(frameSize / profileCropImage.naturalWidth, frameSize / profileCropImage.naturalHeight);
+    const sliderValue = profileZoom ? parseFloat(profileZoom.value) || 1 : 1;
+    cropScale = cropBaseScale * sliderValue;
+    resetCropPosition();
+}
+
+function loadCropImage(src) {
+    if (!profileCropImage) return;
+    profileCropImage.crossOrigin = 'anonymous';
+    profileCropImage.onload = () => {
+        profileCropReady = true;
+        if (profileZoom) profileZoom.value = '1';
+        initCropper();
+    };
+    profileCropImage.onerror = () => {
+        profileCropReady = false;
+    };
+    profileCropImage.src = src;
+}
+
+function createCroppedCanvas(size = 256) {
+    if (!profileCropImage || !profileCropFrame || !profileCropReady) return null;
+
+    const frameSize = profileCropFrame.clientWidth;
+    const displayWidth = profileCropImage.naturalWidth * cropScale;
+    const displayHeight = profileCropImage.naturalHeight * cropScale;
+    const imgLeft = frameSize / 2 + cropOffsetX - displayWidth / 2;
+    const imgTop = frameSize / 2 + cropOffsetY - displayHeight / 2;
+    const sourceSize = frameSize / cropScale;
+
+    let sx = (0 - imgLeft) / cropScale;
+    let sy = (0 - imgTop) / cropScale;
+
+    sx = Math.max(0, Math.min(profileCropImage.naturalWidth - sourceSize, sx));
+    sy = Math.max(0, Math.min(profileCropImage.naturalHeight - sourceSize, sy));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(profileCropImage, sx, sy, sourceSize, sourceSize, 0, 0, size, size);
+    return canvas;
+}
+
+function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.85) {
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), type, quality);
+    });
+}
+
+function getCallTypeLabel(type) {
+    return type === 'video' ? 'vÃ­deo' : 'voz';
+}
+
+function updateCallIndicator(phase, type) {
+    if (!callIndicator) return;
+    if (!phase) {
+        callIndicator.textContent = '';
+        callIndicator.classList.add('hidden');
+        return;
+    }
+    const labelType = getCallTypeLabel(type);
+    let text = 'Em chamada';
+    if (phase === 'incoming') text = `Chamada de ${labelType} recebida`;
+    if (phase === 'outgoing') text = `Chamando (${labelType})`;
+    if (phase === 'active') text = `Em chamada (${labelType})`;
+    callIndicator.textContent = text;
+    callIndicator.classList.remove('hidden');
+}
+
+function updateCallMediaVisibility(type) {
+    const isVideo = type === 'video';
+    if (callMedia) callMedia.classList.toggle('hidden', !isVideo);
+    if (callUserPhoto) callUserPhoto.classList.toggle('hidden', isVideo);
+}
+
+function stopRingtone() {
+    if (ringtoneInterval) clearInterval(ringtoneInterval);
+    ringtoneInterval = null;
+    if (ringtoneContext) {
+        ringtoneContext.close();
+        ringtoneContext = null;
+    }
+}
+
+function startRingtone(mode = 'incoming') {
+    stopRingtone();
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    try {
+        ringtoneContext = new AudioContext();
+        if (ringtoneContext.state === 'suspended') {
+            ringtoneContext.resume();
+        }
+        const interval = mode === 'incoming' ? 1800 : 2200;
+        const beep = () => {
+            if (!ringtoneContext) return;
+            const osc = ringtoneContext.createOscillator();
+            const gain = ringtoneContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = mode === 'incoming' ? 440 : 520;
+            gain.gain.value = 0.18;
+            osc.connect(gain);
+            gain.connect(ringtoneContext.destination);
+            osc.start();
+            osc.stop(ringtoneContext.currentTime + 0.3);
+        };
+        beep();
+        ringtoneInterval = setInterval(beep, interval);
+    } catch (error) {
+        console.warn('NÃ£o foi possÃ­vel tocar o toque da chamada.', error);
+    }
+}
+
+function resetCallState() {
+    if (callDocUnsubscribe) callDocUnsubscribe();
+    if (callerCandidatesUnsubscribe) callerCandidatesUnsubscribe();
+    if (calleeCandidatesUnsubscribe) calleeCandidatesUnsubscribe();
+    callDocUnsubscribe = null;
+    callerCandidatesUnsubscribe = null;
+    calleeCandidatesUnsubscribe = null;
+
+    if (peerConnection) {
+        peerConnection.ontrack = null;
+        peerConnection.onicecandidate = null;
+        peerConnection.onconnectionstatechange = null;
+        peerConnection.close();
+    }
+    peerConnection = null;
+
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+    localStream = null;
+
+    if (remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
+    }
+    remoteStream = null;
+
+    if (localAudio) localAudio.srcObject = null;
+    if (remoteAudio) remoteAudio.srcObject = null;
+    if (localVideo) localVideo.srcObject = null;
+    if (remoteVideo) remoteVideo.srcObject = null;
+
+    callDocRef = null;
+    currentCallId = null;
+    currentCallRole = null;
+    activeCallData = null;
+    callPhase = null;
+    currentCallType = null;
+
+    if (callTimeout) clearTimeout(callTimeout);
+    callTimeout = null;
+
+    if (callModal) callModal.classList.remove('show');
+
+    if (btnCall) {
+        btnCall.disabled = !selectedFriendData || isFriendBlocked(selectedFriendData.uid);
+    }
+    if (btnVideoCall) {
+        btnVideoCall.disabled = !selectedFriendData || isFriendBlocked(selectedFriendData.uid);
+    }
+
+    if (callMedia) callMedia.classList.add('hidden');
+    if (callUserPhoto) callUserPhoto.classList.remove('hidden');
+    updateCallIndicator(null);
+    stopRingtone();
+}
+
+function updateCallModal({ title, status, user }) {
+    if (callTitle) callTitle.textContent = title || 'Chamada de voz';
+    if (callStatus) callStatus.textContent = status || '';
+    if (callUserName) callUserName.textContent = user?.name || 'Usuário';
+    if (callUserPhoto) {
+        const fallback = user?.photoData || 'https://via.placeholder.com/90/cccccc/666666?text=User';
+        callUserPhoto.src = fallback;
+        if (user?.photoURL) hydratePhotoFromUrl(callUserPhoto, user.photoURL, fallback);
+    }
+    if (callModal) callModal.classList.add('show');
+}
+
+function setCallButtonsVisibility(mode) {
+    if (!callAcceptBtn || !callRejectBtn || !callHangupBtn) return;
+    callAcceptBtn.classList.toggle('hidden', mode !== 'incoming');
+    callRejectBtn.classList.toggle('hidden', mode !== 'incoming');
+    callHangupBtn.classList.toggle('hidden', mode === 'incoming');
+}
+
+async function preparePeerConnection(options = {}) {
+    const wantsVideo = options.video === true;
+    peerConnection = new RTCPeerConnection(RTC_CONFIG);
+    remoteStream = new MediaStream();
+    if (remoteAudio) remoteAudio.srcObject = remoteStream;
+    if (remoteVideo) remoteVideo.srcObject = remoteStream;
+
+    peerConnection.ontrack = (event) => {
+        event.streams[0].getTracks().forEach(track => {
+            remoteStream.addTrack(track);
+        });
+    };
+
+    peerConnection.onconnectionstatechange = () => {
+        if (!peerConnection) return;
+        const state = peerConnection.connectionState;
+        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+            endCall('ended');
+        }
+    };
+
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: wantsVideo });
+    if (localAudio) localAudio.srcObject = localStream;
+    if (localVideo) localVideo.srcObject = localStream;
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    updateCallMediaVisibility(wantsVideo ? 'video' : 'audio');
+}
+
+async function startCall(callType = 'audio') {
+    if (!selectedFriendData || !currentUser) return;
+    if (isFriendBlocked(selectedFriendData.uid)) {
+        alert('Voc?? bloqueou este usu??rio.');
+        return;
+    }
+    if (currentCallId) {
+        alert('J?? existe uma chamada em andamento.');
+        return;
+    }
+
+    try {
+        currentCallType = callType;
+        await preparePeerConnection({ video: callType === 'video' });
+    } catch (error) {
+        if (callType === 'video') {
+            const fallback = confirm('N??o foi poss??vel acessar a c??mera. Deseja iniciar uma chamada de voz?');
+            if (!fallback) {
+                return;
+            }
+            callType = 'audio';
+            currentCallType = 'audio';
+            try {
+                await preparePeerConnection({ video: false });
+            } catch (audioError) {
+                alert('N??o foi poss??vel acessar o microfone.');
+                return;
+            }
+        } else {
+            alert('N??o foi poss??vel acessar o microfone.');
+            return;
+        }
+    }
+
+    const callData = {
+        callerId: currentUser.uid,
+        callerName: currentUserProfile?.name || currentUser.displayName || 'Usu??rio',
+        callerPhotoURL: currentUserProfile?.photoURL || null,
+        callerPhotoData: currentUserProfile?.photoData || null,
+        calleeId: selectedFriendData.uid,
+        calleeName: selectedFriendData.name || 'Usu??rio',
+        calleePhotoURL: selectedFriendData.photoURL || null,
+        calleePhotoData: selectedFriendData.photoData || null,
+        type: callType,
+        status: 'ringing',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    callDocRef = await db.collection('calls').add(callData);
+    currentCallId = callDocRef.id;
+    currentCallRole = 'caller';
+    activeCallData = callData;
+    callPhase = 'outgoing';
+    if (btnCall) btnCall.disabled = true;
+    if (btnVideoCall) btnVideoCall.disabled = true;
+
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            callDocRef.collection('callerCandidates').add(event.candidate.toJSON());
+        }
+    };
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    await callDocRef.update({ offer });
+
+    calleeCandidatesUnsubscribe = callDocRef.collection('calleeCandidates')
+        .onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                }
+            });
+        });
+
+    callDocUnsubscribe = callDocRef.onSnapshot(snapshot => {
+        const data = snapshot.data();
+        if (!data) return;
+        if (data.answer && !peerConnection.currentRemoteDescription) {
+            peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            callPhase = 'active';
+            if (callTimeout) {
+                clearTimeout(callTimeout);
+                callTimeout = null;
+            }
+            stopRingtone();
+            updateCallIndicator('active', currentCallType || callType);
+            updateCallModal({
+                title: callType === 'video' ? 'Chamada de v??deo' : 'Chamada de voz',
+                status: 'Conectado',
+                user: selectedFriendData
+            });
+            setCallButtonsVisibility('active');
+        }
+        if (data.status === 'rejected' || data.status === 'ended') {
+            resetCallState();
+        }
+    });
+
+    setCallButtonsVisibility('outgoing');
+    updateCallIndicator('outgoing', callType);
+    updateCallModal({
+        title: callType === 'video' ? 'Chamada de v??deo' : 'Chamada de voz',
+        status: 'Aguardando resposta',
+        user: selectedFriendData
+    });
+    startRingtone('outgoing');
+
+    callTimeout = setTimeout(async () => {
+        if (callDocRef) {
+            await callDocRef.set({
+                status: 'ended',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
+        resetCallState();
+    }, 30000);
+}
+
+
+async function handleIncomingCall(callDoc) {
+    if (currentCallId) {
+        await callDoc.ref.set({ status: 'rejected', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        return;
+    }
+
+    const data = callDoc.data();
+    if (!data) return;
+
+    if (isFriendBlocked(data.callerId)) {
+        await callDoc.ref.set({ status: 'rejected', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        return;
+    }
+
+    callDocRef = callDoc.ref;
+    currentCallId = callDoc.id;
+    currentCallRole = 'callee';
+    activeCallData = data;
+    currentCallType = data.type || 'audio';
+    callPhase = 'incoming';
+    if (btnCall) btnCall.disabled = true;
+    if (btnVideoCall) btnVideoCall.disabled = true;
+
+    updateCallMediaVisibility(currentCallType);
+    setCallButtonsVisibility('incoming');
+    updateCallIndicator('incoming', currentCallType);
+    updateCallModal({
+        title: currentCallType === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
+        status: 'Deseja atender?',
+        user: {
+            name: data.callerName,
+            photoURL: data.callerPhotoURL,
+            photoData: data.callerPhotoData
+        }
+    });
+    startRingtone('incoming');
+}
+
+async function acceptIncomingCall() {
+    if (!callDocRef || !activeCallData || currentCallRole !== 'callee') return;
+
+    try {
+        const wantsVideo = (currentCallType || activeCallData.type) === 'video';
+        await preparePeerConnection({ video: wantsVideo });
+    } catch (error) {
+        if ((currentCallType || activeCallData.type) === 'video') {
+            const fallback = confirm('N??o foi poss??vel acessar a c??mera. Deseja atender apenas com ??udio?');
+            if (!fallback) {
+                await rejectIncomingCall();
+                return;
+            }
+            currentCallType = 'audio';
+            try {
+                await preparePeerConnection({ video: false });
+            } catch (audioError) {
+                alert('N??o foi poss??vel acessar o microfone.');
+                await rejectIncomingCall();
+                return;
+            }
+        } else {
+            alert('N??o foi poss??vel acessar o microfone.');
+            await rejectIncomingCall();
+            return;
+        }
+    }
+
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            callDocRef.collection('calleeCandidates').add(event.candidate.toJSON());
+        }
+    };
+
+    const offer = activeCallData.offer;
+    if (!offer) {
+        alert('Não foi possível atender esta chamada.');
+        resetCallState();
+        return;
+    }
+
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+
+    callPhase = 'active';
+
+    await callDocRef.update({
+        answer,
+        status: 'accepted',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    callerCandidatesUnsubscribe = callDocRef.collection('callerCandidates')
+        .onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                }
+            });
+        });
+
+    callDocUnsubscribe = callDocRef.onSnapshot(snapshot => {
+        const data = snapshot.data();
+        if (!data) return;
+        if (data.status === 'ended' || data.status === 'rejected') {
+            resetCallState();
+        }
+    });
+
+    setCallButtonsVisibility('active');
+    stopRingtone();
+    updateCallIndicator('active', currentCallType || activeCallData.type || 'audio');
+    updateCallModal({
+        title: (currentCallType || activeCallData.type) === 'video' ? 'Chamada de v??deo' : 'Chamada de voz',
+        status: 'Conectado',
+        user: {
+            name: activeCallData.callerName,
+            photoURL: activeCallData.callerPhotoURL,
+            photoData: activeCallData.callerPhotoData
+        }
+    });
+}
+
+async function rejectIncomingCall() {
+    if (!callDocRef) return;
+    await callDocRef.set({
+        status: 'rejected',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    resetCallState();
+}
+
+async function endCall(status = 'ended') {
+    if (callDocRef) {
+        await callDocRef.set({
+            status,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    }
+    resetCallState();
+}
+
+function listenForIncomingCalls() {
+    if (!currentUser) return;
+    if (incomingCallUnsubscribe) incomingCallUnsubscribe();
+
+    incomingCallUnsubscribe = db.collection('calls')
+        .where('calleeId', '==', currentUser.uid)
+        .where('status', '==', 'ringing')
+        .onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    handleIncomingCall(change.doc);
+                }
+                if (change.type === 'removed') {
+                    if (currentCallId === change.doc.id && callPhase === 'incoming') {
+                        resetCallState();
+                    }
+                }
+            });
+        });
 }
 
 async function findUserByEmail(email) {
@@ -742,6 +1368,28 @@ async function addFriendByEmail(email) {
     alert('Usuário adicionado à sua lista de amigos.');
 }
 
+async function removeFriend(friendId) {
+    if (!currentUser || !friendId) return;
+    await db.collection('users').doc(currentUser.uid).set({
+        friends: firebase.firestore.FieldValue.arrayRemove(friendId),
+        blocked: firebase.firestore.FieldValue.arrayRemove(friendId)
+    }, { merge: true });
+}
+
+async function blockFriend(friendId) {
+    if (!currentUser || !friendId) return;
+    await db.collection('users').doc(currentUser.uid).set({
+        blocked: firebase.firestore.FieldValue.arrayUnion(friendId)
+    }, { merge: true });
+}
+
+async function unblockFriend(friendId) {
+    if (!currentUser || !friendId) return;
+    await db.collection('users').doc(currentUser.uid).set({
+        blocked: firebase.firestore.FieldValue.arrayRemove(friendId)
+    }, { merge: true });
+}
+
 function updateRoleBadge(role) {
     if (!userRoleBadge) return;
     if (role === 'administrador') {
@@ -759,6 +1407,9 @@ function setAdminPanelVisible(show) {
     if (btnAdminPanel) {
         btnAdminPanel.textContent = show ? 'Chat' : 'Admin';
     }
+    if (show) {
+        setAdminTab(adminPanel.dataset.activeTab || 'metrics');
+    }
 }
 
 function setAdminAccess(isAdmin) {
@@ -766,6 +1417,24 @@ function setAdminAccess(isAdmin) {
     btnAdminPanel.classList.toggle('hidden', !isAdmin);
     if (!isAdmin) {
         setAdminPanelVisible(false);
+    }
+}
+
+function setAdminTab(tab) {
+    if (!adminPanel || !adminTabs) return;
+    const safeTab = tab || 'metrics';
+    adminPanel.dataset.activeTab = safeTab;
+    const buttons = adminTabs.querySelectorAll('.admin-tab');
+    buttons.forEach(button => {
+        button.classList.toggle('active', button.dataset.tab === safeTab);
+    });
+}
+
+function setSidebarOpen(open) {
+    if (!app) return;
+    app.classList.toggle('sidebar-open', open);
+    if (sidebarOverlay) {
+        sidebarOverlay.classList.toggle('show', open);
     }
 }
 
@@ -850,6 +1519,7 @@ async function createUserAsAdmin({ name, email, password, role }) {
             photoURL: userCredential.user.photoURL || null,
             role: role,
             friends: [],
+            blocked: [],
             online: false,
             lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -921,7 +1591,29 @@ if (btnAdminPanel) {
     btnAdminPanel.addEventListener('click', () => {
         const isVisible = adminPanel && !adminPanel.classList.contains('hidden');
         setAdminPanelVisible(!isVisible);
+        setSidebarOpen(false);
     });
+}
+
+if (btnToggleSidebar) {
+    btnToggleSidebar.addEventListener('click', () => {
+        setSidebarOpen(true);
+    });
+}
+
+if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+        setSidebarOpen(false);
+    });
+}
+
+if (adminTabs) {
+    adminTabs.querySelectorAll('.admin-tab').forEach(tabButton => {
+        tabButton.addEventListener('click', () => {
+            setAdminTab(tabButton.dataset.tab);
+        });
+    });
+    setAdminTab(adminPanel?.dataset?.activeTab || 'metrics');
 }
 
 if (adminEditClose) {
@@ -1017,7 +1709,8 @@ function loadUsers() {
 function renderFriendUsers() {
     if (!Array.isArray(allUsersCache)) return;
     const friendSet = new Set(currentFriends || []);
-    const friends = allUsersCache.filter(user => friendSet.has(user.uid) && !user.disabled);
+    const blockedSet = new Set(currentUserProfile?.blocked || []);
+    const friends = allUsersCache.filter(user => friendSet.has(user.uid) && !user.disabled && !blockedSet.has(user.uid));
 
     // Ordenar: online primeiro, depois por lastSeen
     friends.sort((a, b) => {
@@ -1029,6 +1722,42 @@ function renderFriendUsers() {
     renderUsers(friends);
     if (totalUsers) {
         totalUsers.textContent = `${friends.length} contato${friends.length !== 1 ? 's' : ''}`;
+    }
+
+    if (selectedFriendData) {
+        const updatedFriend = allUsersCache.find(user => user.uid === selectedFriendData.uid);
+        if (updatedFriend) {
+            selectedFriendData = updatedFriend;
+        }
+        if (friendModal?.classList.contains('show')) {
+            if (friendDetailStatus) friendDetailStatus.textContent = getFriendStatusText(selectedFriendData);
+            updateFriendModalState();
+        }
+    }
+
+    if (selectedFriendData && !friendSet.has(selectedFriendData.uid)) {
+        selectedFriendData = null;
+        if (defaultChatPartnerPhoto) {
+            chatPartnerPhoto.src = defaultChatPartnerPhoto;
+        }
+        chatPartnerName.textContent = 'Selecione um usuário';
+        chatPartnerStatus.textContent = '';
+        messageInput.disabled = true;
+        btnSend.disabled = true;
+        btnAttach.disabled = true;
+        if (btnEmoji) btnEmoji.disabled = true;
+        if (btnCall) btnCall.disabled = true;
+        if (btnVideoCall) btnVideoCall.disabled = true;
+    }
+
+    if (selectedFriendData && blockedSet.has(selectedFriendData.uid)) {
+        messageInput.disabled = true;
+        btnSend.disabled = true;
+        btnAttach.disabled = true;
+        if (btnEmoji) btnEmoji.disabled = true;
+        chatPartnerStatus.textContent = 'Bloqueado';
+        if (btnCall) btnCall.disabled = true;
+        if (btnVideoCall) btnVideoCall.disabled = true;
     }
 }
 
@@ -1100,6 +1829,7 @@ searchUser.addEventListener('input', (e) => {
 // Selecionar usuário para conversar
 async function selectUser(user) {
     selectedUserId = user.uid;
+    selectedFriendData = user;
     
     // Atualizar seleção na lista
     document.querySelectorAll('.user-item').forEach(item => {
@@ -1113,13 +1843,17 @@ async function selectUser(user) {
     if (user.photoURL) {
         hydratePhotoFromUrl(chatPartnerPhoto, user.photoURL, fallbackPhoto);
     }
-    chatPartnerStatus.textContent = user.online ? '🟢 Online' : '⚪ Offline';
+    const isBlocked = isFriendBlocked(user.uid);
+    chatPartnerStatus.textContent = isBlocked ? 'Bloqueado' : (user.online ? '🟢 Online' : '⚪ Offline');
     
     // Habilitar input
-    messageInput.disabled = false;
-    btnSend.disabled = false;
-    btnAttach.disabled = false;
-    if (btnEmoji) btnEmoji.disabled = false;
+    const disableChat = isBlocked;
+    messageInput.disabled = disableChat;
+    btnSend.disabled = disableChat;
+    btnAttach.disabled = disableChat;
+    if (btnEmoji) btnEmoji.disabled = disableChat;
+    if (btnCall) btnCall.disabled = disableChat;
+    if (btnVideoCall) btnVideoCall.disabled = disableChat;
     messageInput.focus();
 
     if (emojiPicker) emojiPicker.classList.add('hidden');
@@ -1129,6 +1863,9 @@ async function selectUser(user) {
     
     // Carregar mensagens
     await loadMessages(user.uid);
+
+    // Fechar sidebar no mobile apÃ³s selecionar
+    setSidebarOpen(false);
 }
 
 // Carregar mensagens em tempo real
@@ -1277,10 +2014,91 @@ function resetRegisterForm() {
     }
 }
 
+function resetProfileModal() {
+    pendingProfilePhotoFile = null;
+    if (profilePhotoInput) profilePhotoInput.value = '';
+    if (profilePhotoPreviewUrl) {
+        URL.revokeObjectURL(profilePhotoPreviewUrl);
+        profilePhotoPreviewUrl = null;
+    }
+    profileCropReady = false;
+}
+
+function openProfileModal() {
+    if (!profileModal) return;
+    const currentPhoto = currentUserProfile?.photoData || currentUserProfile?.photoURL || userPhoto?.src || '';
+    if (currentPhoto) {
+        loadCropImage(currentPhoto);
+    }
+    profileModal.classList.add('show');
+}
+
+function closeProfileModal() {
+    if (!profileModal) return;
+    profileModal.classList.remove('show');
+    resetProfileModal();
+}
+
+function openFriendModal() {
+    if (!friendModal || !selectedFriendData) return;
+    const fallbackPhoto = selectedFriendData.photoData || 'https://via.placeholder.com/120/cccccc/666666?text=User';
+    if (friendPreviewImage) {
+        friendPreviewImage.src = fallbackPhoto;
+        if (selectedFriendData.photoURL) {
+            hydratePhotoFromUrl(friendPreviewImage, selectedFriendData.photoURL, fallbackPhoto);
+        }
+    }
+    if (friendDetailName) friendDetailName.textContent = selectedFriendData.name || 'Usuário';
+    if (friendDetailEmail) friendDetailEmail.textContent = selectedFriendData.email || '';
+    if (friendDetailStatus) friendDetailStatus.textContent = getFriendStatusText(selectedFriendData);
+    updateFriendModalState();
+    friendModal.classList.add('show');
+}
+
+function closeFriendModal() {
+    if (!friendModal) return;
+    friendModal.classList.remove('show');
+    selectedFriendData = null;
+}
+
+function getFriendStatusText(friend) {
+    if (!friend) return '';
+    if (friend.online) return 'Online';
+    if (friend.lastSeen?.toDate) {
+        const lastSeen = formatLastSeen(friend.lastSeen.toDate());
+        return `Offline ${lastSeen}`;
+    }
+    return 'Offline';
+}
+
+function updateFriendModalState() {
+    if (!selectedFriendData) return;
+    const blockedSet = new Set(currentUserProfile?.blocked || []);
+    const isBlocked = blockedSet.has(selectedFriendData.uid);
+
+    if (friendBlockedBadge) {
+        friendBlockedBadge.classList.toggle('hidden', !isBlocked);
+    }
+    if (friendBlockBtn) {
+        friendBlockBtn.classList.toggle('hidden', isBlocked);
+    }
+    if (friendUnblockBtn) {
+        friendUnblockBtn.classList.toggle('hidden', !isBlocked);
+    }
+}
+
+function isFriendBlocked(friendId) {
+    return (currentUserProfile?.blocked || []).includes(friendId);
+}
+
 // Enviar mensagem de texto
 btnSend.addEventListener('click', async () => {
     const text = messageInput.value.trim();
     if (!text || !selectedUserId) return;
+    if (isFriendBlocked(selectedUserId)) {
+        alert('Você bloqueou este usuário.');
+        return;
+    }
     
     const conversationId = getConversationId(currentUser.uid, selectedUserId);
     
@@ -1311,6 +2129,11 @@ btnAttach.addEventListener('click', () => {
 fileUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file || !selectedUserId) {
+        fileUpload.value = '';
+        return;
+    }
+    if (isFriendBlocked(selectedUserId)) {
+        alert('Você bloqueou este usuário.');
         fileUpload.value = '';
         return;
     }
@@ -1392,6 +2215,271 @@ if (friendEmailInput) {
     });
 }
 
+if (chatPartnerPhoto) {
+    chatPartnerPhoto.addEventListener('click', () => {
+        if (!selectedFriendData) return;
+        openFriendModal();
+    });
+}
+
+if (chatPartnerName) {
+    chatPartnerName.addEventListener('click', () => {
+        if (!selectedFriendData) return;
+        openFriendModal();
+    });
+}
+
+if (friendCloseModal) {
+    friendCloseModal.addEventListener('click', closeFriendModal);
+}
+
+if (friendRemoveBtn) {
+    friendRemoveBtn.addEventListener('click', async () => {
+        if (!selectedFriendData) return;
+        const confirmed = confirm('Deseja remover este amigo da sua lista?');
+        if (!confirmed) return;
+        try {
+            await removeFriend(selectedFriendData.uid);
+            closeFriendModal();
+        } catch (error) {
+            alert('Erro ao remover amigo: ' + error.message);
+        }
+    });
+}
+
+if (friendBlockBtn) {
+    friendBlockBtn.addEventListener('click', async () => {
+        if (!selectedFriendData) return;
+        const confirmed = confirm('Deseja bloquear este amigo? Ele não aparecerá mais na sua lista.');
+        if (!confirmed) return;
+        try {
+            await blockFriend(selectedFriendData.uid);
+            if (!currentUserProfile) currentUserProfile = {};
+            currentUserProfile.blocked = Array.isArray(currentUserProfile.blocked) ? currentUserProfile.blocked : [];
+            if (!currentUserProfile.blocked.includes(selectedFriendData.uid)) {
+                currentUserProfile.blocked.push(selectedFriendData.uid);
+            }
+            updateFriendModalState();
+
+            if (selectedUserId === selectedFriendData.uid) {
+                messageInput.disabled = true;
+                btnSend.disabled = true;
+                btnAttach.disabled = true;
+                if (btnEmoji) btnEmoji.disabled = true;
+                chatPartnerStatus.textContent = 'Bloqueado';
+                if (btnCall) btnCall.disabled = true;
+                if (btnVideoCall) btnVideoCall.disabled = true;
+            }
+        } catch (error) {
+            alert('Erro ao bloquear amigo: ' + error.message);
+        }
+    });
+}
+
+if (friendUnblockBtn) {
+    friendUnblockBtn.addEventListener('click', async () => {
+        if (!selectedFriendData) return;
+        try {
+            await unblockFriend(selectedFriendData.uid);
+            if (currentUserProfile?.blocked) {
+                currentUserProfile.blocked = currentUserProfile.blocked.filter(id => id !== selectedFriendData.uid);
+            }
+            updateFriendModalState();
+            if (selectedUserId === selectedFriendData.uid) {
+                chatPartnerStatus.textContent = selectedFriendData.online ? '🟢 Online' : '⚪ Offline';
+                messageInput.disabled = false;
+                btnSend.disabled = false;
+                btnAttach.disabled = false;
+                if (btnEmoji) btnEmoji.disabled = false;
+                if (btnCall) btnCall.disabled = false;
+                if (btnVideoCall) btnVideoCall.disabled = false;
+            }
+        } catch (error) {
+            alert('Erro ao desbloquear amigo: ' + error.message);
+        }
+    });
+}
+
+if (btnCall) {
+    btnCall.addEventListener('click', async () => {
+        if (!selectedFriendData) return;
+        await startCall('audio');
+    });
+}
+
+if (btnVideoCall) {
+    btnVideoCall.addEventListener('click', async () => {
+        if (!selectedFriendData) return;
+        await startCall('video');
+    });
+}
+
+if (callAcceptBtn) {
+    callAcceptBtn.addEventListener('click', async () => {
+        await acceptIncomingCall();
+    });
+}
+
+if (callRejectBtn) {
+    callRejectBtn.addEventListener('click', async () => {
+        await rejectIncomingCall();
+    });
+}
+
+if (callHangupBtn) {
+    callHangupBtn.addEventListener('click', async () => {
+        await endCall('ended');
+    });
+}
+
+if (userPhoto) {
+    userPhoto.addEventListener('click', () => {
+        if (!currentUser) return;
+        openProfileModal();
+    });
+}
+
+if (profileCloseModal) {
+    profileCloseModal.addEventListener('click', closeProfileModal);
+}
+
+if (profileCancelBtn) {
+    profileCancelBtn.addEventListener('click', closeProfileModal);
+}
+
+if (profilePhotoInput) {
+    profilePhotoInput.addEventListener('change', () => {
+        const file = profilePhotoInput.files[0];
+
+        if (profilePhotoPreviewUrl) {
+            URL.revokeObjectURL(profilePhotoPreviewUrl);
+            profilePhotoPreviewUrl = null;
+        }
+
+        if (!file) {
+            pendingProfilePhotoFile = null;
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            alert('Selecione apenas imagens.');
+            profilePhotoInput.value = '';
+            pendingProfilePhotoFile = null;
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('A foto deve ter no máximo 5MB.');
+            profilePhotoInput.value = '';
+            pendingProfilePhotoFile = null;
+            return;
+        }
+
+        pendingProfilePhotoFile = file;
+        profilePhotoPreviewUrl = URL.createObjectURL(file);
+        loadCropImage(profilePhotoPreviewUrl);
+    });
+}
+
+if (profileSaveBtn) {
+    profileSaveBtn.addEventListener('click', async () => {
+        if (!currentUser || !profileCropReady) {
+            closeProfileModal();
+            return;
+        }
+
+        const canvas = createCroppedCanvas(256);
+        if (!canvas) {
+            alert('Não foi possível processar a foto. Tente outra imagem.');
+            return;
+        }
+
+        const photoData = canvas.toDataURL('image/jpeg', 0.85);
+        const blob = await canvasToBlob(canvas, 'image/jpeg', 0.85);
+        const croppedFile = blob ? new File([blob], 'profile.jpg', { type: 'image/jpeg' }) : null;
+
+        let photoUrl = '';
+        if (croppedFile) {
+            try {
+                photoUrl = await uploadProfilePhotoViaBackend(croppedFile, {
+                    displayName: currentUserProfile?.name || currentUser.displayName || 'usuario',
+                    uid: currentUser.uid
+                });
+            } catch (error) {
+                console.warn('Falha no upload via backend, usando fallback base64.', error);
+            }
+        }
+
+        try {
+            await db.collection('users').doc(currentUser.uid).set({
+                photoURL: photoUrl || null,
+                photoData: photoData || null,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            if (photoUrl) {
+                await currentUser.updateProfile({ photoURL: photoUrl });
+            }
+
+            const fallbackPhoto = photoData || 'https://via.placeholder.com/45/002776/ffffff?text=User';
+            userPhoto.src = fallbackPhoto;
+            if (photoUrl) hydratePhotoFromUrl(userPhoto, photoUrl, fallbackPhoto);
+
+            closeProfileModal();
+        } catch (error) {
+            alert('Erro ao atualizar foto: ' + error.message);
+        }
+    });
+}
+
+if (profileZoom) {
+    profileZoom.addEventListener('input', () => {
+        if (!profileCropReady) return;
+        const zoomValue = parseFloat(profileZoom.value) || 1;
+        cropScale = cropBaseScale * zoomValue;
+        updateCropTransform();
+    });
+}
+
+if (profileCenterBtn) {
+    profileCenterBtn.addEventListener('click', () => {
+        resetCropPosition();
+    });
+}
+
+if (profileCropFrame) {
+    profileCropFrame.addEventListener('pointerdown', (e) => {
+        if (!profileCropReady) return;
+        cropDragging = true;
+        cropStartX = e.clientX;
+        cropStartY = e.clientY;
+        cropStartOffsetX = cropOffsetX;
+        cropStartOffsetY = cropOffsetY;
+        profileCropFrame.setPointerCapture(e.pointerId);
+        if (profileCropImage) profileCropImage.classList.add('dragging');
+    });
+
+    profileCropFrame.addEventListener('pointermove', (e) => {
+        if (!cropDragging) return;
+        cropOffsetX = cropStartOffsetX + (e.clientX - cropStartX);
+        cropOffsetY = cropStartOffsetY + (e.clientY - cropStartY);
+        updateCropTransform();
+    });
+
+    const endDrag = (e) => {
+        if (!cropDragging) return;
+        cropDragging = false;
+        if (profileCropImage) profileCropImage.classList.remove('dragging');
+        if (profileCropFrame.hasPointerCapture(e.pointerId)) {
+            profileCropFrame.releasePointerCapture(e.pointerId);
+        }
+    };
+
+    profileCropFrame.addEventListener('pointerup', endDrag);
+    profileCropFrame.addEventListener('pointercancel', endDrag);
+    profileCropFrame.addEventListener('pointerleave', endDrag);
+}
+
 // Atalho Enter
 messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1406,6 +2494,7 @@ btnLogout.addEventListener('click', async () => {
         await updateUserOnlineStatus(false);
         await auth.signOut();
         resetRegisterForm();
+        setSidebarOpen(false);
     } catch (error) {
         alert('Erro ao sair: ' + error.message);
     }
