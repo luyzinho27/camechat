@@ -122,6 +122,7 @@ const callModal = document.getElementById('call-modal');
 const callTitle = document.getElementById('call-title');
 const callStatus = document.getElementById('call-status');
 const callCountdown = document.getElementById('call-countdown');
+const callToast = document.getElementById('call-toast');
 const callUserPhoto = document.getElementById('call-user-photo');
 const callUserName = document.getElementById('call-user-name');
 const callMedia = document.getElementById('call-media');
@@ -182,6 +183,7 @@ let touchTracking = false;
 let callCountdownInterval = null;
 let callCountdownRemaining = 0;
 let callCountdownBaseStatus = '';
+let callReloadScheduled = false;
 
 // ========== FUNÇÕES DE AUTENTICAÇÃO ==========
 
@@ -956,6 +958,12 @@ function startCallCountdown(seconds, baseStatus = 'Aguardando resposta') {
     }, 1000);
 }
 
+function showCallToast(message) {
+    if (!callToast) return;
+    callToast.textContent = message;
+    callToast.classList.remove('hidden');
+}
+
 function startRingtone(mode = 'incoming') {
     stopRingtone();
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -986,6 +994,8 @@ function startRingtone(mode = 'incoming') {
 }
 
 function resetCallState() {
+    const shouldReloadAfterCall = callPhase === 'active';
+
     if (callDocUnsubscribe) callDocUnsubscribe();
     if (callerCandidatesUnsubscribe) callerCandidatesUnsubscribe();
     if (calleeCandidatesUnsubscribe) calleeCandidatesUnsubscribe();
@@ -1040,6 +1050,14 @@ function resetCallState() {
     updateCallIndicator(null);
     stopRingtone();
     clearCallCountdown();
+
+    if (shouldReloadAfterCall && !callReloadScheduled) {
+        callReloadScheduled = true;
+        showCallToast('Chamada encerrada. Recarregando...');
+        setTimeout(() => {
+            window.location.reload();
+        }, 1200);
+    }
 }
 
 function updateCallModal({ title, status, user }) {
