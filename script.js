@@ -47,6 +47,7 @@ const totalUsers = document.getElementById('total-users');
 const chatPartnerName = document.getElementById('chat-partner-name');
 const chatPartnerPhoto = document.getElementById('chat-partner-photo');
 const chatPartnerStatus = document.getElementById('chat-partner-status');
+const defaultChatPartnerPhoto = chatPartnerPhoto?.dataset?.defaultSrc || chatPartnerPhoto?.src || '';
 const messagesContainer = document.getElementById('messages-container');
 const messageInput = document.getElementById('message-input');
 const btnSend = document.getElementById('btn-send');
@@ -592,6 +593,11 @@ auth.onAuthStateChanged(async (user) => {
         setAdminAccess(false);
         updateRegisterRoleAvailability();
         resetRegisterForm();
+        if (defaultChatPartnerPhoto) {
+            chatPartnerPhoto.src = defaultChatPartnerPhoto;
+        }
+        chatPartnerName.textContent = 'Selecione um usuário';
+        chatPartnerStatus.textContent = '';
         
         // Cleanup
         if (messagesUnsubscribe) messagesUnsubscribe();
