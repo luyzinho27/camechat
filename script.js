@@ -8,6 +8,8 @@ const firebaseConfig = {
     appId: "1:405074774387:web:17d2c4e7fd1e35e0c1dd06"
 };
 
+const BACKEND_BASE_URL = (window.CAMECHAT_BACKEND_URL || '').replace(/\/$/, '');
+
 // Inicializa Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -205,6 +207,7 @@ async function ensureUserDocument(user, options = {}) {
         email: emailValue,
         emailLower: emailLower,
         photoURL: options.photoURL ?? user.photoURL ?? null,
+        photoData: options.photoData ?? null,
         role: options.role || 'user_chat',
         friends: Array.isArray(options.friends) ? options.friends : [],
         online: true,
@@ -224,13 +227,17 @@ async function ensureUserDocument(user, options = {}) {
     const shouldUpdateName = options.name && data.name !== options.name;
     const shouldUpdateEmail = options.email && data.email !== options.email;
     const shouldUpdateEmailLower = emailLower && data.emailLower !== emailLower;
-    const shouldUpdatePhoto = options.photoURL && data.photoURL !== options.photoURL;
+    const shouldUpdatePhoto = Object.prototype.hasOwnProperty.call(options, 'photoURL')
+        && data.photoURL !== options.photoURL;
+    const shouldUpdatePhotoData = Object.prototype.hasOwnProperty.call(options, 'photoData')
+        && data.photoData !== options.photoData;
 
     if (!data.role && options.role) updates.role = options.role;
     if (shouldUpdateName) updates.name = options.name;
     if (shouldUpdateEmail) updates.email = options.email;
     if (shouldUpdateEmailLower) updates.emailLower = emailLower;
-    if (shouldUpdatePhoto) updates.photoURL = options.photoURL;
+    if (shouldUpdatePhoto) updates.photoURL = options.photoURL ?? null;
+    if (shouldUpdatePhotoData) updates.photoData = options.photoData ?? null;
     if (!Array.isArray(data.friends)) updates.friends = [];
 
     if (Object.keys(updates).length > 0) {
@@ -242,11 +249,82 @@ async function ensureUserDocument(user, options = {}) {
     return data;
 }
 
-async function uploadProfilePhoto(user, file) {
-    const safeName = file.name.replace(/[^\w.-]/g, '_');
-    const storageRef = storage.ref(`images/profile/${user.uid}/${Date.now()}_${safeName}`);
-    await storageRef.put(file);
-    return storageRef.getDownloadURL();
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+}
+
+function loadImageFromDataUrl(dataUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = dataUrl;
+    });
+}
+
+async function createProfileImageDataUrl(file) {
+    const originalDataUrl = await readFileAsDataUrl(file);
+    const img = await loadImageFromDataUrl(originalDataUrl);
+
+    const maxSize = 256;
+    let { width, height } = img;
+    if (width > height) {
+        if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+        }
+    } else {
+        if (height > maxSize) {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+        }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    return canvas.toDataURL('image/jpeg', 0.8);
+}
+
+async function uploadProfilePhotoViaBackend(file, options = {}) {
+    const formData = new FormData();
+    formData.append('photo', file);
+    if (options.displayName) formData.append('displayName', options.displayName);
+    if (options.uid) formData.append('uid', options.uid);
+
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-profile` : '/api/upload-profile';
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        let errorMessage = 'Erro ao enviar foto.';
+        try {
+            const data = await response.json();
+            if (data?.message) errorMessage = data.message;
+        } catch (error) {
+            // ignore
+        }
+        throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    if (!data?.url) {
+        throw new Error('Resposta inválida do servidor.');
+    }
+    if (BACKEND_BASE_URL && data.url.startsWith('/')) {
+        return `${BACKEND_BASE_URL}${data.url}`;
+    }
+    return data.url;
 }
 
 // Login com email/senha
@@ -313,37 +391,39 @@ registerForm.addEventListener('submit', async (e) => {
         });
 
         const resolvedRole = await resolveRoleForSignup(requestedRole);
+
+        let photoUrl = '';
+        let photoData = '';
+
+        try {
+            photoUrl = await uploadProfilePhotoViaBackend(photoFile, {
+                displayName: name,
+                uid: userCredential.user.uid
+            });
+        } catch (uploadError) {
+            console.warn('Falha no upload via backend, usando fallback base64.', uploadError);
+        }
+
+        if (!photoUrl) {
+            try {
+                photoData = await createProfileImageDataUrl(photoFile);
+            } catch (error) {
+                console.error('Erro ao processar a foto:', error);
+                alert('Não foi possível processar a foto. Tente outra imagem.');
+                return;
+            }
+        }
+
         await ensureUserDocument(userCredential.user, {
             name: name,
             email: email,
-            role: resolvedRole
+            role: resolvedRole,
+            photoURL: photoUrl || null,
+            photoData: photoData || null
         });
-
-        let photoUrl = '';
-        try {
-            photoUrl = await uploadProfilePhoto(userCredential.user, photoFile);
-            await userCredential.user.updateProfile({
-                photoURL: photoUrl
-            });
-            await db.collection('users').doc(userCredential.user.uid).set({
-                photoURL: photoUrl,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        } catch (uploadError) {
-            alert('Erro ao enviar a foto de perfil. Verifique as regras do Storage e tente novamente.');
-            console.error('Erro no upload da foto:', uploadError);
-        }
         
         registerForm.reset();
-        if (registerRole) registerRole.value = 'user_chat';
-        if (registerPhotoPreview) {
-            registerPhotoPreview.src = '';
-            registerPhotoPreview.style.display = 'none';
-        }
-        if (registerPhotoPreviewUrl) {
-            URL.revokeObjectURL(registerPhotoPreviewUrl);
-            registerPhotoPreviewUrl = null;
-        }
+        resetRegisterForm();
         await updateRegisterRoleAvailability();
         alert('Cadastro realizado com sucesso!');
     } catch (error) {
@@ -479,7 +559,7 @@ auth.onAuthStateChanged(async (user) => {
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
 
         // Atualizar interface do usuário
-        userPhoto.src = currentUserProfile.photoURL || user.photoURL || 'https://via.placeholder.com/45/002776/ffffff?text=User';
+        userPhoto.src = currentUserProfile.photoURL || currentUserProfile.photoData || user.photoURL || 'https://via.placeholder.com/45/002776/ffffff?text=User';
         userName.textContent = currentUserProfile.name || user.displayName || 'Usuário';
         userStatus.textContent = 'Online';
         updateRoleBadge(currentUserRole);
@@ -511,6 +591,7 @@ auth.onAuthStateChanged(async (user) => {
         updateRoleBadge('user_chat');
         setAdminAccess(false);
         updateRegisterRoleAvailability();
+        resetRegisterForm();
         
         // Cleanup
         if (messagesUnsubscribe) messagesUnsubscribe();
@@ -573,7 +654,11 @@ function subscribeToCurrentUserDoc() {
             currentFriends = Array.isArray(data.friends) ? data.friends : [];
 
             if (data.name) userName.textContent = data.name;
-            if (data.photoURL) userPhoto.src = data.photoURL;
+            if (data.photoURL) {
+                userPhoto.src = data.photoURL;
+            } else if (data.photoData) {
+                userPhoto.src = data.photoData;
+            }
 
             updateRoleBadge(currentUserRole);
             setAdminAccess(currentUserRole === 'administrador');
@@ -951,7 +1036,7 @@ function renderUsers(users) {
         const status = user.online ? '🟢 Online' : `⚪ Offline ${lastSeen}`;
         
         li.innerHTML = `
-            <img src="${user.photoURL || 'https://via.placeholder.com/45/cccccc/666666?text=User'}" alt="avatar">
+            <img src="${user.photoURL || user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User'}" alt="avatar">
             <div class="user-item-info">
                 <h4>${user.name || 'Usuário'}</h4>
                 <p>${status}</p>
@@ -994,7 +1079,7 @@ async function selectUser(user) {
     
     // Atualizar cabeçalho do chat
     chatPartnerName.textContent = user.name || 'Usuário';
-    chatPartnerPhoto.src = user.photoURL || 'https://via.placeholder.com/45/cccccc/666666?text=User';
+    chatPartnerPhoto.src = user.photoURL || user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
     chatPartnerStatus.textContent = user.online ? '🟢 Online' : '⚪ Offline';
     
     // Habilitar input
@@ -1145,6 +1230,20 @@ function insertAtCursor(input, text) {
     input.focus();
 }
 
+function resetRegisterForm() {
+    if (registerForm) registerForm.reset();
+    if (registerRole) registerRole.value = 'user_chat';
+    if (registerPhotoInput) registerPhotoInput.value = '';
+    if (registerPhotoPreview) {
+        registerPhotoPreview.src = '';
+        registerPhotoPreview.style.display = 'none';
+    }
+    if (registerPhotoPreviewUrl) {
+        URL.revokeObjectURL(registerPhotoPreviewUrl);
+        registerPhotoPreviewUrl = null;
+    }
+}
+
 // Enviar mensagem de texto
 btnSend.addEventListener('click', async () => {
     const text = messageInput.value.trim();
@@ -1273,6 +1372,7 @@ btnLogout.addEventListener('click', async () => {
     try {
         await updateUserOnlineStatus(false);
         await auth.signOut();
+        resetRegisterForm();
     } catch (error) {
         alert('Erro ao sair: ' + error.message);
     }
