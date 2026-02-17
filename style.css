@@ -15,6 +15,10 @@ body {
     padding: 20px;
 }
 
+body.sidebar-open {
+    overflow: hidden;
+}
+
 .hidden {
     display: none !important;
 }
@@ -277,6 +281,12 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 8px;
+}
+
+.call-countdown {
+    font-size: 12px;
+    color: #666;
+    margin-top: -6px;
 }
 
 .call-user img {
