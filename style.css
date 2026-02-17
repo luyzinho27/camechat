@@ -104,10 +104,57 @@ body {
     transition: all 0.3s;
 }
 
+.form-group input[type="file"] {
+    padding: 10px;
+    background: #f8f8f8;
+}
+
+.photo-preview {
+    margin-top: 10px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.form-group select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    background: white;
+    transition: all 0.3s;
+}
+
 .form-group input:focus {
     outline: none;
     border-color: #002776;
     box-shadow: 0 0 0 3px rgba(0, 39, 118, 0.1);
+}
+
+.form-group select:focus {
+    outline: none;
+    border-color: #002776;
+    box-shadow: 0 0 0 3px rgba(0, 39, 118, 0.1);
+}
+
+.form-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #777;
 }
 
 .form-options {
@@ -321,6 +368,12 @@ body {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
+.main-panel {
+    flex: 1;
+    display: flex;
+    position: relative;
+}
+
 /* Sidebar */
 .sidebar {
     width: 30%;
@@ -362,6 +415,38 @@ body {
     opacity: 0.9;
 }
 
+.role-badge {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: white;
+    color: #002776;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-btn {
+    background: white;
+    border: 1px solid white;
+    color: #002776;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s;
+}
+
+.admin-btn:hover {
+    background: #e6ecff;
+}
+
 .logout-btn {
     background: transparent;
     border: 1px solid white;
@@ -398,6 +483,45 @@ body {
     box-shadow: 0 0 0 3px rgba(0, 39, 118, 0.1);
 }
 
+.add-friend-box {
+    padding: 12px 15px 15px;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.add-friend-box input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+    font-size: 13px;
+    transition: all 0.3s;
+}
+
+.add-friend-box input:focus {
+    border-color: #002776;
+    box-shadow: 0 0 0 3px rgba(0, 39, 118, 0.1);
+}
+
+.btn-add-friend {
+    background: #002776;
+    color: white;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-add-friend:hover {
+    background: #E30613;
+}
+
 .users-header {
     padding: 15px;
     display: flex;
@@ -432,6 +556,26 @@ body {
     border-left: 4px solid #E30613;
 }
 
+.user-item.empty {
+    cursor: default;
+    justify-content: center;
+    background: transparent;
+}
+
+.user-item.empty:hover {
+    background: transparent;
+}
+
+.user-item.empty h4 {
+    font-size: 14px;
+    color: #666;
+}
+
+.user-item.empty p {
+    font-size: 12px;
+    color: #999;
+}
+
 .user-item img {
     width: 45px;
     height: 45px;
@@ -460,6 +604,7 @@ body {
     display: flex;
     flex-direction: column;
     background: #f5f7fb;
+    position: relative;
 }
 
 .chat-header {
@@ -543,6 +688,30 @@ body {
     cursor: pointer;
 }
 
+.message .file-attachment {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.message .file-icon {
+    font-size: 22px;
+}
+
+.message .file-info a {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.message .file-info small {
+    display: block;
+    font-size: 11px;
+    margin-top: 4px;
+    opacity: 0.7;
+}
+
 .message small {
     display: block;
     font-size: 10px;
@@ -611,6 +780,133 @@ body {
     transform: none !important;
 }
 
+.emoji-picker {
+    position: absolute;
+    right: 20px;
+    bottom: 80px;
+    z-index: 20;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Painel do Administrador */
+.admin-panel {
+    flex: 1;
+    background: #f5f7fb;
+    padding: 20px 24px 30px;
+    overflow-y: auto;
+}
+
+.admin-header h2 {
+    color: #002776;
+    margin-bottom: 4px;
+}
+
+.admin-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+.admin-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin: 20px 0 24px;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.metric-card strong {
+    display: block;
+    font-size: 24px;
+    color: #002776;
+    margin-top: 6px;
+}
+
+.metric-label {
+    font-size: 12px;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.6fr);
+    gap: 24px;
+}
+
+.admin-users,
+.admin-create {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.admin-users h3,
+.admin-create h3 {
+    margin-bottom: 12px;
+    color: #002776;
+}
+
+.admin-users-list {
+    list-style: none;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.admin-user-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 6px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.admin-user-meta strong {
+    display: block;
+    color: #333;
+}
+
+.admin-user-meta span {
+    display: block;
+    font-size: 12px;
+    color: #777;
+}
+
+.admin-role-pill {
+    margin-top: 4px;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e8f0fe;
+    color: #002776;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.admin-edit-btn {
+    background: #002776;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.admin-edit-btn:hover {
+    background: #E30613;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
@@ -644,6 +940,14 @@ body {
     
     .chat-area {
         height: 60%;
+    }
+
+    .admin-panel {
+        height: 60%;
+    }
+
+    .admin-grid {
+        grid-template-columns: 1fr;
     }
     
     .auth-box {
