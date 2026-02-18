@@ -168,7 +168,7 @@
                         <small id="chat-partner-status"></small>
                         <span id="call-indicator" class="call-indicator hidden">Em chamada</span>
                     </div>
-                    <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de v??deo">&#128249;</button>
+                    <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de vídeo">&#128249;</button>
                     <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">📞</button>
                 </header>
                 
@@ -329,16 +329,40 @@
         <div class="modal-content call-modal-content">
             <h3 id="call-title">Chamada de voz</h3>
             <p id="call-status">Chamando...</p>
+            <div id="call-renegotiation" class="call-renegotiation hidden">
+                <span class="spinner" aria-hidden="true"></span>
+                <span class="renegotiation-text">Alterando chamada...</span>
+            </div>
             <p id="call-countdown" class="call-countdown hidden">40s</p>
             <div class="call-user">
                 <img id="call-user-photo" src="" alt="Foto do amigo">
                 <strong id="call-user-name"></strong>
             </div>
-            <div id="call-media" class="call-media hidden">
-                <video id="remote-video" autoplay playsinline></video>
-                <video id="local-video" autoplay muted playsinline></video>
+            <div id="call-media-container" class="call-media-container">
+                <div id="call-media" class="call-media hidden">
+                    <video id="remote-video" autoplay playsinline></video>
+                    <video id="local-video" autoplay muted playsinline></video>
+                </div>
             </div>
             <div class="call-actions">
+                <button id="btn-call-speaker" class="btn-icon btn-call-speaker hidden" type="button" title="Ativar viva-voz" aria-label="Ativar viva-voz" aria-pressed="false">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-mute" class="btn-icon btn-call-mute hidden" type="button" title="Desativar microfone" aria-label="Desativar microfone" aria-pressed="false">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-video-toggle" class="btn-icon btn-call-video-toggle hidden" type="button" title="Desativar vídeo" aria-label="Desativar vídeo" aria-pressed="false">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-switch-video" class="btn-icon btn-call-switch-video hidden" type="button" title="Mudar para chamada de vídeo" aria-label="Mudar para chamada de vídeo">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-switch-audio" class="btn-icon btn-call-switch-audio hidden" type="button" title="Mudar para chamada de voz" aria-label="Mudar para chamada de voz">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-minimize" class="btn-icon btn-call-minimize hidden" type="button" title="Minimizar chamada" aria-label="Minimizar chamada">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
                 <button id="call-accept-btn" class="btn-primary" type="button">Atender</button>
                 <button id="call-reject-btn" class="btn-google" type="button">Recusar</button>
                 <button id="call-hangup-btn" class="btn-google" type="button">Desligar</button>
@@ -346,7 +370,19 @@
         </div>
     </div>
 
+    <div id="call-mini" class="call-mini hidden">
+        <div id="call-mini-header" class="call-mini-header">
+            <span class="call-mini-title">Chamada de vídeo</span>
+            <div class="call-mini-buttons">
+                <button id="btn-call-restore" class="btn-icon btn-call-restore" type="button" title="Restaurar">⤢</button>
+                <button id="btn-call-mini-hangup" class="btn-icon btn-call-mini-hangup" type="button" title="Desligar">✕</button>
+            </div>
+        </div>
+        <div id="call-mini-body" class="call-mini-body"></div>
+    </div>
+
     <div id="call-toast" class="call-toast hidden">Chamada encerrada. Recarregando...</div>
+    <div id="proximity-overlay" class="proximity-overlay hidden" aria-hidden="true"></div>
 
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
