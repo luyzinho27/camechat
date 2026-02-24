@@ -60,8 +60,14 @@ const messageInput = document.getElementById('message-input');
 const btnSend = document.getElementById('btn-send');
 const btnAttach = document.getElementById('btn-attach');
 const fileUpload = document.getElementById('file-upload');
+const fileUploadGallery = document.getElementById('file-upload-gallery');
+const fileUploadCameraPhoto = document.getElementById('file-upload-camera-photo');
+const fileUploadCameraVideo = document.getElementById('file-upload-camera-video');
+const fileUploadAudio = document.getElementById('file-upload-audio');
+const fileUploadDocument = document.getElementById('file-upload-document');
 const btnEmoji = document.getElementById('btn-emoji');
 const emojiPicker = document.getElementById('emoji-picker');
+const attachMenu = document.getElementById('attach-menu');
 const searchUser = document.getElementById('search-user');
 const friendEmailInput = document.getElementById('friend-email');
 const btnAddFriend = document.getElementById('btn-add-friend');
@@ -472,18 +478,37 @@ async function uploadChatFileViaBackend(file, options = {}) {
     if (options.uid) formData.append('uid', options.uid);
 
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-chat` : '/api/upload-chat';
-    const response = await fetch(apiUrl, {
-        method: 'POST',
-        body: formData
-    });
+    let response;
+    try {
+        response = await fetch(apiUrl, {
+            method: 'POST',
+            body: formData
+        });
+    } catch (error) {
+        throw new Error('Não foi possível conectar ao backend de upload.');
+    }
 
     if (!response.ok) {
-        let errorMessage = 'Erro ao enviar arquivo.';
+        let errorMessage = `Erro ao enviar arquivo. (${response.status})`;
         try {
-            const data = await response.json();
-            if (data?.message) errorMessage = data.message;
+            const rawText = await response.text();
+            if (rawText) {
+                try {
+                    const data = JSON.parse(rawText);
+                    if (data?.message) {
+                        errorMessage = data.message;
+                    } else if (rawText.trim()) {
+                        errorMessage = rawText.trim();
+                    }
+                } catch (parseError) {
+                    errorMessage = rawText.trim().slice(0, 160);
+                }
+            }
         } catch (error) {
             // ignore
+        }
+        if (response.status === 404) {
+            errorMessage = 'Endpoint de upload não encontrado. Atualize o backend com /api/upload-chat.';
         }
         throw new Error(errorMessage);
     }
@@ -2936,6 +2961,81 @@ function insertAtCursor(input, text) {
     input.focus();
 }
 
+function closeAttachMenu() {
+    if (attachMenu) {
+        attachMenu.classList.add('hidden');
+    }
+}
+
+function toggleAttachMenu() {
+    if (!attachMenu) return;
+    const willOpen = attachMenu.classList.contains('hidden');
+    if (willOpen) {
+        if (emojiPicker) emojiPicker.classList.add('hidden');
+    }
+    attachMenu.classList.toggle('hidden', !willOpen);
+}
+
+function openAttachInput(input) {
+    if (!input) return;
+    closeAttachMenu();
+    input.click();
+}
+
+async function handleChatFile(file) {
+    if (!file || !selectedUserId) return;
+    if (isFriendBlocked(selectedUserId)) {
+        alert('Você bloqueou este usuário.');
+        return;
+    }
+
+    const maxSize = 20 * 1024 * 1024;
+    if (file.size > maxSize) {
+        alert('O arquivo deve ter no máximo 20MB.');
+        return;
+    }
+
+    const fileType = file.type || '';
+    const isImage = fileType.startsWith('image/');
+    const isVideo = fileType.startsWith('video/');
+    const isAudio = fileType.startsWith('audio/');
+    let messageType = 'file';
+    if (isImage) messageType = 'image';
+    if (isVideo) messageType = 'video';
+    if (isAudio) messageType = 'audio';
+
+    try {
+        const fileUrl = await uploadChatFileViaBackend(file, { uid: currentUser.uid });
+
+        const conversationId = getConversationId(currentUser.uid, selectedUserId);
+
+        await db.collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .add({
+                fileUrl: fileUrl,
+                fileName: file.name,
+                fileType: file.type || 'application/octet-stream',
+                fileSize: file.size,
+                imageUrl: isImage ? fileUrl : null,
+                senderId: currentUser.uid,
+                receiverId: selectedUserId,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                type: messageType,
+                read: false
+            });
+    } catch (error) {
+        alert('Erro ao enviar arquivo: ' + error.message);
+    }
+}
+
+function handleFileInputChange(input) {
+    const file = input?.files?.[0];
+    if (input) input.value = '';
+    if (!file) return;
+    handleChatFile(file);
+}
+
 function resetRegisterForm() {
     if (registerForm) registerForm.reset();
     if (registerRole) registerRole.value = 'user_chat';
@@ -3058,69 +3158,57 @@ btnSend.addEventListener('click', async () => {
 });
 
 // Anexar arquivo
-btnAttach.addEventListener('click', () => {
-    fileUpload.click();
+if (btnAttach) {
+    btnAttach.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleAttachMenu();
+    });
+}
+
+if (attachMenu) {
+    attachMenu.addEventListener('click', (event) => {
+        const button = event.target.closest('.attach-option');
+        if (!button) return;
+        const action = button.dataset.attach;
+        if (action === 'gallery') openAttachInput(fileUploadGallery || fileUpload);
+        if (action === 'camera-photo') openAttachInput(fileUploadCameraPhoto || fileUpload);
+        if (action === 'camera-video') openAttachInput(fileUploadCameraVideo || fileUpload);
+        if (action === 'audio') openAttachInput(fileUploadAudio || fileUpload);
+        if (action === 'document') openAttachInput(fileUploadDocument || fileUpload);
+    });
+}
+
+document.addEventListener('click', (event) => {
+    if (!attachMenu || attachMenu.classList.contains('hidden')) return;
+    if (attachMenu.contains(event.target)) return;
+    if (btnAttach && btnAttach.contains(event.target)) return;
+    closeAttachMenu();
 });
 
-fileUpload.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file || !selectedUserId) {
-        fileUpload.value = '';
-        return;
-    }
-    if (isFriendBlocked(selectedUserId)) {
-        alert('Você bloqueou este usuário.');
-        fileUpload.value = '';
-        return;
-    }
-    
-    const maxSize = 20 * 1024 * 1024;
-    if (file.size > maxSize) {
-        alert('O arquivo deve ter no máximo 20MB.');
-        fileUpload.value = '';
-        return;
-    }
-    
-    const fileType = file.type || '';
-    const isImage = fileType.startsWith('image/');
-    const isVideo = fileType.startsWith('video/');
-    const isAudio = fileType.startsWith('audio/');
-    let messageType = 'file';
-    if (isImage) messageType = 'image';
-    if (isVideo) messageType = 'video';
-    if (isAudio) messageType = 'audio';
-    
-    try {
-        const fileUrl = await uploadChatFileViaBackend(file, { uid: currentUser.uid });
-        
-        const conversationId = getConversationId(currentUser.uid, selectedUserId);
-        
-        await db.collection('conversations')
-            .doc(conversationId)
-            .collection('messages')
-            .add({
-                fileUrl: fileUrl,
-                fileName: file.name,
-                fileType: file.type || 'application/octet-stream',
-                fileSize: file.size,
-                imageUrl: isImage ? fileUrl : null,
-                senderId: currentUser.uid,
-                receiverId: selectedUserId,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                type: messageType,
-                read: false
-            });
-    } catch (error) {
-        alert('Erro ao enviar arquivo: ' + error.message);
-    }
-    
-    fileUpload.value = '';
-});
+if (fileUpload) {
+    fileUpload.addEventListener('change', () => handleFileInputChange(fileUpload));
+}
+if (fileUploadGallery) {
+    fileUploadGallery.addEventListener('change', () => handleFileInputChange(fileUploadGallery));
+}
+if (fileUploadCameraPhoto) {
+    fileUploadCameraPhoto.addEventListener('change', () => handleFileInputChange(fileUploadCameraPhoto));
+}
+if (fileUploadCameraVideo) {
+    fileUploadCameraVideo.addEventListener('change', () => handleFileInputChange(fileUploadCameraVideo));
+}
+if (fileUploadAudio) {
+    fileUploadAudio.addEventListener('change', () => handleFileInputChange(fileUploadAudio));
+}
+if (fileUploadDocument) {
+    fileUploadDocument.addEventListener('change', () => handleFileInputChange(fileUploadDocument));
+}
 
 if (btnEmoji) {
     btnEmoji.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!emojiPicker) return;
+        closeAttachMenu();
         emojiPicker.classList.toggle('hidden');
     });
 }
