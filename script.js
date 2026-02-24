@@ -54,6 +54,7 @@ const totalUsers = document.getElementById('total-users');
 const chatPartnerName = document.getElementById('chat-partner-name');
 const chatPartnerPhoto = document.getElementById('chat-partner-photo');
 const chatPartnerStatus = document.getElementById('chat-partner-status');
+const chatPartnerActivity = document.getElementById('chat-partner-activity');
 const defaultChatPartnerPhoto = chatPartnerPhoto?.dataset?.defaultSrc || chatPartnerPhoto?.src || '';
 const messagesContainer = document.getElementById('messages-container');
 const messageInput = document.getElementById('message-input');
@@ -75,9 +76,14 @@ const cameraModal = document.getElementById('camera-modal');
 const cameraCloseModal = document.getElementById('camera-close-modal');
 const cameraPreview = document.getElementById('camera-preview');
 const cameraStatus = document.getElementById('camera-status');
+const btnCameraSwitch = document.getElementById('btn-camera-switch');
 const btnCameraCapture = document.getElementById('btn-camera-capture');
 const btnCameraRecord = document.getElementById('btn-camera-record');
 const btnCameraCancel = document.getElementById('btn-camera-cancel');
+const voiceRecordingStatus = document.getElementById('voice-recording-status');
+const voiceRecordingBanner = document.getElementById('voice-recording-banner');
+const voiceRecordingText = document.getElementById('voice-recording-text');
+const btnVoiceCancel = document.getElementById('btn-voice-cancel');
 const searchUser = document.getElementById('search-user');
 const friendEmailInput = document.getElementById('friend-email');
 const btnAddFriend = document.getElementById('btn-add-friend');
@@ -173,6 +179,8 @@ const CALL_ICON_SPEAKER_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="curre
 const CALL_ICON_SPEAKER_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
 const CALL_ICON_SWITCH_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="13" height="10" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path><path d="M8 4H4v4"></path><path d="M4 4l4 4"></path></svg>';
 const CALL_ICON_SWITCH_AUDIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.78.58 2.63a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.45-1.1a2 2 0 0 1 2.11-.45c.85.26 1.73.46 2.63.58a2 2 0 0 1 1.72 1.98z"></path><path d="M19 5h-4"></path><path d="M17 3v4"></path></svg>';
+const VOICE_ICON_IDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line></svg>';
+const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle></svg>';
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -188,6 +196,11 @@ let onlineStatusInterval = null;
 let currentUserDocUnsubscribe = null;
 let currentConversationId = null;
 let currentConversationMessages = [];
+let typingUnsubscribe = null;
+let typingIdleTimeout = null;
+let typingRemoteTimeout = null;
+let lastTypingSentAt = 0;
+let localTypingState = null;
 let editingUserId = null;
 let registerPhotoPreviewUrl = null;
 let profilePhotoPreviewUrl = null;
@@ -252,11 +265,15 @@ let audioRecorder = null;
 let audioRecorderStream = null;
 let audioRecorderChunks = [];
 let isRecordingAudio = false;
+let audioRecorderSend = true;
+let voiceRecordingStartedAt = null;
+let voiceRecordingTimer = null;
 let cameraStream = null;
 let cameraRecorder = null;
 let cameraRecorderChunks = [];
 let isCameraRecording = false;
 let cancelCameraRecording = false;
+let currentCameraFacing = 'environment';
 
 // ========== FUNÇÕES DE AUTENTICAÇÃO ==========
 
@@ -2789,11 +2806,13 @@ function renderFriendUsers() {
                 const blockedSet = new Set(currentUserProfile?.blocked || []);
                 if (blockedSet.has(selectedFriendData.uid)) {
                     chatPartnerStatus.textContent = 'Bloqueado';
+                    setChatPartnerActivity(null);
                 } else if (selectedFriendData.online) {
                     chatPartnerStatus.textContent = '🟢 Online';
                 } else {
                     const lastSeen = selectedFriendData.lastSeen?.toDate ? formatLastSeen(selectedFriendData.lastSeen.toDate()) : '';
                     chatPartnerStatus.textContent = lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline';
+                    setChatPartnerActivity(null);
                 }
             }
             if (selectedFriendData?.online && selectedUserId) {
@@ -2808,6 +2827,7 @@ function renderFriendUsers() {
         }
         chatPartnerName.textContent = 'Selecione um usuário';
         chatPartnerStatus.textContent = '';
+        setChatPartnerActivity(null);
         messageInput.disabled = true;
         btnSend.disabled = true;
         btnAttach.disabled = true;
@@ -2901,6 +2921,7 @@ searchUser.addEventListener('input', (e) => {
 
 // Selecionar usuário para conversar
 async function selectUser(user) {
+    clearLocalTypingState();
     selectedUserId = user.uid;
     selectedFriendData = user;
     
@@ -2923,6 +2944,7 @@ async function selectUser(user) {
         const lastSeen = user.lastSeen?.toDate ? formatLastSeen(user.lastSeen.toDate()) : '';
         chatPartnerStatus.textContent = user.online ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
     }
+    setChatPartnerActivity(null);
     
     // Habilitar input
     const disableChat = isBlocked;
@@ -2951,9 +2973,12 @@ async function selectUser(user) {
 // Carregar mensagens em tempo real
 async function loadMessages(otherUid) {
     if (messagesUnsubscribe) messagesUnsubscribe();
+    if (typingUnsubscribe) typingUnsubscribe();
     
     const conversationId = getConversationId(currentUser.uid, otherUid);
     currentConversationId = conversationId;
+
+    listenTypingStatus(otherUid);
     
     messagesUnsubscribe = db.collection('conversations')
         .doc(conversationId)
@@ -3102,6 +3127,7 @@ function renderMessages(messages) {
                 <p>Inicie uma conversa com ${chatPartnerName.textContent}!</p>
             </div>
         `;
+        ensureVoiceRecordingBanner();
         return;
     }
     
@@ -3175,6 +3201,8 @@ function renderMessages(messages) {
         messagesContainer.appendChild(div);
     });
     
+    ensureVoiceRecordingBanner();
+
     // Scroll para o final
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
@@ -3193,6 +3221,115 @@ function formatFileSize(bytes) {
     const size = (bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1);
     return `${size} ${units[index]}`;
 }
+
+function setChatPartnerActivity(state) {
+    if (!chatPartnerActivity) return;
+    if (selectedFriendData && (!selectedFriendData.online || isFriendBlocked(selectedFriendData.uid))) {
+        chatPartnerActivity.textContent = '';
+        chatPartnerActivity.classList.add('hidden');
+        return;
+    }
+    if (!state) {
+        chatPartnerActivity.textContent = '';
+        chatPartnerActivity.classList.add('hidden');
+        return;
+    }
+    const displayName = selectedFriendData?.name || chatPartnerName?.textContent || 'Usuário';
+    const label = state === 'recording' ? `${displayName} está gravando áudio` : `${displayName} está digitando`;
+    chatPartnerActivity.textContent = label;
+    chatPartnerActivity.classList.remove('hidden');
+}
+
+function clearTypingIdleTimer() {
+    if (typingIdleTimeout) {
+        clearTimeout(typingIdleTimeout);
+        typingIdleTimeout = null;
+    }
+}
+
+function clearRemoteTypingTimer() {
+    if (typingRemoteTimeout) {
+        clearTimeout(typingRemoteTimeout);
+        typingRemoteTimeout = null;
+    }
+}
+
+function listenTypingStatus(otherUid) {
+    if (typingUnsubscribe) typingUnsubscribe();
+    clearRemoteTypingTimer();
+    setChatPartnerActivity(null);
+    if (!currentUser || !otherUid) return;
+    const conversationId = getConversationId(currentUser.uid, otherUid);
+    typingUnsubscribe = db.collection('conversations')
+        .doc(conversationId)
+        .onSnapshot((doc) => {
+            const data = doc.data() || {};
+            const entry = data.typing && data.typing[otherUid];
+            const state = entry?.state || null;
+            const updatedAt = entry?.updatedAt?.toDate ? entry.updatedAt.toDate() : null;
+            const isStale = !updatedAt || (Date.now() - updatedAt.getTime() > 8000);
+            if (!state || isStale) {
+                setChatPartnerActivity(null);
+                return;
+            }
+            setChatPartnerActivity(state);
+            clearRemoteTypingTimer();
+            typingRemoteTimeout = setTimeout(() => {
+                setChatPartnerActivity(null);
+            }, 6000);
+        });
+}
+
+function updateTypingState(state, force = false) {
+    if (!currentUser || !selectedUserId) return;
+    if (isFriendBlocked(selectedUserId)) return;
+    const now = Date.now();
+    if (!force && state === localTypingState) {
+        if (!state) return;
+        if (now - lastTypingSentAt < 2000) return;
+    }
+    localTypingState = state;
+    lastTypingSentAt = now;
+    const conversationId = currentConversationId || getConversationId(currentUser.uid, selectedUserId);
+    const payload = {};
+    const path = `typing.${currentUser.uid}`;
+    if (!state) {
+        payload[path] = firebase.firestore.FieldValue.delete();
+    } else {
+        payload[path] = { state, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+    }
+    db.collection('conversations')
+        .doc(conversationId)
+        .set(payload, { merge: true })
+        .catch((error) => {
+            console.warn('Falha ao atualizar status de digitação.', error);
+        });
+}
+
+function handleTypingInput() {
+    if (!messageInput || messageInput.disabled || !selectedUserId) return;
+    if (isRecordingAudio) return;
+    const hasText = messageInput.value.trim().length > 0;
+    if (!hasText) {
+        clearTypingIdleTimer();
+        if (localTypingState) updateTypingState(null, true);
+        return;
+    }
+    updateTypingState('typing');
+    clearTypingIdleTimer();
+    typingIdleTimeout = setTimeout(() => {
+        updateTypingState(null, true);
+    }, 2500);
+}
+
+function clearLocalTypingState() {
+    clearTypingIdleTimer();
+    if (localTypingState) {
+        updateTypingState(null, true);
+        localTypingState = null;
+    }
+}
+
 
 function buildMessageMeta(msg, isSent) {
     const time = formatTime(msg.timestamp);
@@ -3267,6 +3404,8 @@ async function openCameraModal() {
     if (emojiPicker) emojiPicker.classList.add('hidden');
     cameraModal.classList.add('show');
     cancelCameraRecording = false;
+    currentCameraFacing = 'environment';
+    updateCameraSwitchVisibility();
     if (cameraStatus) cameraStatus.textContent = 'Abrindo câmera...';
     await startCameraStream();
 }
@@ -3288,6 +3427,24 @@ function resetCameraState() {
     cancelCameraRecording = false;
 }
 
+function shouldShowCameraSwitch() {
+    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) return true;
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function updateCameraSwitchVisibility() {
+    if (!btnCameraSwitch) return;
+    btnCameraSwitch.classList.toggle('hidden', !shouldShowCameraSwitch());
+}
+
+async function switchCameraFacing() {
+    if (isCameraRecording) return;
+    currentCameraFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
+    stopCameraStream();
+    if (cameraStatus) cameraStatus.textContent = 'Alternando câmera...';
+    await startCameraStream();
+}
+
 async function startCameraStream() {
     if (!cameraPreview || !navigator.mediaDevices?.getUserMedia) {
         if (cameraStatus) cameraStatus.textContent = 'Câmera não suportada.';
@@ -3296,23 +3453,30 @@ async function startCameraStream() {
     if (cameraStream) return;
     try {
         cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' } },
+            video: { facingMode: { ideal: currentCameraFacing } },
             audio: true
         });
     } catch (error) {
         try {
             cameraStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: 'environment' } },
+                video: { facingMode: { ideal: currentCameraFacing } },
                 audio: false
             });
             if (cameraStatus) {
                 cameraStatus.textContent = 'Câmera aberta (sem áudio).';
             }
         } catch (fallbackError) {
-            if (cameraStatus) cameraStatus.textContent = 'Não foi possível acessar a câmera.';
-            alert('Não foi possível acessar a câmera.');
-            closeCameraModal();
-            return;
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+            } catch (finalError) {
+                if (cameraStatus) cameraStatus.textContent = 'Não foi possível acessar a câmera.';
+                alert('Não foi possível acessar a câmera.');
+                closeCameraModal();
+                return;
+            }
         }
     }
     cameraPreview.srcObject = cameraStream;
@@ -3422,29 +3586,80 @@ function getAudioFileExtension(mimeType) {
     return 'webm';
 }
 
+function ensureVoiceRecordingBanner() {
+    if (!voiceRecordingBanner || !messagesContainer) return;
+    if (!messagesContainer.contains(voiceRecordingBanner)) {
+        messagesContainer.appendChild(voiceRecordingBanner);
+    }
+}
+
 function updateVoiceButtonUI() {
     if (!btnVoice) return;
     btnVoice.classList.toggle('recording', isRecordingAudio);
     btnVoice.title = isRecordingAudio ? 'Parar gravação' : 'Enviar áudio';
-    btnVoice.innerHTML = isRecordingAudio ? '■' : '&#127908;';
+    btnVoice.innerHTML = isRecordingAudio ? VOICE_ICON_RECORDING : VOICE_ICON_IDLE;
+    if (voiceRecordingStatus) {
+        voiceRecordingStatus.classList.toggle('hidden', !isRecordingAudio);
+    }
+    if (voiceRecordingBanner) {
+        voiceRecordingBanner.classList.toggle('hidden', !isRecordingAudio);
+    }
+    if (btnVoiceCancel) {
+        btnVoiceCancel.disabled = !isRecordingAudio;
+    }
+    ensureVoiceRecordingBanner();
+}
+
+function formatVoiceDuration(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${minutes}:${seconds}`;
+}
+
+function startVoiceTimer() {
+    voiceRecordingStartedAt = Date.now();
+    if (voiceRecordingStatus) {
+        voiceRecordingStatus.textContent = '00:00';
+        voiceRecordingStatus.classList.remove('hidden');
+    }
+    if (voiceRecordingText) {
+        voiceRecordingText.textContent = 'Gravando... 00:00';
+    }
+    if (voiceRecordingTimer) clearInterval(voiceRecordingTimer);
+    voiceRecordingTimer = setInterval(() => {
+        if (!voiceRecordingStartedAt) return;
+        const elapsed = Date.now() - voiceRecordingStartedAt;
+        if (voiceRecordingStatus) {
+            voiceRecordingStatus.textContent = formatVoiceDuration(elapsed);
+        }
+        if (voiceRecordingText) {
+            voiceRecordingText.textContent = `Gravando... ${formatVoiceDuration(elapsed)}`;
+        }
+    }, 500);
+}
+
+function stopVoiceTimer() {
+    if (voiceRecordingTimer) {
+        clearInterval(voiceRecordingTimer);
+    }
+    voiceRecordingTimer = null;
+    voiceRecordingStartedAt = null;
+    if (voiceRecordingStatus) {
+        voiceRecordingStatus.classList.add('hidden');
+    }
+    if (voiceRecordingBanner) {
+        voiceRecordingBanner.classList.add('hidden');
+    }
 }
 
 async function stopAudioRecording(sendAfterStop = true) {
     if (!audioRecorder) return;
+    audioRecorderSend = sendAfterStop;
     try {
         audioRecorder.stop();
     } catch (error) {
         // ignore
-    }
-    if (audioRecorderStream) {
-        audioRecorderStream.getTracks().forEach(track => track.stop());
-    }
-    audioRecorderStream = null;
-    audioRecorder = null;
-    isRecordingAudio = false;
-    updateVoiceButtonUI();
-    if (!sendAfterStop) {
-        audioRecorderChunks = [];
     }
 }
 
@@ -3455,6 +3670,10 @@ async function startAudioRecording() {
     }
     if (isFriendBlocked(selectedUserId)) {
         alert('Você bloqueou este usuário.');
+        return;
+    }
+    if (!window.isSecureContext) {
+        alert('A gravação de áudio requer HTTPS.');
         return;
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
@@ -3477,7 +3696,14 @@ async function startAudioRecording() {
     try {
         audioRecorder = mimeType ? new MediaRecorder(audioRecorderStream, { mimeType }) : new MediaRecorder(audioRecorderStream);
     } catch (error) {
-        audioRecorder = new MediaRecorder(audioRecorderStream);
+        try {
+            audioRecorder = new MediaRecorder(audioRecorderStream);
+        } catch (finalError) {
+            alert('Não foi possível iniciar a gravação.');
+            audioRecorderStream.getTracks().forEach(track => track.stop());
+            audioRecorderStream = null;
+            return;
+        }
     }
     audioRecorderChunks = [];
     audioRecorder.ondataavailable = (event) => {
@@ -3486,16 +3712,43 @@ async function startAudioRecording() {
         }
     };
     audioRecorder.onstop = async () => {
-        const blob = new Blob(audioRecorderChunks, { type: audioRecorder.mimeType || mimeType || 'audio/webm' });
+        const recorder = audioRecorder;
+        const stream = audioRecorderStream;
+        audioRecorder = null;
+        audioRecorderStream = null;
+        isRecordingAudio = false;
+        updateVoiceButtonUI();
+        stopVoiceTimer();
+        updateTypingState(null, true);
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        if (!audioRecorderSend) {
+            audioRecorderChunks = [];
+            return;
+        }
+        const blob = new Blob(audioRecorderChunks, { type: recorder?.mimeType || mimeType || 'audio/webm' });
         audioRecorderChunks = [];
         if (!blob.size) return;
         const extension = getAudioFileExtension(blob.type);
         const file = new File([blob], `voz_${Date.now()}.${extension}`, { type: blob.type });
         await handleChatFile(file);
     };
-    audioRecorder.start();
+    try {
+        audioRecorder.start();
+    } catch (error) {
+        alert('Não foi possível iniciar a gravação.');
+        audioRecorderStream.getTracks().forEach(track => track.stop());
+        audioRecorderStream = null;
+        audioRecorder = null;
+        return;
+    }
     isRecordingAudio = true;
+    audioRecorderSend = true;
     updateVoiceButtonUI();
+    startVoiceTimer();
+    clearTypingIdleTimer();
+    updateTypingState('recording', true);
 }
 
 async function handleChatFile(file) {
@@ -3564,6 +3817,14 @@ function resetChatUI() {
             </div>
         `;
     }
+    ensureVoiceRecordingBanner();
+    setChatPartnerActivity(null);
+    clearLocalTypingState();
+    if (typingUnsubscribe) {
+        typingUnsubscribe();
+        typingUnsubscribe = null;
+    }
+    clearRemoteTypingTimer();
     if (usersList) usersList.innerHTML = '';
     if (adminUsersList) adminUsersList.innerHTML = '';
     if (messageInput) messageInput.value = '';
@@ -3585,6 +3846,7 @@ function resetChatUI() {
     if (isRecordingAudio) {
         stopAudioRecording(false);
     }
+    stopVoiceTimer();
     currentConversationId = null;
     currentConversationMessages = [];
 }
@@ -3708,10 +3970,16 @@ btnSend.addEventListener('click', async () => {
             });
         
         messageInput.value = '';
+        updateTypingState(null, true);
     } catch (error) {
         alert('Erro ao enviar mensagem: ' + error.message);
     }
 });
+
+if (messageInput) {
+    messageInput.addEventListener('input', handleTypingInput);
+    messageInput.addEventListener('blur', () => updateTypingState(null, true));
+}
 
 // Anexar arquivo
 if (btnAttach) {
@@ -3783,6 +4051,15 @@ if (btnVoice) {
     });
 }
 
+if (btnVoiceCancel) {
+    btnVoiceCancel.addEventListener('click', () => {
+        if (!isRecordingAudio) return;
+        stopAudioRecording(false);
+    });
+}
+
+updateVoiceButtonUI();
+
 if (btnCameraCapture) {
     btnCameraCapture.addEventListener('click', () => {
         capturePhotoFromCamera();
@@ -3792,6 +4069,12 @@ if (btnCameraCapture) {
 if (btnCameraRecord) {
     btnCameraRecord.addEventListener('click', () => {
         toggleCameraRecording();
+    });
+}
+
+if (btnCameraSwitch) {
+    btnCameraSwitch.addEventListener('click', () => {
+        switchCameraFacing();
     });
 }
 
