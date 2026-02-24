@@ -1196,6 +1196,12 @@ body.sidebar-open {
     cursor: pointer;
 }
 
+.message video,
+.message audio {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
 .message .file-attachment {
     display: flex;
     align-items: center;
