@@ -466,6 +466,38 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
     return data.url;
 }
 
+async function uploadChatFileViaBackend(file, options = {}) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options.uid) formData.append('uid', options.uid);
+
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-chat` : '/api/upload-chat';
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        let errorMessage = 'Erro ao enviar arquivo.';
+        try {
+            const data = await response.json();
+            if (data?.message) errorMessage = data.message;
+        } catch (error) {
+            // ignore
+        }
+        throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    if (!data?.url) {
+        throw new Error('Resposta inválida do servidor.');
+    }
+    if (BACKEND_BASE_URL && data.url.startsWith('/')) {
+        return `${BACKEND_BASE_URL}${data.url}`;
+    }
+    return data.url;
+}
+
 // Login com email/senha
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -2823,6 +2855,32 @@ function renderMessages(messages) {
                     <small>${formatTime(msg.timestamp)}</small>
                 `;
             }
+        } else if (messageType === 'video') {
+            const videoUrl = msg.fileUrl || msg.imageUrl;
+            if (videoUrl) {
+                div.innerHTML = `
+                    <video src="${videoUrl}" controls playsinline preload="metadata" style="max-width: 240px; border-radius: 10px;"></video>
+                    <small>${formatTime(msg.timestamp)}</small>
+                `;
+            } else {
+                div.innerHTML = `
+                    <p>Vídeo indisponível.</p>
+                    <small>${formatTime(msg.timestamp)}</small>
+                `;
+            }
+        } else if (messageType === 'audio') {
+            const audioUrl = msg.fileUrl || msg.imageUrl;
+            if (audioUrl) {
+                div.innerHTML = `
+                    <audio src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
+                    <small>${formatTime(msg.timestamp)}</small>
+                `;
+            } else {
+                div.innerHTML = `
+                    <p>Áudio indisponível.</p>
+                    <small>${formatTime(msg.timestamp)}</small>
+                `;
+            }
         } else if (messageType === 'file') {
             const fileUrl = msg.fileUrl || msg.imageUrl || '#';
             const fileName = msg.fileName || 'Arquivo';
@@ -3023,12 +3081,17 @@ fileUpload.addEventListener('change', async (e) => {
         return;
     }
     
-    const isImage = file.type && file.type.startsWith('image/');
+    const fileType = file.type || '';
+    const isImage = fileType.startsWith('image/');
+    const isVideo = fileType.startsWith('video/');
+    const isAudio = fileType.startsWith('audio/');
+    let messageType = 'file';
+    if (isImage) messageType = 'image';
+    if (isVideo) messageType = 'video';
+    if (isAudio) messageType = 'audio';
     
     try {
-        const storageRef = storage.ref(`chat-files/${currentUser.uid}/${Date.now()}_${file.name}`);
-        await storageRef.put(file);
-        const fileUrl = await storageRef.getDownloadURL();
+        const fileUrl = await uploadChatFileViaBackend(file, { uid: currentUser.uid });
         
         const conversationId = getConversationId(currentUser.uid, selectedUserId);
         
@@ -3044,7 +3107,7 @@ fileUpload.addEventListener('change', async (e) => {
                 senderId: currentUser.uid,
                 receiverId: selectedUserId,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                type: isImage ? 'image' : 'file',
+                type: messageType,
                 read: false
             });
     } catch (error) {
