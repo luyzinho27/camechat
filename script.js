@@ -2815,6 +2815,10 @@ function renderFriendUsers() {
                     setChatPartnerActivity(null);
                 }
             }
+            if (selectedUserId === selectedFriendData.uid) {
+                const activityState = getFriendActivityState(selectedFriendData);
+                setChatPartnerActivity(activityState);
+            }
             if (selectedFriendData?.online && selectedUserId) {
                 updateOutgoingDeliveryStatus(currentConversationId, currentConversationMessages);
             }
@@ -3224,7 +3228,7 @@ function formatFileSize(bytes) {
 
 function setChatPartnerActivity(state) {
     if (!chatPartnerActivity) return;
-    if (selectedFriendData && (!selectedFriendData.online || isFriendBlocked(selectedFriendData.uid))) {
+    if (selectedFriendData && isFriendBlocked(selectedFriendData.uid)) {
         chatPartnerActivity.textContent = '';
         chatPartnerActivity.classList.add('hidden');
         return;
@@ -3254,6 +3258,16 @@ function clearRemoteTypingTimer() {
         clearTimeout(typingRemoteTimeout);
         typingRemoteTimeout = null;
     }
+}
+
+function getFriendActivityState(friend) {
+    if (!friend || !currentUser) return null;
+    const activity = friend.activity;
+    if (!activity || activity.to !== currentUser.uid) return null;
+    const updatedAt = activity.updatedAt?.toDate ? activity.updatedAt.toDate() : null;
+    if (!updatedAt) return null;
+    if (Date.now() - updatedAt.getTime() > 8000) return null;
+    return activity.state || null;
 }
 
 function listenTypingStatus(otherUid) {
@@ -3305,6 +3319,23 @@ function updateTypingState(state, force = false) {
         .set(payload, { merge: true })
         .catch((error) => {
             console.warn('Falha ao atualizar status de digitação.', error);
+        });
+
+    const activityPayload = state
+        ? {
+            activity: {
+                to: selectedUserId,
+                state,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }
+        }
+        : { activity: firebase.firestore.FieldValue.delete() };
+
+    db.collection('users')
+        .doc(currentUser.uid)
+        .set(activityPayload, { merge: true })
+        .catch((error) => {
+            console.warn('Falha ao atualizar atividade do usuário.', error);
         });
 }
 
