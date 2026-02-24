@@ -66,8 +66,18 @@ const fileUploadCameraVideo = document.getElementById('file-upload-camera-video'
 const fileUploadAudio = document.getElementById('file-upload-audio');
 const fileUploadDocument = document.getElementById('file-upload-document');
 const btnEmoji = document.getElementById('btn-emoji');
+const btnVoice = document.getElementById('btn-voice');
+const btnCameraQuick = document.getElementById('btn-camera-quick');
 const emojiPicker = document.getElementById('emoji-picker');
 const attachMenu = document.getElementById('attach-menu');
+const uploadProgressList = document.getElementById('upload-progress-list');
+const cameraModal = document.getElementById('camera-modal');
+const cameraCloseModal = document.getElementById('camera-close-modal');
+const cameraPreview = document.getElementById('camera-preview');
+const cameraStatus = document.getElementById('camera-status');
+const btnCameraCapture = document.getElementById('btn-camera-capture');
+const btnCameraRecord = document.getElementById('btn-camera-record');
+const btnCameraCancel = document.getElementById('btn-camera-cancel');
 const searchUser = document.getElementById('search-user');
 const friendEmailInput = document.getElementById('friend-email');
 const btnAddFriend = document.getElementById('btn-add-friend');
@@ -176,6 +186,8 @@ let usersUnsubscribe = null;
 let adminUsersUnsubscribe = null;
 let onlineStatusInterval = null;
 let currentUserDocUnsubscribe = null;
+let currentConversationId = null;
+let currentConversationMessages = [];
 let editingUserId = null;
 let registerPhotoPreviewUrl = null;
 let profilePhotoPreviewUrl = null;
@@ -236,6 +248,15 @@ let renegotiationInProgress = false;
 let renegotiationTimeout = null;
 let pendingRenegotiationTarget = null;
 let renegotiationFallbackUsed = false;
+let audioRecorder = null;
+let audioRecorderStream = null;
+let audioRecorderChunks = [];
+let isRecordingAudio = false;
+let cameraStream = null;
+let cameraRecorder = null;
+let cameraRecorderChunks = [];
+let isCameraRecording = false;
+let cancelCameraRecording = false;
 
 // ========== FUNÇÕES DE AUTENTICAÇÃO ==========
 
@@ -466,10 +487,7 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
     if (!data?.url) {
         throw new Error('Resposta inválida do servidor.');
     }
-    if (BACKEND_BASE_URL && data.url.startsWith('/')) {
-        return `${BACKEND_BASE_URL}${data.url}`;
-    }
-    return data.url;
+    return normalizeBackendUrl(data.url);
 }
 
 async function uploadChatFileViaBackend(file, options = {}) {
@@ -480,10 +498,7 @@ async function uploadChatFileViaBackend(file, options = {}) {
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-chat` : '/api/upload-chat';
     let response;
     try {
-        response = await fetch(apiUrl, {
-            method: 'POST',
-            body: formData
-        });
+        response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options);
     } catch (error) {
         throw new Error('Não foi possível conectar ao backend de upload.');
     }
@@ -517,10 +532,104 @@ async function uploadChatFileViaBackend(file, options = {}) {
     if (!data?.url) {
         throw new Error('Resposta inválida do servidor.');
     }
-    if (BACKEND_BASE_URL && data.url.startsWith('/')) {
-        return `${BACKEND_BASE_URL}${data.url}`;
+    return normalizeBackendUrl(data.url);
+}
+
+function normalizeBackendUrl(url) {
+    if (!url) return url;
+    if (/^https?:\/\//i.test(url)) return url;
+    if (BACKEND_BASE_URL && url.startsWith('/')) {
+        return `${BACKEND_BASE_URL}${url}`;
     }
-    return data.url;
+    return url;
+}
+
+function createUploadProgressItem(fileName) {
+    if (!uploadProgressList) return null;
+    const item = document.createElement('div');
+    item.className = 'upload-progress-item';
+    item.innerHTML = `
+        <div class="upload-progress-header">
+            <span class="upload-progress-name">${fileName}</span>
+            <span class="upload-progress-status">0%</span>
+        </div>
+        <div class="upload-progress-bar"><span></span></div>
+    `;
+    uploadProgressList.appendChild(item);
+    uploadProgressList.classList.remove('hidden');
+    return item;
+}
+
+function updateUploadProgressItem(item, percent, statusText) {
+    if (!item) return;
+    const bar = item.querySelector('.upload-progress-bar span');
+    const status = item.querySelector('.upload-progress-status');
+    if (bar) bar.style.width = `${percent}%`;
+    if (status && statusText) status.textContent = statusText;
+}
+
+function markUploadError(item, message) {
+    if (!item) return;
+    const status = item.querySelector('.upload-progress-status');
+    if (status) status.textContent = 'Erro';
+    const error = document.createElement('div');
+    error.className = 'upload-progress-error';
+    error.textContent = message || 'Falha no upload';
+    item.appendChild(error);
+    setTimeout(() => {
+        item.remove();
+        if (uploadProgressList && !uploadProgressList.querySelector('.upload-progress-item')) {
+            uploadProgressList.classList.add('hidden');
+        }
+    }, 3000);
+}
+
+function finalizeUploadItem(item) {
+    if (!item) return;
+    updateUploadProgressItem(item, 100, 'Enviado');
+    setTimeout(() => {
+        item.remove();
+        if (uploadProgressList && !uploadProgressList.querySelector('.upload-progress-item')) {
+            uploadProgressList.classList.add('hidden');
+        }
+    }, 2000);
+}
+
+function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = {}) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const item = createUploadProgressItem(file.name || 'arquivo');
+        xhr.open('POST', apiUrl, true);
+        xhr.upload.onprogress = (event) => {
+            if (!event.lengthComputable) return;
+            const percent = Math.round((event.loaded / event.total) * 100);
+            updateUploadProgressItem(item, percent, `${percent}%`);
+        };
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                updateUploadProgressItem(item, 100, 'Processando');
+                resolve({
+                    ok: true,
+                    status: xhr.status,
+                    json: async () => JSON.parse(xhr.responseText || '{}'),
+                    text: async () => xhr.responseText || ''
+                });
+                finalizeUploadItem(item);
+            } else {
+                markUploadError(item, xhr.responseText || 'Falha no upload');
+                resolve({
+                    ok: false,
+                    status: xhr.status,
+                    text: async () => xhr.responseText || ''
+                });
+            }
+        };
+        xhr.onerror = () => {
+            markUploadError(item, 'Falha na conexão');
+            reject(new Error('Não foi possível conectar ao backend de upload.'));
+        };
+        xhr.send(formData);
+    });
 }
 
 // Login com email/senha
@@ -671,6 +780,9 @@ window.addEventListener('click', (e) => {
     if (profileModal && e.target === profileModal) {
         closeProfileModal();
     }
+    if (cameraModal && e.target === cameraModal) {
+        closeCameraModal();
+    }
     if (friendModal && e.target === friendModal) {
         closeFriendModal();
     }
@@ -745,6 +857,7 @@ function handleAuthError(error) {
 // ========== ESTADO DE AUTENTICAÇÃO ==========
 auth.onAuthStateChanged(async (user) => {
     if (user) {
+        resetChatUI();
         currentUser = user;
         authContainer.classList.add('hidden');
         app.classList.remove('hidden');
@@ -800,12 +913,8 @@ auth.onAuthStateChanged(async (user) => {
         setAdminAccess(false);
         updateRegisterRoleAvailability();
         resetRegisterForm();
-        if (defaultChatPartnerPhoto) {
-            chatPartnerPhoto.src = defaultChatPartnerPhoto;
-        }
-        chatPartnerName.textContent = 'Selecione um usuário';
-        chatPartnerStatus.textContent = '';
         selectedFriendData = null;
+        resetChatUI();
         
         // Cleanup
         if (messagesUnsubscribe) messagesUnsubscribe();
@@ -821,7 +930,15 @@ auth.onAuthStateChanged(async (user) => {
         if (onlineStatusInterval) clearInterval(onlineStatusInterval);
 
         selectedUserId = null;
+        currentConversationId = null;
+        currentConversationMessages = [];
+        currentFriends = [];
+        allUsersCache = [];
         if (btnEmoji) btnEmoji.disabled = true;
+        if (btnVoice) btnVoice.disabled = true;
+        if (btnCameraQuick) btnCameraQuick.disabled = true;
+        if (btnVoice) btnVoice.disabled = true;
+        if (btnCameraQuick) btnCameraQuick.disabled = true;
         if (btnAttach) btnAttach.disabled = true;
         if (btnSend) btnSend.disabled = true;
         if (messageInput) messageInput.disabled = true;
@@ -2659,16 +2776,30 @@ function renderFriendUsers() {
         totalUsers.textContent = `${friends.length} contato${friends.length !== 1 ? 's' : ''}`;
     }
 
-    if (selectedFriendData) {
-        const updatedFriend = allUsersCache.find(user => user.uid === selectedFriendData.uid);
-        if (updatedFriend) {
-            selectedFriendData = updatedFriend;
+        if (selectedFriendData) {
+            const updatedFriend = allUsersCache.find(user => user.uid === selectedFriendData.uid);
+            if (updatedFriend) {
+                selectedFriendData = updatedFriend;
+            }
+            if (friendModal?.classList.contains('show')) {
+                if (friendDetailStatus) friendDetailStatus.textContent = getFriendStatusText(selectedFriendData);
+                updateFriendModalState();
+            }
+            if (selectedUserId === selectedFriendData.uid && chatPartnerStatus) {
+                const blockedSet = new Set(currentUserProfile?.blocked || []);
+                if (blockedSet.has(selectedFriendData.uid)) {
+                    chatPartnerStatus.textContent = 'Bloqueado';
+                } else if (selectedFriendData.online) {
+                    chatPartnerStatus.textContent = '🟢 Online';
+                } else {
+                    const lastSeen = selectedFriendData.lastSeen?.toDate ? formatLastSeen(selectedFriendData.lastSeen.toDate()) : '';
+                    chatPartnerStatus.textContent = lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline';
+                }
+            }
+            if (selectedFriendData?.online && selectedUserId) {
+                updateOutgoingDeliveryStatus(currentConversationId, currentConversationMessages);
+            }
         }
-        if (friendModal?.classList.contains('show')) {
-            if (friendDetailStatus) friendDetailStatus.textContent = getFriendStatusText(selectedFriendData);
-            updateFriendModalState();
-        }
-    }
 
     if (selectedFriendData && !friendSet.has(selectedFriendData.uid)) {
         selectedFriendData = null;
@@ -2681,6 +2812,8 @@ function renderFriendUsers() {
         btnSend.disabled = true;
         btnAttach.disabled = true;
         if (btnEmoji) btnEmoji.disabled = true;
+        if (btnVoice) btnVoice.disabled = true;
+        if (btnCameraQuick) btnCameraQuick.disabled = true;
         if (btnCall) btnCall.disabled = true;
         if (btnVideoCall) btnVideoCall.disabled = true;
     }
@@ -2690,6 +2823,8 @@ function renderFriendUsers() {
         btnSend.disabled = true;
         btnAttach.disabled = true;
         if (btnEmoji) btnEmoji.disabled = true;
+        if (btnVoice) btnVoice.disabled = true;
+        if (btnCameraQuick) btnCameraQuick.disabled = true;
         chatPartnerStatus.textContent = 'Bloqueado';
         if (btnCall) btnCall.disabled = true;
         if (btnVideoCall) btnVideoCall.disabled = true;
@@ -2719,7 +2854,7 @@ function renderUsers(users) {
         li.dataset.uid = user.uid;
         
         const lastSeen = user.lastSeen ? formatLastSeen(user.lastSeen.toDate()) : '';
-        const status = user.online ? '🟢 Online' : `⚪ Offline ${lastSeen}`;
+        const status = user.online ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
         
         const fallbackPhoto = user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
         li.innerHTML = `
@@ -2743,13 +2878,16 @@ function renderUsers(users) {
 
 // Formatar última visualização
 function formatLastSeen(date) {
+    if (!date) return '';
     const now = new Date();
-    const diffMinutes = Math.floor((now - date) / 60000);
-    
-    if (diffMinutes < 1) return 'agora mesmo';
-    if (diffMinutes < 60) return `há ${diffMinutes} min`;
-    if (diffMinutes < 1440) return `há ${Math.floor(diffMinutes / 60)} h`;
-    return date.toLocaleDateString('pt-BR');
+    const diffMs = now - date;
+    const timeText = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const dayMs = 24 * 60 * 60 * 1000;
+    if (diffMs < dayMs) {
+        return timeText;
+    }
+    const dateText = date.toLocaleDateString('pt-BR');
+    return `${dateText} ${timeText}`;
 }
 
 // Filtrar usuários
@@ -2779,7 +2917,12 @@ async function selectUser(user) {
         hydratePhotoFromUrl(chatPartnerPhoto, user.photoURL, fallbackPhoto);
     }
     const isBlocked = isFriendBlocked(user.uid);
-    chatPartnerStatus.textContent = isBlocked ? 'Bloqueado' : (user.online ? '🟢 Online' : '⚪ Offline');
+    if (isBlocked) {
+        chatPartnerStatus.textContent = 'Bloqueado';
+    } else {
+        const lastSeen = user.lastSeen?.toDate ? formatLastSeen(user.lastSeen.toDate()) : '';
+        chatPartnerStatus.textContent = user.online ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
+    }
     
     // Habilitar input
     const disableChat = isBlocked;
@@ -2787,6 +2930,8 @@ async function selectUser(user) {
     btnSend.disabled = disableChat;
     btnAttach.disabled = disableChat;
     if (btnEmoji) btnEmoji.disabled = disableChat;
+    if (btnVoice) btnVoice.disabled = disableChat;
+    if (btnCameraQuick) btnCameraQuick.disabled = disableChat;
     if (btnCall) btnCall.disabled = disableChat;
     if (btnVideoCall) btnVideoCall.disabled = disableChat;
     messageInput.focus();
@@ -2808,6 +2953,7 @@ async function loadMessages(otherUid) {
     if (messagesUnsubscribe) messagesUnsubscribe();
     
     const conversationId = getConversationId(currentUser.uid, otherUid);
+    currentConversationId = conversationId;
     
     messagesUnsubscribe = db.collection('conversations')
         .doc(conversationId)
@@ -2816,7 +2962,11 @@ async function loadMessages(otherUid) {
         .onSnapshot((snapshot) => {
             const messages = [];
             snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+            currentConversationMessages = messages;
             renderMessages(messages);
+            updateMessageAttachmentUrls(conversationId, messages);
+            updateMessageDeliveryStatus(conversationId, messages);
+            updateOutgoingDeliveryStatus(conversationId, messages);
             
             // Marcar mensagens como lidas
             markMessagesAsRead(conversationId);
@@ -2842,10 +2992,104 @@ async function markMessagesAsRead(conversationId) {
     
     const batch = db.batch();
     snapshot.forEach(doc => {
-        batch.update(doc.ref, { read: true });
+        batch.update(doc.ref, {
+            read: true,
+            readAt: firebase.firestore.FieldValue.serverTimestamp(),
+            delivered: true,
+            deliveredAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
     });
     
     await batch.commit();
+}
+
+function updateMessageDeliveryStatus(conversationId, messages) {
+    if (!currentUser || !conversationId || !messages?.length) return;
+    const batch = db.batch();
+    let hasUpdates = false;
+
+    messages.forEach(msg => {
+        if (!msg?.id) return;
+        if (msg.receiverId !== currentUser.uid) return;
+        if (msg.delivered === true) return;
+        const ref = db.collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .doc(msg.id);
+        batch.update(ref, {
+            delivered: true,
+            deliveredAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        hasUpdates = true;
+    });
+
+    if (hasUpdates) {
+        batch.commit().catch((error) => {
+            console.warn('Falha ao atualizar entrega das mensagens.', error);
+        });
+    }
+}
+
+function updateOutgoingDeliveryStatus(conversationId, messages) {
+    const resolvedConversationId = conversationId || currentConversationId;
+    const resolvedMessages = messages?.length ? messages : currentConversationMessages;
+    if (!currentUser || !resolvedConversationId || !resolvedMessages?.length) return;
+    if (!selectedFriendData?.online) return;
+    const batch = db.batch();
+    let hasUpdates = false;
+
+    resolvedMessages.forEach(msg => {
+        if (!msg?.id) return;
+        if (msg.senderId !== currentUser.uid) return;
+        if (msg.receiverId !== selectedUserId) return;
+        if (msg.delivered === true) return;
+        const ref = db.collection('conversations')
+            .doc(resolvedConversationId)
+            .collection('messages')
+            .doc(msg.id);
+        batch.update(ref, {
+            delivered: true,
+            deliveredAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        hasUpdates = true;
+    });
+
+    if (hasUpdates) {
+        batch.commit().catch((error) => {
+            console.warn('Falha ao atualizar entrega (remetente).', error);
+        });
+    }
+}
+
+function updateMessageAttachmentUrls(conversationId, messages) {
+    if (!conversationId || !messages?.length || !currentUser) return;
+    const batch = db.batch();
+    let hasUpdates = false;
+
+    messages.forEach(msg => {
+        if (!msg?.id) return;
+        const patch = {};
+        if (msg.fileUrl && msg.fileUrl.startsWith('/')) {
+            patch.fileUrl = normalizeBackendUrl(msg.fileUrl);
+        }
+        if (msg.imageUrl && msg.imageUrl.startsWith('/')) {
+            patch.imageUrl = normalizeBackendUrl(msg.imageUrl);
+        }
+        if (Object.keys(patch).length) {
+            const ref = db.collection('conversations')
+                .doc(conversationId)
+                .collection('messages')
+                .doc(msg.id);
+            batch.update(ref, patch);
+            hasUpdates = true;
+        }
+    });
+
+    if (hasUpdates) {
+        batch.commit().catch((error) => {
+            console.warn('Falha ao atualizar URLs antigas.', error);
+        });
+    }
 }
 
 // Renderizar mensagens
@@ -2865,49 +3109,50 @@ function renderMessages(messages) {
         const isSent = msg.senderId === currentUser.uid;
         const div = document.createElement('div');
         div.className = `message ${isSent ? 'sent' : 'received'}`;
+        const meta = buildMessageMeta(msg, isSent);
         
         const messageType = msg.type || (msg.imageUrl ? 'image' : 'text');
         if (messageType === 'image') {
-            const imageUrl = msg.imageUrl || msg.fileUrl;
+            const imageUrl = normalizeBackendUrl(msg.imageUrl || msg.fileUrl);
             if (imageUrl) {
                 div.innerHTML = `
                     <img src="${imageUrl}" alt="imagem" onclick="window.open('${imageUrl}', '_blank')" style="max-width: 200px;">
-                    <small>${formatTime(msg.timestamp)}</small>
+                    ${meta}
                 `;
             } else {
                 div.innerHTML = `
                     <p>Imagem indisponível.</p>
-                    <small>${formatTime(msg.timestamp)}</small>
+                    ${meta}
                 `;
             }
         } else if (messageType === 'video') {
-            const videoUrl = msg.fileUrl || msg.imageUrl;
+            const videoUrl = normalizeBackendUrl(msg.fileUrl || msg.imageUrl);
             if (videoUrl) {
                 div.innerHTML = `
                     <video src="${videoUrl}" controls playsinline preload="metadata" style="max-width: 240px; border-radius: 10px;"></video>
-                    <small>${formatTime(msg.timestamp)}</small>
+                    ${meta}
                 `;
             } else {
                 div.innerHTML = `
                     <p>Vídeo indisponível.</p>
-                    <small>${formatTime(msg.timestamp)}</small>
+                    ${meta}
                 `;
             }
         } else if (messageType === 'audio') {
-            const audioUrl = msg.fileUrl || msg.imageUrl;
+            const audioUrl = normalizeBackendUrl(msg.fileUrl || msg.imageUrl);
             if (audioUrl) {
                 div.innerHTML = `
                     <audio src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
-                    <small>${formatTime(msg.timestamp)}</small>
+                    ${meta}
                 `;
             } else {
                 div.innerHTML = `
                     <p>Áudio indisponível.</p>
-                    <small>${formatTime(msg.timestamp)}</small>
+                    ${meta}
                 `;
             }
         } else if (messageType === 'file') {
-            const fileUrl = msg.fileUrl || msg.imageUrl || '#';
+            const fileUrl = normalizeBackendUrl(msg.fileUrl || msg.imageUrl || '#');
             const fileName = msg.fileName || 'Arquivo';
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
@@ -2918,12 +3163,12 @@ function renderMessages(messages) {
                         <small>${fileSize}</small>
                     </div>
                 </div>
-                <small>${formatTime(msg.timestamp)}</small>
+                ${meta}
             `;
         } else {
             div.innerHTML = `
                 <p>${msg.text || ''}</p>
-                <small>${formatTime(msg.timestamp)}</small>
+                ${meta}
             `;
         }
         
@@ -2949,6 +3194,31 @@ function formatFileSize(bytes) {
     return `${size} ${units[index]}`;
 }
 
+function buildMessageMeta(msg, isSent) {
+    const time = formatTime(msg.timestamp);
+    if (!isSent) {
+        return `<small>${time}</small>`;
+    }
+    let statusClass = 'status-sent';
+    let ticks = '✓';
+    let title = 'Enviado';
+    if (msg.read) {
+        statusClass = 'status-read';
+        ticks = '✓✓';
+        title = 'Lido';
+    } else if (msg.delivered) {
+        statusClass = 'status-delivered';
+        ticks = '✓✓';
+        title = 'Entregue';
+    }
+    return `
+        <small class="message-meta">
+            <span class="message-time">${time}</span>
+            <span class="message-status ${statusClass}" title="${title}">${ticks}</span>
+        </small>
+    `;
+}
+
 function insertAtCursor(input, text) {
     if (!input) return;
     const start = input.selectionStart ?? input.value.length;
@@ -2972,6 +3242,7 @@ function toggleAttachMenu() {
     const willOpen = attachMenu.classList.contains('hidden');
     if (willOpen) {
         if (emojiPicker) emojiPicker.classList.add('hidden');
+        closeCameraModal();
     }
     attachMenu.classList.toggle('hidden', !willOpen);
 }
@@ -2980,6 +3251,251 @@ function openAttachInput(input) {
     if (!input) return;
     closeAttachMenu();
     input.click();
+}
+
+async function openCameraModal() {
+    if (!cameraModal) return;
+    if (!selectedUserId) {
+        alert('Selecione um usuário para conversar.');
+        return;
+    }
+    if (isFriendBlocked(selectedUserId)) {
+        alert('Você bloqueou este usuário.');
+        return;
+    }
+    closeAttachMenu();
+    if (emojiPicker) emojiPicker.classList.add('hidden');
+    cameraModal.classList.add('show');
+    cancelCameraRecording = false;
+    if (cameraStatus) cameraStatus.textContent = 'Abrindo câmera...';
+    await startCameraStream();
+}
+
+function closeCameraModal() {
+    if (cameraModal) cameraModal.classList.remove('show');
+    cancelCameraRecording = true;
+    stopCameraStream();
+    resetCameraState();
+}
+
+function resetCameraState() {
+    if (cameraStatus) cameraStatus.textContent = 'Pronto para capturar.';
+    if (btnCameraRecord) {
+        btnCameraRecord.textContent = 'Gravar vídeo';
+    }
+    isCameraRecording = false;
+    cameraRecorderChunks = [];
+    cancelCameraRecording = false;
+}
+
+async function startCameraStream() {
+    if (!cameraPreview || !navigator.mediaDevices?.getUserMedia) {
+        if (cameraStatus) cameraStatus.textContent = 'Câmera não suportada.';
+        return;
+    }
+    if (cameraStream) return;
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: true
+        });
+    } catch (error) {
+        try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } },
+                audio: false
+            });
+            if (cameraStatus) {
+                cameraStatus.textContent = 'Câmera aberta (sem áudio).';
+            }
+        } catch (fallbackError) {
+            if (cameraStatus) cameraStatus.textContent = 'Não foi possível acessar a câmera.';
+            alert('Não foi possível acessar a câmera.');
+            closeCameraModal();
+            return;
+        }
+    }
+    cameraPreview.srcObject = cameraStream;
+    if (cameraStatus && cameraStatus.textContent === 'Abrindo câmera...') {
+        cameraStatus.textContent = 'Pronto para capturar.';
+    }
+}
+
+function stopCameraStream() {
+    if (!cameraStream) return;
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+    if (cameraPreview) cameraPreview.srcObject = null;
+    if (cameraRecorder) {
+        try {
+            cameraRecorder.stop();
+        } catch (error) {
+            // ignore
+        }
+    }
+    cameraRecorder = null;
+    isCameraRecording = false;
+}
+
+async function capturePhotoFromCamera() {
+    if (!cameraPreview || !cameraStream) return;
+    const videoWidth = cameraPreview.videoWidth || 640;
+    const videoHeight = cameraPreview.videoHeight || 480;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(cameraPreview, 0, 0, videoWidth, videoHeight);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+    if (!blob) return;
+    const file = new File([blob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+    await handleChatFile(file);
+    closeCameraModal();
+}
+
+async function toggleCameraRecording() {
+    if (!cameraStream) return;
+    if (isCameraRecording) {
+        cancelCameraRecording = false;
+        if (cameraRecorder) cameraRecorder.stop();
+        return;
+    }
+    const mimeTypeCandidates = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'
+    ];
+    let mimeType = '';
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
+        mimeType = mimeTypeCandidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+    }
+    try {
+        cameraRecorder = mimeType ? new MediaRecorder(cameraStream, { mimeType }) : new MediaRecorder(cameraStream);
+    } catch (error) {
+        cameraRecorder = new MediaRecorder(cameraStream);
+    }
+    cameraRecorderChunks = [];
+    cameraRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+            cameraRecorderChunks.push(event.data);
+        }
+    };
+    cameraRecorder.onstop = async () => {
+        const blob = new Blob(cameraRecorderChunks, { type: cameraRecorder.mimeType || mimeType || 'video/webm' });
+        cameraRecorderChunks = [];
+        isCameraRecording = false;
+        if (btnCameraRecord) btnCameraRecord.textContent = 'Gravar vídeo';
+        if (cameraStatus) cameraStatus.textContent = 'Pronto para capturar.';
+        if (cancelCameraRecording) {
+            cancelCameraRecording = false;
+            return;
+        }
+        if (!blob.size) return;
+        const file = new File([blob], `video_${Date.now()}.webm`, { type: blob.type });
+        await handleChatFile(file);
+        closeCameraModal();
+    };
+    cameraRecorder.start();
+    isCameraRecording = true;
+    if (btnCameraRecord) btnCameraRecord.textContent = 'Parar vídeo';
+    if (cameraStatus) cameraStatus.textContent = 'Gravando vídeo...';
+}
+
+function getPreferredAudioMimeType() {
+    const candidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/mp4',
+        'audio/mpeg'
+    ];
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+    return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+}
+
+function getAudioFileExtension(mimeType) {
+    if (!mimeType) return 'webm';
+    if (mimeType.includes('ogg')) return 'ogg';
+    if (mimeType.includes('mp4')) return 'm4a';
+    if (mimeType.includes('mpeg')) return 'mp3';
+    return 'webm';
+}
+
+function updateVoiceButtonUI() {
+    if (!btnVoice) return;
+    btnVoice.classList.toggle('recording', isRecordingAudio);
+    btnVoice.title = isRecordingAudio ? 'Parar gravação' : 'Enviar áudio';
+    btnVoice.innerHTML = isRecordingAudio ? '■' : '&#127908;';
+}
+
+async function stopAudioRecording(sendAfterStop = true) {
+    if (!audioRecorder) return;
+    try {
+        audioRecorder.stop();
+    } catch (error) {
+        // ignore
+    }
+    if (audioRecorderStream) {
+        audioRecorderStream.getTracks().forEach(track => track.stop());
+    }
+    audioRecorderStream = null;
+    audioRecorder = null;
+    isRecordingAudio = false;
+    updateVoiceButtonUI();
+    if (!sendAfterStop) {
+        audioRecorderChunks = [];
+    }
+}
+
+async function startAudioRecording() {
+    if (!selectedUserId) {
+        alert('Selecione um usuário para conversar.');
+        return;
+    }
+    if (isFriendBlocked(selectedUserId)) {
+        alert('Você bloqueou este usuário.');
+        return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+        alert('Seu navegador não suporta gravação de áudio.');
+        return;
+    }
+    if (isRecordingAudio) {
+        await stopAudioRecording(true);
+        return;
+    }
+
+    try {
+        audioRecorderStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+        alert('Não foi possível acessar o microfone.');
+        return;
+    }
+
+    const mimeType = getPreferredAudioMimeType();
+    try {
+        audioRecorder = mimeType ? new MediaRecorder(audioRecorderStream, { mimeType }) : new MediaRecorder(audioRecorderStream);
+    } catch (error) {
+        audioRecorder = new MediaRecorder(audioRecorderStream);
+    }
+    audioRecorderChunks = [];
+    audioRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+            audioRecorderChunks.push(event.data);
+        }
+    };
+    audioRecorder.onstop = async () => {
+        const blob = new Blob(audioRecorderChunks, { type: audioRecorder.mimeType || mimeType || 'audio/webm' });
+        audioRecorderChunks = [];
+        if (!blob.size) return;
+        const extension = getAudioFileExtension(blob.type);
+        const file = new File([blob], `voz_${Date.now()}.${extension}`, { type: blob.type });
+        await handleChatFile(file);
+    };
+    audioRecorder.start();
+    isRecordingAudio = true;
+    updateVoiceButtonUI();
 }
 
 async function handleChatFile(file) {
@@ -3003,6 +3519,7 @@ async function handleChatFile(file) {
     if (isImage) messageType = 'image';
     if (isVideo) messageType = 'video';
     if (isAudio) messageType = 'audio';
+    const delivered = !!selectedFriendData?.online;
 
     try {
         const fileUrl = await uploadChatFileViaBackend(file, { uid: currentUser.uid });
@@ -3022,18 +3539,54 @@ async function handleChatFile(file) {
                 receiverId: selectedUserId,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 type: messageType,
-                read: false
+                read: false,
+                delivered: delivered,
+                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null
             });
     } catch (error) {
         alert('Erro ao enviar arquivo: ' + error.message);
     }
 }
 
-function handleFileInputChange(input) {
-    const file = input?.files?.[0];
+async function handleFileInputChange(input) {
+    const files = Array.from(input?.files || []);
     if (input) input.value = '';
-    if (!file) return;
-    handleChatFile(file);
+    if (!files.length) return;
+    await Promise.allSettled(files.map(file => handleChatFile(file)));
+}
+
+function resetChatUI() {
+    if (messagesContainer) {
+        messagesContainer.innerHTML = `
+            <div class="welcome-message">
+                <h3>Bem-vindo ao CameChat! 👋</h3>
+                <p>Selecione um usuário para começar a conversar.</p>
+            </div>
+        `;
+    }
+    if (usersList) usersList.innerHTML = '';
+    if (adminUsersList) adminUsersList.innerHTML = '';
+    if (messageInput) messageInput.value = '';
+    if (searchUser) searchUser.value = '';
+    if (friendEmailInput) friendEmailInput.value = '';
+    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usuário';
+    if (chatPartnerStatus) chatPartnerStatus.textContent = '';
+    if (callIndicator) callIndicator.classList.add('hidden');
+    if (defaultChatPartnerPhoto) {
+        chatPartnerPhoto.src = defaultChatPartnerPhoto;
+    }
+    if (emojiPicker) emojiPicker.classList.add('hidden');
+    if (attachMenu) attachMenu.classList.add('hidden');
+    if (uploadProgressList) {
+        uploadProgressList.classList.add('hidden');
+        uploadProgressList.innerHTML = '';
+    }
+    closeCameraModal();
+    if (isRecordingAudio) {
+        stopAudioRecording(false);
+    }
+    currentConversationId = null;
+    currentConversationMessages = [];
 }
 
 function resetRegisterForm() {
@@ -3102,7 +3655,7 @@ function getFriendStatusText(friend) {
     if (friend.online) return 'Online';
     if (friend.lastSeen?.toDate) {
         const lastSeen = formatLastSeen(friend.lastSeen.toDate());
-        return `Offline ${lastSeen}`;
+        return `Visto por \u00faltimo \u00e0s ${lastSeen}`;
     }
     return 'Offline';
 }
@@ -3137,6 +3690,7 @@ btnSend.addEventListener('click', async () => {
     }
     
     const conversationId = getConversationId(currentUser.uid, selectedUserId);
+    const delivered = !!selectedFriendData?.online;
     
     try {
         await db.collection('conversations')
@@ -3148,7 +3702,9 @@ btnSend.addEventListener('click', async () => {
                 receiverId: selectedUserId,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 type: 'text',
-                read: false
+                read: false,
+                delivered: delivered,
+                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null
             });
         
         messageInput.value = '';
@@ -3162,6 +3718,13 @@ if (btnAttach) {
     btnAttach.addEventListener('click', (event) => {
         event.stopPropagation();
         toggleAttachMenu();
+    });
+}
+
+if (btnCameraQuick) {
+    btnCameraQuick.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openCameraModal();
     });
 }
 
@@ -3209,7 +3772,38 @@ if (btnEmoji) {
         e.stopPropagation();
         if (!emojiPicker) return;
         closeAttachMenu();
+        closeCameraModal();
         emojiPicker.classList.toggle('hidden');
+    });
+}
+
+if (btnVoice) {
+    btnVoice.addEventListener('click', () => {
+        startAudioRecording();
+    });
+}
+
+if (btnCameraCapture) {
+    btnCameraCapture.addEventListener('click', () => {
+        capturePhotoFromCamera();
+    });
+}
+
+if (btnCameraRecord) {
+    btnCameraRecord.addEventListener('click', () => {
+        toggleCameraRecording();
+    });
+}
+
+if (btnCameraCancel) {
+    btnCameraCancel.addEventListener('click', () => {
+        closeCameraModal();
+    });
+}
+
+if (cameraCloseModal) {
+    cameraCloseModal.addEventListener('click', () => {
+        closeCameraModal();
     });
 }
 
@@ -3295,6 +3889,8 @@ if (friendBlockBtn) {
                 btnSend.disabled = true;
                 btnAttach.disabled = true;
                 if (btnEmoji) btnEmoji.disabled = true;
+                if (btnVoice) btnVoice.disabled = true;
+                if (btnCameraQuick) btnCameraQuick.disabled = true;
                 chatPartnerStatus.textContent = 'Bloqueado';
                 if (btnCall) btnCall.disabled = true;
                 if (btnVideoCall) btnVideoCall.disabled = true;
@@ -3315,11 +3911,18 @@ if (friendUnblockBtn) {
             }
             updateFriendModalState();
             if (selectedUserId === selectedFriendData.uid) {
-                chatPartnerStatus.textContent = selectedFriendData.online ? '🟢 Online' : '⚪ Offline';
+                if (selectedFriendData.online) {
+                    chatPartnerStatus.textContent = '🟢 Online';
+                } else {
+                    const lastSeen = selectedFriendData.lastSeen?.toDate ? formatLastSeen(selectedFriendData.lastSeen.toDate()) : '';
+                    chatPartnerStatus.textContent = lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline';
+                }
                 messageInput.disabled = false;
                 btnSend.disabled = false;
                 btnAttach.disabled = false;
                 if (btnEmoji) btnEmoji.disabled = false;
+                if (btnVoice) btnVoice.disabled = false;
+                if (btnCameraQuick) btnCameraQuick.disabled = false;
                 if (btnCall) btnCall.disabled = false;
                 if (btnVideoCall) btnVideoCall.disabled = false;
             }
