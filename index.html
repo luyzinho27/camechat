@@ -182,23 +182,41 @@
                 <div class="message-input-area">
                     <input type="text" id="message-input" placeholder="Digite sua mensagem..." disabled>
                     <input type="file" id="file-upload" style="display: none;" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar">
-                    <input type="file" id="file-upload-gallery" style="display: none;" accept="image/*,video/*">
-                    <input type="file" id="file-upload-camera-photo" style="display: none;" accept="image/*" capture="environment">
-                    <input type="file" id="file-upload-camera-video" style="display: none;" accept="video/*" capture="environment">
-                    <input type="file" id="file-upload-audio" style="display: none;" accept="audio/*" capture="microphone">
-                    <input type="file" id="file-upload-document" style="display: none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar">
+                    <input type="file" id="file-upload-gallery" style="display: none;" accept="image/*,video/*" multiple>
+                    <input type="file" id="file-upload-camera-photo" style="display: none;" accept="image/*" capture="environment" multiple>
+                    <input type="file" id="file-upload-camera-video" style="display: none;" accept="video/*" capture="environment" multiple>
+                    <input type="file" id="file-upload-audio" style="display: none;" accept="audio/*" capture="microphone" multiple>
+                    <input type="file" id="file-upload-document" style="display: none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple>
                     <button id="btn-attach" class="btn-icon" disabled title="Anexar arquivo">📎</button>
                     <button id="btn-emoji" class="btn-icon" disabled title="Emojis">😊</button>
+                    <button id="btn-voice" class="btn-icon btn-voice" disabled title="Enviar áudio">&#127908;</button>
+                    <button id="btn-camera-quick" class="btn-icon btn-camera-quick" disabled title="Abrir câmera">&#128247;</button>
                     <button id="btn-send" class="btn-icon btn-send" disabled title="Enviar mensagem">➤</button>
                 </div>
                 <emoji-picker id="emoji-picker" class="emoji-picker hidden"></emoji-picker>
                 <div id="attach-menu" class="attach-menu hidden">
-                    <button type="button" class="attach-option" data-attach="gallery">Galeria</button>
-                    <button type="button" class="attach-option" data-attach="camera-photo">Câmera (foto)</button>
-                    <button type="button" class="attach-option" data-attach="camera-video">Câmera (vídeo)</button>
-                    <button type="button" class="attach-option" data-attach="audio">Áudio</button>
-                    <button type="button" class="attach-option" data-attach="document">Documento</button>
+                    <button type="button" class="attach-option" data-attach="gallery">
+                        <span class="attach-icon" aria-hidden="true">🖼️</span>
+                        Galeria
+                    </button>
+                    <button type="button" class="attach-option" data-attach="camera-photo">
+                        <span class="attach-icon" aria-hidden="true">📷</span>
+                        Câmera (foto)
+                    </button>
+                    <button type="button" class="attach-option" data-attach="camera-video">
+                        <span class="attach-icon" aria-hidden="true">🎥</span>
+                        Câmera (vídeo)
+                    </button>
+                    <button type="button" class="attach-option" data-attach="audio">
+                        <span class="attach-icon" aria-hidden="true">🎤</span>
+                        Áudio
+                    </button>
+                    <button type="button" class="attach-option" data-attach="document">
+                        <span class="attach-icon" aria-hidden="true">📄</span>
+                        Documento
+                    </button>
                 </div>
+                <div id="upload-progress-list" class="upload-progress-list hidden"></div>
             </main>
 
             <section id="admin-panel" class="admin-panel hidden">
@@ -332,6 +350,23 @@
                 <button id="friend-remove-btn" class="btn-google" type="button">Excluir amigo</button>
                 <button id="friend-block-btn" class="btn-primary" type="button">Bloquear amigo</button>
                 <button id="friend-unblock-btn" class="btn-google hidden" type="button">Desbloquear amigo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal da câmera -->
+    <div id="camera-modal" class="modal">
+        <div class="modal-content camera-modal-content">
+            <span id="camera-close-modal" class="close-modal">&times;</span>
+            <h3>Câmera</h3>
+            <div class="camera-preview">
+                <video id="camera-preview" autoplay playsinline muted></video>
+            </div>
+            <p id="camera-status" class="camera-status">Pronto para capturar.</p>
+            <div class="camera-actions">
+                <button id="btn-camera-capture" class="btn-primary" type="button">Tirar foto</button>
+                <button id="btn-camera-record" class="btn-google" type="button">Gravar vídeo</button>
+                <button id="btn-camera-cancel" class="btn-google" type="button">Fechar</button>
             </div>
         </div>
     </div>
