@@ -3234,8 +3234,10 @@ function setChatPartnerActivity(state) {
         chatPartnerActivity.classList.add('hidden');
         return;
     }
-    const displayName = selectedFriendData?.name || chatPartnerName?.textContent || 'Usuário';
-    const label = state === 'recording' ? `${displayName} está gravando áudio` : `${displayName} está digitando`;
+    const displayName = selectedFriendData?.name || chatPartnerName?.textContent || 'Usu\u00e1rio';
+    const label = state === 'recording'
+        ? `${displayName} est\u00e1 gravando \u00e1udio`
+        : `${displayName} est\u00e1 digitando`;
     chatPartnerActivity.textContent = label;
     chatPartnerActivity.classList.remove('hidden');
 }
