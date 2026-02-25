@@ -972,21 +972,10 @@ async function updateUserOnlineStatus(online) {
     if (!currentUser) return;
     
     try {
-        const userRef = db.collection('users').doc(currentUser.uid);
-        const payload = {
-            uid: currentUser.uid,
+        await db.collection('users').doc(currentUser.uid).set({
             online: online,
             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        if (currentUserProfile && Object.prototype.hasOwnProperty.call(currentUserProfile, 'role')) {
-            payload.role = currentUserProfile.role;
-        }
-        if (currentUserProfile && Object.prototype.hasOwnProperty.call(currentUserProfile, 'disabled')) {
-            payload.disabled = currentUserProfile.disabled;
-        }
-
-        await userRef.set(payload, { merge: true });
+        }, { merge: true });
     } catch (error) {
         console.error('Erro ao atualizar status:', error?.code || '', error?.message || error);
     }
