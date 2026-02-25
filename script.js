@@ -199,6 +199,7 @@ let currentConversationMessages = [];
 let typingUnsubscribe = null;
 let typingIdleTimeout = null;
 let typingRemoteTimeout = null;
+let friendDocUnsubscribe = null;
 let lastTypingSentAt = 0;
 let localTypingState = null;
 let editingUserId = null;
@@ -2968,6 +2969,7 @@ async function selectUser(user) {
     document.querySelector('.welcome-message')?.remove();
     
     // Carregar mensagens
+    subscribeToFriendDoc(user.uid);
     await loadMessages(user.uid);
 
     // Fechar sidebar no mobile apÃ³s selecionar
@@ -3336,6 +3338,49 @@ function updateTypingState(state, force = false) {
         .set(activityPayload, { merge: true })
         .catch((error) => {
             console.warn('Falha ao atualizar atividade do usuário.', error);
+        });
+}
+
+function subscribeToFriendDoc(uid) {
+    if (friendDocUnsubscribe) {
+        friendDocUnsubscribe();
+        friendDocUnsubscribe = null;
+    }
+    if (!uid) return;
+
+    friendDocUnsubscribe = db.collection('users')
+        .doc(uid)
+        .onSnapshot((doc) => {
+            if (!doc.exists) return;
+            const data = { id: doc.id, ...doc.data() };
+            if (selectedUserId !== data.uid) return;
+            selectedFriendData = data;
+
+            if (chatPartnerName) {
+                chatPartnerName.textContent = data.name || 'Usuário';
+            }
+
+            if (chatPartnerPhoto) {
+                const fallbackPhoto = data.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
+                chatPartnerPhoto.src = fallbackPhoto;
+                if (data.photoURL) {
+                    hydratePhotoFromUrl(chatPartnerPhoto, data.photoURL, fallbackPhoto);
+                }
+            }
+
+            if (chatPartnerStatus) {
+                if (isFriendBlocked(data.uid)) {
+                    chatPartnerStatus.textContent = 'Bloqueado';
+                } else {
+                    const lastSeen = data.lastSeen?.toDate ? formatLastSeen(data.lastSeen.toDate()) : '';
+                    chatPartnerStatus.textContent = data.online
+                        ? 'Online'
+                        : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
+                }
+            }
+
+            const activityState = getFriendActivityState(data);
+            setChatPartnerActivity(activityState);
         });
 }
 
@@ -3858,6 +3903,10 @@ function resetChatUI() {
         typingUnsubscribe = null;
     }
     clearRemoteTypingTimer();
+    if (friendDocUnsubscribe) {
+        friendDocUnsubscribe();
+        friendDocUnsubscribe = null;
+    }
     if (usersList) usersList.innerHTML = '';
     if (adminUsersList) adminUsersList.innerHTML = '';
     if (messageInput) messageInput.value = '';
