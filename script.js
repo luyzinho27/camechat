@@ -2816,10 +2816,6 @@ function renderFriendUsers() {
                     setChatPartnerActivity(null);
                 }
             }
-            if (selectedUserId === selectedFriendData.uid) {
-                const activityState = getFriendActivityState(selectedFriendData);
-                setChatPartnerActivity(activityState);
-            }
             if (selectedFriendData?.online && selectedUserId) {
                 updateOutgoingDeliveryStatus(currentConversationId, currentConversationMessages);
             }
@@ -3262,16 +3258,6 @@ function clearRemoteTypingTimer() {
     }
 }
 
-function getFriendActivityState(friend) {
-    if (!friend || !currentUser) return null;
-    const activity = friend.activity;
-    if (!activity || activity.to !== currentUser.uid) return null;
-    const updatedAt = activity.updatedAt?.toDate ? activity.updatedAt.toDate() : null;
-    if (!updatedAt) return null;
-    if (Date.now() - updatedAt.getTime() > 8000) return null;
-    return activity.state || null;
-}
-
 function listenTypingStatus(otherUid) {
     if (typingUnsubscribe) typingUnsubscribe();
     clearRemoteTypingTimer();
@@ -3285,7 +3271,7 @@ function listenTypingStatus(otherUid) {
             const entry = data.typing && data.typing[otherUid];
             const state = entry?.state || null;
             const updatedAt = entry?.updatedAt?.toDate ? entry.updatedAt.toDate() : null;
-            const isStale = !updatedAt || (Date.now() - updatedAt.getTime() > 8000);
+            const isStale = updatedAt ? (Date.now() - updatedAt.getTime() > 8000) : false;
             if (!state || isStale) {
                 setChatPartnerActivity(null);
                 return;
@@ -3323,29 +3309,6 @@ function updateTypingState(state, force = false) {
             console.warn('Falha ao atualizar status de digitação.', error);
         });
 
-    const activityPayload = state
-        ? {
-            activity: {
-                to: selectedUserId,
-                state,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }
-        }
-        : { activity: firebase.firestore.FieldValue.delete() };
-
-    if (currentUserProfile && Object.prototype.hasOwnProperty.call(currentUserProfile, 'role')) {
-        activityPayload.role = currentUserProfile.role;
-    }
-    if (currentUserProfile && Object.prototype.hasOwnProperty.call(currentUserProfile, 'disabled')) {
-        activityPayload.disabled = currentUserProfile.disabled;
-    }
-
-    db.collection('users')
-        .doc(currentUser.uid)
-        .set(activityPayload, { merge: true })
-        .catch((error) => {
-            console.warn('Falha ao atualizar atividade do usuário.', error);
-        });
 }
 
 function subscribeToFriendDoc(uid) {
@@ -3386,8 +3349,6 @@ function subscribeToFriendDoc(uid) {
                 }
             }
 
-            const activityState = getFriendActivityState(data);
-            setChatPartnerActivity(activityState);
         });
 }
 
