@@ -3333,6 +3333,13 @@ function updateTypingState(state, force = false) {
         }
         : { activity: firebase.firestore.FieldValue.delete() };
 
+    if (currentUserProfile && Object.prototype.hasOwnProperty.call(currentUserProfile, 'role')) {
+        activityPayload.role = currentUserProfile.role;
+    }
+    if (currentUserProfile && Object.prototype.hasOwnProperty.call(currentUserProfile, 'disabled')) {
+        activityPayload.disabled = currentUserProfile.disabled;
+    }
+
     db.collection('users')
         .doc(currentUser.uid)
         .set(activityPayload, { merge: true })
