@@ -1220,6 +1220,11 @@ body.sidebar-open {
     color: #888;
 }
 
+.chat-partner-info #chat-partner-status.chat-partner-status-activity {
+    color: #E30613;
+    font-weight: 600;
+}
+
 .chat-partner-activity {
     font-size: 12px;
     color: #E30613;
