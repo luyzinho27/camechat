@@ -1,4 +1,4 @@
-// ConfiguraÃ§Ã£o do Firebase (substitua pelos seus dados)
+// Configuração do Firebase (substitua pelos seus dados)
 const firebaseConfig = {
     apiKey: "AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls",
     authDomain: "camechat-4fb88.firebaseapp.com",
@@ -325,7 +325,7 @@ if (registerPhotoInput) {
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            alert('A foto deve ter no mÃ¡ximo 5MB.');
+            alert('A foto deve ter no máximo 5MB.');
             registerPhotoInput.value = '';
             if (registerPhotoPreview) {
                 registerPhotoPreview.src = '';
@@ -378,7 +378,7 @@ async function updateRegisterRoleAvailability() {
     const adminExists = await checkAdminExists();
     const disableAdmin = adminExists !== false;
     registerRoleAdminOption.disabled = disableAdmin;
-    registerRoleAdminOption.textContent = disableAdmin ? 'Administrador (indisponÃ­vel)' : 'Administrador';
+    registerRoleAdminOption.textContent = disableAdmin ? 'Administrador (indisponível)' : 'Administrador';
     if (disableAdmin && registerRole && registerRole.value === 'administrador') {
         registerRole.value = 'user_chat';
     }
@@ -509,7 +509,7 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
 
     const data = await response.json();
     if (!data?.url) {
-        throw new Error('Resposta invÃ¡lida do servidor.');
+        throw new Error('Resposta inválida do servidor.');
     }
     return normalizeBackendUrl(data.url);
 }
@@ -524,7 +524,7 @@ async function uploadChatFileViaBackend(file, options = {}) {
     try {
         response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options);
     } catch (error) {
-        throw new Error('NÃ£o foi possÃ­vel conectar ao backend de upload.');
+        throw new Error('Não foi possí­vel conectar ao backend de upload.');
     }
 
     if (!response.ok) {
@@ -547,14 +547,14 @@ async function uploadChatFileViaBackend(file, options = {}) {
             // ignore
         }
         if (response.status === 404) {
-            errorMessage = 'Endpoint de upload nÃ£o encontrado. Atualize o backend com /api/upload-chat.';
+            errorMessage = 'Endpoint de upload não encontrado. Atualize o backend com /api/upload-chat.';
         }
         throw new Error(errorMessage);
     }
 
     const data = await response.json();
     if (!data?.url) {
-        throw new Error('Resposta invÃ¡lida do servidor.');
+        throw new Error('Resposta inválida do servidor.');
     }
     return normalizeBackendUrl(data.url);
 }
@@ -649,8 +649,8 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
             }
         };
         xhr.onerror = () => {
-            markUploadError(item, 'Falha na conexÃ£o');
-            reject(new Error('NÃ£o foi possÃ­vel conectar ao backend de upload.'));
+            markUploadError(item, 'Falha na conexão');
+            reject(new Error('Não foi possí­vel conectar ao backend de upload.'));
         };
         xhr.send(formData);
     });
@@ -698,17 +698,17 @@ registerForm.addEventListener('submit', async (e) => {
     }
 
     if (photoFile.size > 5 * 1024 * 1024) {
-        alert('A foto deve ter no mÃ¡ximo 5MB.');
+        alert('A foto deve ter no máximo 5MB.');
         return;
     }
     
     if (password.length < 6) {
-        alert('A senha deve ter no mÃ­nimo 6 caracteres.');
+        alert('A senha deve ter no mínimo 6 caracteres.');
         return;
     }
     
     if (password !== confirmPassword) {
-        alert('As senhas nÃ£o conferem.');
+        alert('As senhas não conferem.');
         return;
     }
     
@@ -737,7 +737,7 @@ registerForm.addEventListener('submit', async (e) => {
             photoData = await createProfileImageDataUrl(photoFile);
         } catch (error) {
             console.error('Erro ao processar a foto:', error);
-            alert('NÃ£o foi possÃ­vel processar a foto. Tente outra imagem.');
+            alert('Não foi possível processar a foto. Tente outra imagem.');
             return;
         }
 
@@ -768,7 +768,7 @@ async function handleGoogleLogin(requestedRole) {
         
         const resolvedRole = await resolveRoleForSignup(requestedRole);
         await ensureUserDocument(result.user, {
-            name: result.user.displayName || result.user.email?.split('@')[0] || 'UsuÃ¡rio',
+            name: result.user.displayName || result.user.email?.split('@')[0] || 'Usuário',
             email: result.user.email,
             role: resolvedRole,
             photoURL: result.user.photoURL || null
@@ -785,7 +785,7 @@ async function handleGoogleLogin(requestedRole) {
 btnGoogleLogin.addEventListener('click', () => handleGoogleLogin());
 btnGoogleRegister.addEventListener('click', () => handleGoogleLogin(registerRole ? registerRole.value : 'user_chat'));
 
-// RecuperaÃ§Ã£o de senha
+// Recuperação de senha
 forgotPasswordLink.addEventListener('click', (e) => {
     e.preventDefault();
     forgotModal.classList.add('show');
@@ -830,7 +830,7 @@ btnResetPassword.addEventListener('click', async () => {
     
     try {
         await auth.sendPasswordResetEmail(email);
-        alert('E-mail de recuperaÃ§Ã£o enviado!');
+        alert('E-mail de recuperação enviado!');
         forgotModal.classList.remove('show');
         resetEmail.value = '';
     } catch (error) {
@@ -838,27 +838,27 @@ btnResetPassword.addEventListener('click', async () => {
     }
 });
 
-// Tratamento de erros de autenticaÃ§Ã£o
+// Tratamento de erros de autenticação
 function handleAuthError(error) {
-    let message = 'Erro de autenticaÃ§Ã£o. ';
+    let message = 'Erro de autenticação. ';
     switch (error.code) {
         case 'auth/user-not-found':
-            message += 'UsuÃ¡rio nÃ£o encontrado.';
+            message += 'Usuário não encontrado.';
             break;
         case 'auth/wrong-password':
             message += 'Senha incorreta.';
             break;
         case 'auth/email-already-in-use':
-            message += 'Este e-mail jÃ¡ estÃ¡ em uso.';
+            message += 'Este e-mail já está em uso.';
             break;
         case 'auth/invalid-email':
-            message += 'E-mail invÃ¡lido.';
+            message += 'E-mail inválido.';
             break;
         case 'auth/weak-password':
             message += 'Senha muito fraca.';
             break;
         case 'auth/unauthorized-domain':
-            message += 'DomÃ­nio nÃ£o autorizado. Adicione este domÃ­nio em Authentication > Settings > Authorized domains.';
+            message += 'Domí­nio não autorizado. Adicione este domínio em Authentication > Settings > Authorized domains.';
             break;
         case 'auth/popup-blocked':
             message += 'Pop-up bloqueado pelo navegador. Libere o pop-up e tente novamente.';
@@ -867,10 +867,10 @@ function handleAuthError(error) {
             message += 'Pop-up fechado antes de concluir o login.';
             break;
         case 'auth/cancelled-popup-request':
-            message += 'Outra solicitaÃ§Ã£o de login jÃ¡ estÃ¡ em andamento.';
+            message += 'Outra solicitação de login já está em andamento.';
             break;
         case 'auth/operation-not-allowed':
-            message += 'OperaÃ§Ã£o nÃ£o permitida. Verifique se o provedor estÃ¡ habilitado no Firebase.';
+            message += 'Operação não permitida. Verifique se o provedor está habilitado no Firebase.';
             break;
         default:
             message += error.message;
@@ -895,7 +895,7 @@ auth.onAuthStateChanged(async (user) => {
         });
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
 
-        // Atualizar interface do usuÃ¡rio
+        // Atualizar interface do usuário
         const fallbackPhoto = currentUserProfile.photoData || 'https://via.placeholder.com/45/002776/ffffff?text=User';
         userPhoto.src = fallbackPhoto;
         if (currentUserProfile.photoURL) {
@@ -903,7 +903,7 @@ auth.onAuthStateChanged(async (user) => {
         } else if (user.photoURL) {
             hydratePhotoFromUrl(userPhoto, user.photoURL, fallbackPhoto);
         }
-        userName.textContent = currentUserProfile.name || user.displayName || 'UsuÃ¡rio';
+        userName.textContent = currentUserProfile.name || user.displayName || 'Usuário';
         userStatus.textContent = 'Online';
         updateRoleBadge(currentUserRole);
         updateRegisterRoleAvailability();
@@ -917,17 +917,17 @@ auth.onAuthStateChanged(async (user) => {
         // Configurar heartbeat para manter status online
         setupOnlineStatus();
         
-        // Carregar usuÃ¡rios e conversas
+        // Carregar usuários e conversas
         loadUsers();
 
         listenForIncomingCalls();
         
-        // Atualizar lastSeen ao fechar a pÃ¡gina
+        // Atualizar lastSeen ao fechar a página
         window.addEventListener('beforeunload', () => {
             updateUserOnlineStatus(false);
         });
     } else {
-        // UsuÃ¡rio deslogado
+        // Usuário deslogado
         currentUser = null;
         currentUserProfile = null;
         currentUserRole = 'user_chat';
@@ -973,7 +973,7 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// Atualizar status online do usuÃ¡rio
+// Atualizar status online do usuário
 async function updateUserOnlineStatus(online) {
     if (!currentUser) return;
     
@@ -1472,17 +1472,17 @@ async function handleRenegotiationOffer(renegotiate) {
 
     const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
     const friend = getActiveCallFriend();
-    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vÃ­deo...' : 'Mudando para chamada de voz...');
+    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de ví­deo...' : 'Mudando para chamada de voz...');
     updateCallModal({
-        title: targetType === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
-        status: targetType === 'video' ? 'Mudando para chamada de vÃ­deo...' : 'Mudando para chamada de voz...',
+        title: targetType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
+        status: targetType === 'video' ? 'Mudando para chamada de ví­deo...' : 'Mudando para chamada de voz...',
         user: friend || selectedFriendData
     });
 
     const ready = await prepareLocalTracksForType(targetType);
     if (!ready) {
         renegotiationInProgress = false;
-        alert('NÃ£o foi possÃ­vel acessar a cÃ¢mera.');
+        alert('Não foi possível acessar a câmera.');
         setRenegotiationUI(false);
         return;
     }
@@ -1508,7 +1508,7 @@ async function handleRenegotiationOffer(renegotiate) {
         updateCallMediaVisibility(targetType);
         updateCallIndicator('active', targetType);
         updateCallModal({
-            title: targetType === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
+            title: targetType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
             status: 'Conectado',
             user: friend || selectedFriendData
         });
@@ -1531,14 +1531,14 @@ async function handleRenegotiationAnswer(renegotiate) {
     try {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(renegotiate.answer));
     } catch (error) {
-        console.warn('Falha ao aplicar resposta de renegociaÃ§Ã£o.', error);
+        console.warn('Falha ao aplicar resposta de renegociação.', error);
     }
     const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
     currentCallType = targetType;
     updateCallMediaVisibility(targetType);
     updateCallIndicator('active', targetType);
     updateCallModal({
-        title: targetType === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
+        title: targetType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
         status: 'Conectado',
         user: getActiveCallFriend() || selectedFriendData
     });
@@ -1569,24 +1569,24 @@ async function switchCallType(targetType) {
     if (currentType === targetType) return;
 
     const confirmMessage = targetType === 'video'
-        ? 'Deseja mudar para chamada de vÃ­deo?'
+        ? 'Deseja mudar para chamada de ví­deo?'
         : 'Deseja mudar para chamada de voz?';
     if (!confirm(confirmMessage)) return;
 
     renegotiationInProgress = true;
     renegotiationFallbackUsed = false;
     const friend = getActiveCallFriend();
-    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vÃ­deo...' : 'Mudando para chamada de voz...');
+    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de ví­deo...' : 'Mudando para chamada de voz...');
     updateCallModal({
-        title: targetType === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
-        status: targetType === 'video' ? 'Mudando para chamada de vÃ­deo...' : 'Mudando para chamada de voz...',
+        title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
+        status: targetType === 'video' ? 'Mudando para chamada de ví­deo...' : 'Mudando para chamada de voz...',
         user: friend || selectedFriendData
     });
 
     const ready = await prepareLocalTracksForType(targetType);
     if (!ready) {
         renegotiationInProgress = false;
-        alert('NÃ£o foi possÃ­vel acessar a cÃ¢mera.');
+        alert('Não foi possível acessar a câmera.');
         setRenegotiationUI(false);
         return;
     }
@@ -1618,8 +1618,8 @@ async function switchCallType(targetType) {
                 renegotiationInProgress = false;
                 setRenegotiationUI(false);
                 updateCallModal({
-                    title: currentType === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
-                    status: 'NÃ£o foi possÃ­vel mudar a chamada.',
+                    title: currentType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
+                    status: 'Não foi possí­vel mudar a chamada.',
                     user: friend || selectedFriendData
                 });
                 updateCallControls();
@@ -1629,7 +1629,7 @@ async function switchCallType(targetType) {
     } catch (error) {
         renegotiationInProgress = false;
         console.warn('Falha ao renegociar chamada.', error);
-        alert('NÃ£o foi possÃ­vel mudar o tipo da chamada.');
+        alert('Não foi possí­vel mudar o tipo da chamada.');
         setRenegotiationUI(false);
         fallbackRestartCall(targetType, friend);
     }
@@ -1653,9 +1653,9 @@ function updateCallControls() {
         btnCallVideoToggle.classList.toggle('hidden', !showControls || !isVideoCall);
         btnCallVideoToggle.disabled = !hasVideo || !isVideoCall;
         btnCallVideoToggle.innerHTML = isVideoMuted ? CALL_ICON_VIDEO_OFF : CALL_ICON_VIDEO_ON;
-        btnCallVideoToggle.title = isVideoMuted ? 'Ativar vÃ­deo' : 'Desativar vÃ­deo';
+        btnCallVideoToggle.title = isVideoMuted ? 'Ativar ví­deo' : 'Desativar ví­deo';
         btnCallVideoToggle.setAttribute('aria-pressed', String(isVideoMuted));
-        btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vÃ­deo' : 'Desativar vÃ­deo');
+        btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vídeo' : 'Desativar ví­deo');
     }
     if (btnCallSpeaker) {
         btnCallSpeaker.classList.toggle('hidden', !showControls);
@@ -1920,7 +1920,7 @@ function resetCallState() {
 function updateCallModal({ title, status, user }) {
     if (callTitle) callTitle.textContent = title || 'Chamada de voz';
     if (callStatus) callStatus.textContent = status || '';
-    if (callUserName) callUserName.textContent = user?.name || 'UsuÃ¡rio';
+    if (callUserName) callUserName.textContent = user?.name || 'Usuário';
     if (callUserPhoto) {
         const fallback = user?.photoData || 'https://via.placeholder.com/90/cccccc/666666?text=User';
         callUserPhoto.src = fallback;
@@ -2011,11 +2011,11 @@ async function preparePeerConnection(options = {}) {
 async function startCall(callType = 'audio') {
     if (!selectedFriendData || !currentUser) return;
     if (isFriendBlocked(selectedFriendData.uid)) {
-        alert('VocÃª bloqueou este usuÃ¡rio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
     if (currentCallId) {
-        alert('JÃ¡ existe uma chamada em andamento.');
+        alert('Já existe uma chamada em andamento.');
         return;
     }
 
@@ -2029,7 +2029,7 @@ async function startCall(callType = 'audio') {
         await preparePeerConnection({ video: callType === 'video' });
     } catch (error) {
         if (callType === 'video') {
-            const fallback = confirm('NÃ£o foi possÃ­vel acessar a cÃ¢mera. Deseja iniciar uma chamada de voz?');
+            const fallback = confirm('Não foi possí­vel acessar a câmera. Deseja iniciar uma chamada de voz?');
             if (!fallback) {
                 return;
             }
@@ -2038,22 +2038,22 @@ async function startCall(callType = 'audio') {
             try {
                 await preparePeerConnection({ video: false });
             } catch (audioError) {
-                alert('NÃ£o foi possÃ­vel acessar o microfone.');
+                alert('Não foi possí­vel acessar o microfone.');
                 return;
             }
         } else {
-            alert('NÃ£o foi possÃ­vel acessar o microfone.');
+            alert('Não foi possível acessar o microfone.');
             return;
         }
     }
 
     const callData = {
         callerId: currentUser.uid,
-        callerName: currentUserProfile?.name || currentUser.displayName || 'UsuÃ¡rio',
+        callerName: currentUserProfile?.name || currentUser.displayName || 'Usuário',
         callerPhotoURL: currentUserProfile?.photoURL || null,
         callerPhotoData: currentUserProfile?.photoData || null,
         calleeId: selectedFriendData.uid,
-        calleeName: selectedFriendData.name || 'UsuÃ¡rio',
+        calleeName: selectedFriendData.name || 'Usuário',
         calleePhotoURL: selectedFriendData.photoURL || null,
         calleePhotoData: selectedFriendData.photoData || null,
         type: callType,
@@ -2108,7 +2108,7 @@ async function startCall(callType = 'audio') {
             clearCallCountdown();
             updateCallIndicator('active', currentCallType || callType);
             updateCallModal({
-                title: callType === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
+                title: callType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
                 status: 'Conectado',
                 user: selectedFriendData
             });
@@ -2125,7 +2125,7 @@ async function startCall(callType = 'audio') {
     setCallButtonsVisibility('outgoing');
     updateCallIndicator('outgoing', callType);
     updateCallModal({
-        title: callType === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
+        title: callType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
         status: 'Aguardando resposta',
         user: selectedFriendData
     });
@@ -2207,7 +2207,7 @@ async function acceptIncomingCall() {
         await preparePeerConnection({ video: wantsVideo });
     } catch (error) {
         if ((currentCallType || activeCallData.type) === 'video') {
-            const fallback = confirm('NÃ£o foi possÃ­vel acessar a cÃ¢mera. Deseja atender apenas com Ã¡udio?');
+            const fallback = confirm('Não foi possível acessar a câmera. Deseja atender apenas com áudio?');
             if (!fallback) {
                 await rejectIncomingCall();
                 return;
@@ -2216,12 +2216,12 @@ async function acceptIncomingCall() {
             try {
                 await preparePeerConnection({ video: false });
             } catch (audioError) {
-                alert('NÃ£o foi possÃ­vel acessar o microfone.');
+                alert('Não foi possí­vel acessar o microfone.');
                 await rejectIncomingCall();
                 return;
             }
         } else {
-            alert('NÃ£o foi possÃ­vel acessar o microfone.');
+            alert('Não foi possí­vel acessar o microfone.');
             await rejectIncomingCall();
             return;
         }
@@ -2246,7 +2246,7 @@ async function acceptIncomingCall() {
         resolvedOffer = await waitForOffer(5000);
     }
     if (!resolvedOffer) {
-        alert('NÃ£o foi possÃ­vel atender esta chamada.');
+        alert('Não foi possí­vel atender esta chamada.');
         resetCallState();
         return;
     }
@@ -2290,7 +2290,7 @@ async function acceptIncomingCall() {
     clearCallCountdown();
     updateCallIndicator('active', currentCallType || activeCallData.type || 'audio');
     updateCallModal({
-        title: (currentCallType || activeCallData.type) === 'video' ? 'Chamada de vÃ­deo' : 'Chamada de voz',
+        title: (currentCallType || activeCallData.type) === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
         status: 'Conectado',
         user: {
             name: activeCallData.callerName,
@@ -2369,21 +2369,21 @@ async function addFriendByEmail(email) {
     if (!currentUser) return;
     const user = await findUserByEmail(email);
     if (!user) {
-        alert('UsuÃ¡rio nÃ£o encontrado.');
+        alert('Usuário não encontrado.');
         return;
     }
     if (user.uid === currentUser.uid) {
-        alert('VocÃª jÃ¡ Ã© este usuÃ¡rio.');
+        alert('Você já é este usuário.');
         return;
     }
     if (currentFriends.includes(user.uid)) {
-        alert('Este usuÃ¡rio jÃ¡ estÃ¡ na sua lista de amigos.');
+        alert('Este usuário já está na sua lista de amigos.');
         return;
     }
     await db.collection('users').doc(currentUser.uid).set({
         friends: firebase.firestore.FieldValue.arrayUnion(user.uid)
     }, { merge: true });
-    alert('UsuÃ¡rio adicionado Ã  sua lista de amigos.');
+    alert('Usuário adicionado à sua lista de amigos.');
 }
 
 async function removeFriend(friendId) {
@@ -2511,7 +2511,7 @@ function renderAdminUsers(users) {
         const isDisabled = user.disabled === true;
         li.innerHTML = `
             <div class="admin-user-meta">
-                <strong>${user.name || 'UsuÃ¡rio'}</strong>
+                <strong>${user.name || 'Usuário'}</strong>
                 <span>${user.email || ''}</span>
                 <span class="admin-role-pill">${user.role || 'user_chat'}</span>
                 ${isDisabled ? '<span class="admin-status-pill">Desativado</span>' : ''}
@@ -2571,7 +2571,7 @@ async function createUserAsAdmin({ name, email, password, role }) {
         try {
             await secondary.auth().signOut();
         } catch (error) {
-            console.warn('Erro ao sair do auth secundÃ¡rio:', error);
+            console.warn('Erro ao sair do auth secundário:', error);
         }
         await secondary.delete();
     }
@@ -2608,11 +2608,11 @@ async function removeUserFromFriends(userId) {
 async function handleAdminDeleteUser(user) {
     if (!user || currentUserRole !== 'administrador') return;
     if (user.uid === currentUser.uid) {
-        alert('VocÃª nÃ£o pode excluir o seu prÃ³prio usuÃ¡rio.');
+        alert('Você não pode excluir o seu próprio usuário.');
         return;
     }
 
-    const confirmed = confirm(`Deseja excluir o usuÃ¡rio ${user.name || user.email || ''}?`);
+    const confirmed = confirm(`Deseja excluir o usuário ${user.name || user.email || ''}?`);
     if (!confirmed) return;
 
     try {
@@ -2623,9 +2623,9 @@ async function handleAdminDeleteUser(user) {
         }, { merge: true });
 
         await removeUserFromFriends(user.uid);
-        alert('UsuÃ¡rio desativado com sucesso.');
+        alert('Usuário desativado com sucesso.');
     } catch (error) {
-        alert('Erro ao excluir usuÃ¡rio: ' + error.message);
+        alert('Erro ao excluir usuário: ' + error.message);
     }
 }
 
@@ -2702,7 +2702,7 @@ if (adminEditSave) {
         const role = adminEditRole.value === 'administrador' ? 'administrador' : 'user_chat';
 
         if (!name) {
-            alert('Digite um nome vÃ¡lido.');
+            alert('Digite um nome válido.');
             return;
         }
 
@@ -2729,7 +2729,7 @@ if (adminEditSave) {
 
             closeAdminEditModal();
         } catch (error) {
-            alert('Erro ao atualizar usuÃ¡rio: ' + error.message);
+            alert('Erro ao atualizar usuário: ' + error.message);
         }
     });
 }
@@ -2750,7 +2750,7 @@ if (adminCreateForm) {
         }
 
         if (password.length < 6) {
-            alert('A senha deve ter no mÃ­nimo 6 caracteres.');
+            alert('A senha deve ter no mínimo 6 caracteres.');
             return;
         }
 
@@ -2758,16 +2758,16 @@ if (adminCreateForm) {
             await createUserAsAdmin({ name, email, password, role });
             adminCreateForm.reset();
             adminCreateRole.value = 'user_chat';
-            alert('UsuÃ¡rio criado com sucesso!');
+            alert('Usuário criado com sucesso!');
         } catch (error) {
             handleAuthError(error);
         }
     });
 }
 
-// ========== FUNÃ‡Ã•ES DO CHAT ==========
+// ========== FUNÇÕES DO CHAT ==========
 
-// Carregar lista de usuÃ¡rios
+// Carregar lista de usuários
 function loadUsers() {
     if (usersUnsubscribe) usersUnsubscribe();
     
@@ -2821,7 +2821,7 @@ function renderFriendUsers() {
         if (defaultChatPartnerPhoto) {
             chatPartnerPhoto.src = defaultChatPartnerPhoto;
         }
-        chatPartnerName.textContent = 'Selecione um usuÃ¡rio';
+        chatPartnerName.textContent = 'Selecione um usuário';
         if (chatPartnerStatus) {
             chatPartnerStatus.textContent = '';
             chatPartnerStatus.classList.remove('chat-partner-status-activity');
@@ -2850,7 +2850,7 @@ function renderFriendUsers() {
     }
 }
 
-// Renderizar lista de usuÃ¡rios
+// Renderizar lista de usuários
 function renderUsers(users) {
     usersList.innerHTML = '';
 
@@ -2879,7 +2879,7 @@ function renderUsers(users) {
         li.innerHTML = `
             <img src="${fallbackPhoto}" data-photo-url="${user.photoURL || ''}" alt="avatar">
             <div class="user-item-info">
-                <h4>${user.name || 'UsuÃ¡rio'}</h4>
+                <h4>${user.name || 'Usuário'}</h4>
                 <p>${status}</p>
             </div>
         `;
@@ -2895,7 +2895,7 @@ function renderUsers(users) {
     });
 }
 
-// Formatar Ãºltima visualizaÃ§Ã£o
+// Formatar Ãºltima visualização
 function formatLastSeen(date) {
     if (!date) return '';
     const now = new Date();
@@ -2909,7 +2909,7 @@ function formatLastSeen(date) {
     return `${dateText} ${timeText}`;
 }
 
-// Filtrar usuÃ¡rios
+// Filtrar usuários
 searchUser.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('.user-item').forEach(item => {
@@ -2918,19 +2918,19 @@ searchUser.addEventListener('input', (e) => {
     });
 });
 
-// Selecionar usuÃ¡rio para conversar
+// Selecionar usuário para conversar
 async function selectUser(user) {
     clearLocalTypingState();
     selectedUserId = user.uid;
     selectedFriendData = user;
     
-    // Atualizar seleÃ§Ã£o na lista
+    // Atualizar seleção na lista
     document.querySelectorAll('.user-item').forEach(item => {
         item.classList.toggle('active', item.dataset.uid === user.uid);
     });
     
-    // Atualizar cabeÃ§alho do chat
-    chatPartnerName.textContent = user.name || 'UsuÃ¡rio';
+    // Atualizar cabeçalho do chat
+    chatPartnerName.textContent = user.name || 'Usuário';
     const fallbackPhoto = user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
     chatPartnerPhoto.src = fallbackPhoto;
     if (user.photoURL) {
@@ -3141,7 +3141,7 @@ function renderMessages(messages) {
                 `;
             } else {
                 div.innerHTML = `
-                    <p>Imagem indisponÃ­vel.</p>
+                    <p>Imagem indisponí­vel.</p>
                     ${meta}
                 `;
             }
@@ -3154,7 +3154,7 @@ function renderMessages(messages) {
                 `;
             } else {
                 div.innerHTML = `
-                    <p>VÃ­deo indisponÃ­vel.</p>
+                    <p>Ví­deo indisponá­vel.</p>
                     ${meta}
                 `;
             }
@@ -3167,7 +3167,7 @@ function renderMessages(messages) {
                 `;
             } else {
                 div.innerHTML = `
-                    <p>Ãudio indisponÃ­vel.</p>
+                    <p>Ãudio indisponí­vel.</p>
                     ${meta}
                 `;
             }
@@ -3343,7 +3343,7 @@ function updateTypingState(state, force = false) {
         .doc(conversationId)
         .set(payload, { merge: true })
         .catch((error) => {
-            console.warn('Falha ao atualizar status de digitaÃ§Ã£o.', error);
+            console.warn('Falha ao atualizar status de digitação.', error);
         });
 
 }
@@ -3364,7 +3364,7 @@ function subscribeToFriendDoc(uid) {
             selectedFriendData = data;
 
             if (chatPartnerName) {
-                chatPartnerName.textContent = data.name || 'UsuÃ¡rio';
+                chatPartnerName.textContent = data.name || 'Usuário';
             }
 
             if (chatPartnerPhoto) {
@@ -3412,15 +3412,15 @@ function buildMessageMeta(msg, isSent) {
         return `<small>${time}</small>`;
     }
     let statusClass = 'status-sent';
-    let ticks = 'âœ“';
+    let ticks = '✓';
     let title = 'Enviado';
     if (msg.read) {
         statusClass = 'status-read';
-        ticks = 'âœ“âœ“';
+        ticks = '✓✓';
         title = 'Lido';
     } else if (msg.delivered) {
         statusClass = 'status-delivered';
-        ticks = 'âœ“âœ“';
+        ticks = '✓✓';
         title = 'Entregue';
     }
     return `
@@ -3468,11 +3468,11 @@ function openAttachInput(input) {
 async function openCameraModal() {
     if (!cameraModal) return;
     if (!selectedUserId) {
-        alert('Selecione um usuÃ¡rio para conversar.');
+        alert('Selecione um usuário para conversar.');
         return;
     }
     if (isFriendBlocked(selectedUserId)) {
-        alert('VocÃª bloqueou este usuÃ¡rio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
     closeAttachMenu();
@@ -3481,7 +3481,7 @@ async function openCameraModal() {
     cancelCameraRecording = false;
     currentCameraFacing = 'environment';
     updateCameraSwitchVisibility();
-    if (cameraStatus) cameraStatus.textContent = 'Abrindo cÃ¢mera...';
+    if (cameraStatus) cameraStatus.textContent = 'Abrindo câmera...';
     await startCameraStream();
 }
 
@@ -3495,7 +3495,7 @@ function closeCameraModal() {
 function resetCameraState() {
     if (cameraStatus) cameraStatus.textContent = 'Pronto para capturar.';
     if (btnCameraRecord) {
-        btnCameraRecord.textContent = 'Gravar vÃ­deo';
+        btnCameraRecord.textContent = 'Gravar vídeo';
     }
     isCameraRecording = false;
     cameraRecorderChunks = [];
@@ -3516,13 +3516,13 @@ async function switchCameraFacing() {
     if (isCameraRecording) return;
     currentCameraFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
     stopCameraStream();
-    if (cameraStatus) cameraStatus.textContent = 'Alternando cÃ¢mera...';
+    if (cameraStatus) cameraStatus.textContent = 'Alternando câmera...';
     await startCameraStream();
 }
 
 async function startCameraStream() {
     if (!cameraPreview || !navigator.mediaDevices?.getUserMedia) {
-        if (cameraStatus) cameraStatus.textContent = 'CÃ¢mera nÃ£o suportada.';
+        if (cameraStatus) cameraStatus.textContent = 'Câmera não suportada.';
         return;
     }
     if (cameraStream) return;
@@ -3538,7 +3538,7 @@ async function startCameraStream() {
                 audio: false
             });
             if (cameraStatus) {
-                cameraStatus.textContent = 'CÃ¢mera aberta (sem Ã¡udio).';
+                cameraStatus.textContent = 'Câmera aberta (sem áudio).';
             }
         } catch (fallbackError) {
             try {
@@ -3547,15 +3547,15 @@ async function startCameraStream() {
                     audio: false
                 });
             } catch (finalError) {
-                if (cameraStatus) cameraStatus.textContent = 'NÃ£o foi possÃ­vel acessar a cÃ¢mera.';
-                alert('NÃ£o foi possÃ­vel acessar a cÃ¢mera.');
+                if (cameraStatus) cameraStatus.textContent = 'Não foi possível acessar a câmera.';
+                alert('Não foi possí­vel acessar a câmera.');
                 closeCameraModal();
                 return;
             }
         }
     }
     cameraPreview.srcObject = cameraStream;
-    if (cameraStatus && cameraStatus.textContent === 'Abrindo cÃ¢mera...') {
+    if (cameraStatus && cameraStatus.textContent === 'Abrindo câmera...') {
         cameraStatus.textContent = 'Pronto para capturar.';
     }
 }
@@ -3623,7 +3623,7 @@ async function toggleCameraRecording() {
         const blob = new Blob(cameraRecorderChunks, { type: cameraRecorder.mimeType || mimeType || 'video/webm' });
         cameraRecorderChunks = [];
         isCameraRecording = false;
-        if (btnCameraRecord) btnCameraRecord.textContent = 'Gravar vÃ­deo';
+        if (btnCameraRecord) btnCameraRecord.textContent = 'Gravar vídeo';
         if (cameraStatus) cameraStatus.textContent = 'Pronto para capturar.';
         if (cancelCameraRecording) {
             cancelCameraRecording = false;
@@ -3636,8 +3636,8 @@ async function toggleCameraRecording() {
     };
     cameraRecorder.start();
     isCameraRecording = true;
-    if (btnCameraRecord) btnCameraRecord.textContent = 'Parar vÃ­deo';
-    if (cameraStatus) cameraStatus.textContent = 'Gravando vÃ­deo...';
+    if (btnCameraRecord) btnCameraRecord.textContent = 'Parar vídeo';
+    if (cameraStatus) cameraStatus.textContent = 'Gravando ví­deo...';
 }
 
 function getPreferredAudioMimeType() {
@@ -3671,7 +3671,7 @@ function ensureVoiceRecordingBanner() {
 function updateVoiceButtonUI() {
     if (!btnVoice) return;
     btnVoice.classList.toggle('recording', isRecordingAudio);
-    btnVoice.title = isRecordingAudio ? 'Parar gravaÃ§Ã£o' : 'Enviar Ã¡udio';
+    btnVoice.title = isRecordingAudio ? 'Parar gravação' : 'Enviar áudio';
     btnVoice.innerHTML = isRecordingAudio ? VOICE_ICON_RECORDING : VOICE_ICON_IDLE;
     if (voiceRecordingStatus) {
         voiceRecordingStatus.classList.toggle('hidden', !isRecordingAudio);
@@ -3740,19 +3740,19 @@ async function stopAudioRecording(sendAfterStop = true) {
 
 async function startAudioRecording() {
     if (!selectedUserId) {
-        alert('Selecione um usuÃ¡rio para conversar.');
+        alert('Selecione um usuário para conversar.');
         return;
     }
     if (isFriendBlocked(selectedUserId)) {
-        alert('VocÃª bloqueou este usuÃ¡rio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
     if (!window.isSecureContext) {
-        alert('A gravaÃ§Ã£o de Ã¡udio requer HTTPS.');
+        alert('A gravação de áudio requer HTTPS.');
         return;
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-        alert('Seu navegador nÃ£o suporta gravaÃ§Ã£o de Ã¡udio.');
+        alert('Seu navegador não suporta gravação de áudio.');
         return;
     }
     if (isRecordingAudio) {
@@ -3765,7 +3765,7 @@ async function startAudioRecording() {
     try {
         audioRecorderStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (error) {
-        alert('NÃ£o foi possÃ­vel acessar o microfone.');
+        alert('Não foi possí­vel acessar o microfone.');
         return;
     }
 
@@ -3776,7 +3776,7 @@ async function startAudioRecording() {
         try {
             audioRecorder = new MediaRecorder(audioRecorderStream);
         } catch (finalError) {
-            alert('NÃ£o foi possÃ­vel iniciar a gravaÃ§Ã£o.');
+            alert('Não foi possí­vel iniciar a gravação.');
             audioRecorderStream.getTracks().forEach(track => track.stop());
             audioRecorderStream = null;
             return;
@@ -3815,7 +3815,7 @@ async function startAudioRecording() {
     try {
         audioRecorder.start();
     } catch (error) {
-        alert('NÃ£o foi possÃ­vel iniciar a gravaÃ§Ã£o.');
+        alert('Não foi possível iniciar a gravação.');
         audioRecorderStream.getTracks().forEach(track => track.stop());
         audioRecorderStream = null;
         audioRecorder = null;
@@ -3832,13 +3832,13 @@ async function startAudioRecording() {
 async function handleChatFile(file) {
     if (!file || !selectedUserId) return;
     if (isFriendBlocked(selectedUserId)) {
-        alert('VocÃª bloqueou este usuÃ¡rio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
 
     const maxSize = 20 * 1024 * 1024;
     if (file.size > maxSize) {
-        alert('O arquivo deve ter no mÃ¡ximo 20MB.');
+        alert('O arquivo deve ter no máximo 20MB.');
         return;
     }
 
@@ -3890,8 +3890,8 @@ function resetChatUI() {
     if (messagesContainer) {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
-                <h3>Bem-vindo ao CameChat! ðŸ‘‹</h3>
-                <p>Selecione um usuÃ¡rio para comeÃ§ar a conversar.</p>
+                <h3>Bem-vindo ao CameChat! 👋</h3>
+                <p>Selecione um usuário para começar a conversar.</p>
             </div>
         `;
     }
@@ -3912,7 +3912,7 @@ function resetChatUI() {
     if (messageInput) messageInput.value = '';
     if (searchUser) searchUser.value = '';
     if (friendEmailInput) friendEmailInput.value = '';
-    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usuÃ¡rio';
+    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usuário';
     if (chatPartnerStatus) {
         chatPartnerStatus.textContent = '';
         chatPartnerStatus.classList.remove('chat-partner-status-activity');
@@ -3985,7 +3985,7 @@ function openFriendModal() {
             hydratePhotoFromUrl(friendPreviewImage, selectedFriendData.photoURL, fallbackPhoto);
         }
     }
-    if (friendDetailName) friendDetailName.textContent = selectedFriendData.name || 'UsuÃ¡rio';
+    if (friendDetailName) friendDetailName.textContent = selectedFriendData.name || 'Usuário';
     if (friendDetailEmail) friendDetailEmail.textContent = selectedFriendData.email || '';
     if (friendDetailStatus) friendDetailStatus.textContent = getFriendStatusText(selectedFriendData);
     updateFriendModalState();
@@ -4033,7 +4033,7 @@ btnSend.addEventListener('click', async () => {
     const text = messageInput.value.trim();
     if (!text || !selectedUserId) return;
     if (isFriendBlocked(selectedUserId)) {
-        alert('VocÃª bloqueou este usuÃ¡rio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
     
@@ -4186,7 +4186,7 @@ if (btnAddFriend) {
     btnAddFriend.addEventListener('click', async () => {
         const email = friendEmailInput ? friendEmailInput.value.trim() : '';
         if (!email) {
-            alert('Digite o e-mail do usuÃ¡rio.');
+            alert('Digite o e-mail do usuário.');
             return;
         }
         try {
@@ -4242,7 +4242,7 @@ if (friendRemoveBtn) {
 if (friendBlockBtn) {
     friendBlockBtn.addEventListener('click', async () => {
         if (!selectedFriendData) return;
-        const confirmed = confirm('Deseja bloquear este amigo? Ele nÃ£o aparecerÃ¡ mais na sua lista.');
+        const confirmed = confirm('Deseja bloquear este amigo? Ele não aparecerá mais na sua lista.');
         if (!confirmed) return;
         try {
             await blockFriend(selectedFriendData.uid);
@@ -4458,7 +4458,7 @@ if (profilePhotoInput) {
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            alert('A foto deve ter no mÃ¡ximo 5MB.');
+            alert('A foto deve ter no máximo 5MB.');
             profilePhotoInput.value = '';
             pendingProfilePhotoFile = null;
             return;
@@ -4479,7 +4479,7 @@ if (profileSaveBtn) {
 
         const canvas = createCroppedCanvas(256);
         if (!canvas) {
-            alert('NÃ£o foi possÃ­vel processar a foto. Tente outra imagem.');
+            alert('Não foi possível processar a foto. Tente outra imagem.');
             return;
         }
 
