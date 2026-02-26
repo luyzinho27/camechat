@@ -342,6 +342,7 @@ if (registerPhotoInput) {
 }
 
 async function checkAdminExists() {
+    if (!auth?.currentUser) return null;
     try {
         const snapshot = await db.collection('users')
             .where('role', '==', 'administrador')
@@ -349,7 +350,9 @@ async function checkAdminExists() {
             .get();
         return !snapshot.empty;
     } catch (error) {
-        console.warn('Erro ao verificar administrador:', error);
+        if (error?.code !== 'permission-denied' && error?.code !== 'unauthenticated') {
+            console.warn('Erro ao verificar administrador:', error);
+        }
         return null;
     }
 }
