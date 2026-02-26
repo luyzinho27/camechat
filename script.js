@@ -183,7 +183,7 @@ const VOICE_ICON_IDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle></svg>';
 const RECORDING_HEARTBEAT_MS = 5000;
 
-// ========== VARIÃVEIS DE ESTADO ==========
+// ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
 let currentUserProfile = null;
 let currentUserRole = 'user_chat';
@@ -201,6 +201,7 @@ let typingUnsubscribe = null;
 let typingIdleTimeout = null;
 let typingRemoteTimeout = null;
 let remoteTypingState = null;
+let remoteUserActivityState = null;
 let friendDocUnsubscribe = null;
 let lastTypingSentAt = 0;
 let localTypingState = null;
@@ -279,7 +280,7 @@ let isCameraRecording = false;
 let cancelCameraRecording = false;
 let currentCameraFacing = 'environment';
 
-// ========== FUNÃ‡Ã•ES DE AUTENTICAÃ‡ÃƒO ==========
+// ========== FUNCOES DE AUTENTICACAO ==========
 
 // Alternar abas
 tabLogin.addEventListener('click', () => {
@@ -524,7 +525,7 @@ async function uploadChatFileViaBackend(file, options = {}) {
     try {
         response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options);
     } catch (error) {
-        throw new Error('Não foi possí­vel conectar ao backend de upload.');
+        throw new Error('Não foi possível conectar ao backend de upload.');
     }
 
     if (!response.ok) {
@@ -650,7 +651,7 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
         };
         xhr.onerror = () => {
             markUploadError(item, 'Falha na conexão');
-            reject(new Error('Não foi possí­vel conectar ao backend de upload.'));
+            reject(new Error('Não foi possível conectar ao backend de upload.'));
         };
         xhr.send(formData);
     });
@@ -858,7 +859,7 @@ function handleAuthError(error) {
             message += 'Senha muito fraca.';
             break;
         case 'auth/unauthorized-domain':
-            message += 'Domí­nio não autorizado. Adicione este domínio em Authentication > Settings > Authorized domains.';
+            message += 'Domínio não autorizado. Adicione este domínio em Authentication > Settings > Authorized domains.';
             break;
         case 'auth/popup-blocked':
             message += 'Pop-up bloqueado pelo navegador. Libere o pop-up e tente novamente.';
@@ -878,7 +879,7 @@ function handleAuthError(error) {
     alert(message);
 }
 
-// ========== ESTADO DE AUTENTICAÃ‡ÃƒO ==========
+// ========== ESTADO DE AUTENTICACAO ==========
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         resetChatUI();
@@ -1125,7 +1126,7 @@ function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.85) {
 }
 
 function getCallTypeLabel(type) {
-    return type === 'video' ? 'vÃƒÂ­deo' : 'voz';
+    return type === 'video' ? 'vídeo' : 'voz';
 }
 
 function updateCallIndicator(phase, type) {
@@ -1472,10 +1473,10 @@ async function handleRenegotiationOffer(renegotiate) {
 
     const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
     const friend = getActiveCallFriend();
-    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de ví­deo...' : 'Mudando para chamada de voz...');
+    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vídeo...' : 'Mudando para chamada de voz...');
     updateCallModal({
-        title: targetType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
-        status: targetType === 'video' ? 'Mudando para chamada de ví­deo...' : 'Mudando para chamada de voz...',
+        title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
+        status: targetType === 'video' ? 'Mudando para chamada de vídeo...' : 'Mudando para chamada de voz...',
         user: friend || selectedFriendData
     });
 
@@ -1508,7 +1509,7 @@ async function handleRenegotiationOffer(renegotiate) {
         updateCallMediaVisibility(targetType);
         updateCallIndicator('active', targetType);
         updateCallModal({
-            title: targetType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
+            title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
             status: 'Conectado',
             user: friend || selectedFriendData
         });
@@ -1538,7 +1539,7 @@ async function handleRenegotiationAnswer(renegotiate) {
     updateCallMediaVisibility(targetType);
     updateCallIndicator('active', targetType);
     updateCallModal({
-        title: targetType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
+        title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
         status: 'Conectado',
         user: getActiveCallFriend() || selectedFriendData
     });
@@ -1569,17 +1570,17 @@ async function switchCallType(targetType) {
     if (currentType === targetType) return;
 
     const confirmMessage = targetType === 'video'
-        ? 'Deseja mudar para chamada de ví­deo?'
+        ? 'Deseja mudar para chamada de vídeo?'
         : 'Deseja mudar para chamada de voz?';
     if (!confirm(confirmMessage)) return;
 
     renegotiationInProgress = true;
     renegotiationFallbackUsed = false;
     const friend = getActiveCallFriend();
-    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de ví­deo...' : 'Mudando para chamada de voz...');
+    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vídeo...' : 'Mudando para chamada de voz...');
     updateCallModal({
         title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
-        status: targetType === 'video' ? 'Mudando para chamada de ví­deo...' : 'Mudando para chamada de voz...',
+        status: targetType === 'video' ? 'Mudando para chamada de vídeo...' : 'Mudando para chamada de voz...',
         user: friend || selectedFriendData
     });
 
@@ -1619,7 +1620,7 @@ async function switchCallType(targetType) {
                 setRenegotiationUI(false);
                 updateCallModal({
                     title: currentType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
-                    status: 'Não foi possí­vel mudar a chamada.',
+                    status: 'Não foi possível mudar a chamada.',
                     user: friend || selectedFriendData
                 });
                 updateCallControls();
@@ -1629,7 +1630,7 @@ async function switchCallType(targetType) {
     } catch (error) {
         renegotiationInProgress = false;
         console.warn('Falha ao renegociar chamada.', error);
-        alert('Não foi possí­vel mudar o tipo da chamada.');
+        alert('Não foi possível mudar o tipo da chamada.');
         setRenegotiationUI(false);
         fallbackRestartCall(targetType, friend);
     }
@@ -1653,9 +1654,9 @@ function updateCallControls() {
         btnCallVideoToggle.classList.toggle('hidden', !showControls || !isVideoCall);
         btnCallVideoToggle.disabled = !hasVideo || !isVideoCall;
         btnCallVideoToggle.innerHTML = isVideoMuted ? CALL_ICON_VIDEO_OFF : CALL_ICON_VIDEO_ON;
-        btnCallVideoToggle.title = isVideoMuted ? 'Ativar ví­deo' : 'Desativar ví­deo';
+        btnCallVideoToggle.title = isVideoMuted ? 'Ativar vídeo' : 'Desativar vídeo';
         btnCallVideoToggle.setAttribute('aria-pressed', String(isVideoMuted));
-        btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vídeo' : 'Desativar ví­deo');
+        btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vídeo' : 'Desativar vídeo');
     }
     if (btnCallSpeaker) {
         btnCallSpeaker.classList.toggle('hidden', !showControls);
@@ -1820,7 +1821,7 @@ function startRingtone(mode = 'incoming') {
         beep();
         ringtoneInterval = setInterval(beep, interval);
     } catch (error) {
-        console.warn('NÃƒÂ£o foi possÃƒÂ­vel tocar o toque da chamada.', error);
+        console.warn('Não foi possível tocar o toque da chamada.', error);
     }
 }
 
@@ -2029,7 +2030,7 @@ async function startCall(callType = 'audio') {
         await preparePeerConnection({ video: callType === 'video' });
     } catch (error) {
         if (callType === 'video') {
-            const fallback = confirm('Não foi possí­vel acessar a câmera. Deseja iniciar uma chamada de voz?');
+            const fallback = confirm('Não foi possível acessar a câmera. Deseja iniciar uma chamada de voz?');
             if (!fallback) {
                 return;
             }
@@ -2038,7 +2039,7 @@ async function startCall(callType = 'audio') {
             try {
                 await preparePeerConnection({ video: false });
             } catch (audioError) {
-                alert('Não foi possí­vel acessar o microfone.');
+                alert('Não foi possível acessar o microfone.');
                 return;
             }
         } else {
@@ -2108,7 +2109,7 @@ async function startCall(callType = 'audio') {
             clearCallCountdown();
             updateCallIndicator('active', currentCallType || callType);
             updateCallModal({
-                title: callType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
+                title: callType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
                 status: 'Conectado',
                 user: selectedFriendData
             });
@@ -2125,7 +2126,7 @@ async function startCall(callType = 'audio') {
     setCallButtonsVisibility('outgoing');
     updateCallIndicator('outgoing', callType);
     updateCallModal({
-        title: callType === 'video' ? 'Chamada de ví­deo' : 'Chamada de voz',
+        title: callType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
         status: 'Aguardando resposta',
         user: selectedFriendData
     });
@@ -2187,7 +2188,7 @@ async function handleIncomingCall(callDoc) {
     setCallButtonsVisibility('incoming');
     updateCallIndicator('incoming', currentCallType);
     updateCallModal({
-        title: currentCallType === 'video' ? 'Chamada de vÃƒÂ­deo' : 'Chamada de voz',
+        title: currentCallType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
         status: 'Deseja atender?',
         user: {
             name: data.callerName,
@@ -2216,12 +2217,12 @@ async function acceptIncomingCall() {
             try {
                 await preparePeerConnection({ video: false });
             } catch (audioError) {
-                alert('Não foi possí­vel acessar o microfone.');
+                alert('Não foi possível acessar o microfone.');
                 await rejectIncomingCall();
                 return;
             }
         } else {
-            alert('Não foi possí­vel acessar o microfone.');
+            alert('Não foi possível acessar o microfone.');
             await rejectIncomingCall();
             return;
         }
@@ -2246,7 +2247,7 @@ async function acceptIncomingCall() {
         resolvedOffer = await waitForOffer(5000);
     }
     if (!resolvedOffer) {
-        alert('Não foi possí­vel atender esta chamada.');
+        alert('Não foi possível atender esta chamada.');
         resetCallState();
         return;
     }
@@ -2895,7 +2896,7 @@ function renderUsers(users) {
     });
 }
 
-// Formatar Ãºltima visualização
+// Formatar última visualização
 function formatLastSeen(date) {
     if (!date) return '';
     const now = new Date();
@@ -2937,6 +2938,7 @@ async function selectUser(user) {
         hydratePhotoFromUrl(chatPartnerPhoto, user.photoURL, fallbackPhoto);
     }
     const isBlocked = isFriendBlocked(user.uid);
+    remoteUserActivityState = null;
     setChatPartnerActivity(null);
     
     // Habilitar input
@@ -2960,7 +2962,7 @@ async function selectUser(user) {
     subscribeToFriendDoc(user.uid);
     await loadMessages(user.uid);
 
-    // Fechar sidebar no mobile apÃƒÂ³s selecionar
+    // Fechar sidebar no mobile apos selecionar
     setSidebarOpen(false);
 }
 
@@ -3141,7 +3143,7 @@ function renderMessages(messages) {
                 `;
             } else {
                 div.innerHTML = `
-                    <p>Imagem indisponí­vel.</p>
+                    <p>Imagem indisponível.</p>
                     ${meta}
                 `;
             }
@@ -3154,7 +3156,7 @@ function renderMessages(messages) {
                 `;
             } else {
                 div.innerHTML = `
-                    <p>Ví­deo indisponá­vel.</p>
+                    <p>Vídeo indisponível.</p>
                     ${meta}
                 `;
             }
@@ -3167,7 +3169,7 @@ function renderMessages(messages) {
                 `;
             } else {
                 div.innerHTML = `
-                    <p>Ãudio indisponí­vel.</p>
+                    <p>Áudio indisponível.</p>
                     ${meta}
                 `;
             }
@@ -3177,7 +3179,7 @@ function renderMessages(messages) {
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
                 <div class="file-attachment">
-                    <span class="file-icon">ðŸ“Ž</span>
+                    <span class="file-icon">&#128206;</span>
                     <div class="file-info">
                         <a href="${fileUrl}" target="_blank" rel="noopener">${fileName}</a>
                         <small>${fileSize}</small>
@@ -3248,11 +3250,12 @@ function renderChatPartnerStatus() {
         return;
     }
 
-    const showActivity = !!remoteTypingState
+    const effectiveRemoteActivity = remoteTypingState || remoteUserActivityState;
+    const showActivity = !!effectiveRemoteActivity
         && !isFriendBlocked(selectedFriendData.uid);
 
     if (showActivity) {
-        chatPartnerStatus.textContent = getChatPartnerActivityLabel(remoteTypingState);
+        chatPartnerStatus.textContent = getChatPartnerActivityLabel(effectiveRemoteActivity);
         chatPartnerStatus.classList.add('chat-partner-status-activity');
         return;
     }
@@ -3263,6 +3266,21 @@ function renderChatPartnerStatus() {
 
 function setChatPartnerActivity(state) {
     remoteTypingState = state === 'typing' || state === 'recording' ? state : null;
+    renderChatPartnerStatus();
+}
+
+function setRemoteUserActivity(activity) {
+    const state = activity?.state;
+    const targetUid = activity?.targetUid;
+    const updatedAt = activity?.updatedAt?.toDate ? activity.updatedAt.toDate() : null;
+    const isFresh = updatedAt ? (Date.now() - updatedAt.getTime() <= 8000) : true;
+    const isValidState = state === 'typing' || state === 'recording';
+
+    if (!currentUser || targetUid !== currentUser.uid || !isValidState || !isFresh) {
+        remoteUserActivityState = null;
+    } else {
+        remoteUserActivityState = state;
+    }
     renderChatPartnerStatus();
 }
 
@@ -3299,6 +3317,7 @@ function listenTypingStatus(otherUid) {
     if (typingUnsubscribe) typingUnsubscribe();
     clearRemoteTypingTimer();
     setChatPartnerActivity(null);
+    remoteUserActivityState = null;
     if (!currentUser || !otherUid) return;
     const conversationId = getConversationId(currentUser.uid, otherUid);
     typingUnsubscribe = db.collection('conversations')
@@ -3346,6 +3365,23 @@ function updateTypingState(state, force = false) {
             console.warn('Falha ao atualizar status de digitação.', error);
         });
 
+    const activityPayload = {};
+    if (!state) {
+        activityPayload.activity = firebase.firestore.FieldValue.delete();
+    } else {
+        activityPayload.activity = {
+            state,
+            targetUid: selectedUserId,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+    }
+    db.collection('users')
+        .doc(currentUser.uid)
+        .set(activityPayload, { merge: true })
+        .catch((error) => {
+            console.warn('Falha ao atualizar atividade do usuário.', error);
+        });
+
 }
 
 function subscribeToFriendDoc(uid) {
@@ -3375,6 +3411,7 @@ function subscribeToFriendDoc(uid) {
                 }
             }
 
+            setRemoteUserActivity(data.activity || null);
             renderChatPartnerStatus();
 
         });
@@ -3548,7 +3585,7 @@ async function startCameraStream() {
                 });
             } catch (finalError) {
                 if (cameraStatus) cameraStatus.textContent = 'Não foi possível acessar a câmera.';
-                alert('Não foi possí­vel acessar a câmera.');
+                alert('Não foi possível acessar a câmera.');
                 closeCameraModal();
                 return;
             }
@@ -3637,7 +3674,7 @@ async function toggleCameraRecording() {
     cameraRecorder.start();
     isCameraRecording = true;
     if (btnCameraRecord) btnCameraRecord.textContent = 'Parar vídeo';
-    if (cameraStatus) cameraStatus.textContent = 'Gravando ví­deo...';
+    if (cameraStatus) cameraStatus.textContent = 'Gravando vídeo...';
 }
 
 function getPreferredAudioMimeType() {
@@ -3765,7 +3802,7 @@ async function startAudioRecording() {
     try {
         audioRecorderStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (error) {
-        alert('Não foi possí­vel acessar o microfone.');
+        alert('Não foi possível acessar o microfone.');
         return;
     }
 
@@ -3776,7 +3813,7 @@ async function startAudioRecording() {
         try {
             audioRecorder = new MediaRecorder(audioRecorderStream);
         } catch (finalError) {
-            alert('Não foi possí­vel iniciar a gravação.');
+            alert('Não foi possível iniciar a gravação.');
             audioRecorderStream.getTracks().forEach(track => track.stop());
             audioRecorderStream = null;
             return;
@@ -3896,6 +3933,7 @@ function resetChatUI() {
         `;
     }
     ensureVoiceRecordingBanner();
+    remoteUserActivityState = null;
     setChatPartnerActivity(null);
     clearLocalTypingState();
     if (typingUnsubscribe) {
