@@ -181,6 +181,7 @@ const CALL_ICON_SWITCH_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="cur
 const CALL_ICON_SWITCH_AUDIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.78.58 2.63a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.45-1.1a2 2 0 0 1 2.11-.45c.85.26 1.73.46 2.63.58a2 2 0 0 1 1.72 1.98z"></path><path d="M19 5h-4"></path><path d="M17 3v4"></path></svg>';
 const VOICE_ICON_IDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line></svg>';
 const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle></svg>';
+const RECORDING_HEARTBEAT_MS = 5000;
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -199,6 +200,7 @@ let currentConversationMessages = [];
 let typingUnsubscribe = null;
 let typingIdleTimeout = null;
 let typingRemoteTimeout = null;
+let recordingHeartbeatInterval = null;
 let friendDocUnsubscribe = null;
 let lastTypingSentAt = 0;
 let localTypingState = null;
@@ -3237,10 +3239,25 @@ function setChatPartnerActivity(state) {
     }
     const displayName = selectedFriendData?.name || chatPartnerName?.textContent || 'Usu\u00e1rio';
     const label = state === 'recording'
-        ? `${displayName} est\u00e1 gravando \u00e1udio`
-        : `${displayName} est\u00e1 digitando`;
+        ? `O usu\u00e1rio ${displayName} est\u00e1 gravando \u00e1udio`
+        : `O usu\u00e1rio ${displayName} est\u00e1 escrevendo`;
     chatPartnerActivity.textContent = label;
     chatPartnerActivity.classList.remove('hidden');
+}
+
+function stopRecordingHeartbeat() {
+    if (recordingHeartbeatInterval) {
+        clearInterval(recordingHeartbeatInterval);
+        recordingHeartbeatInterval = null;
+    }
+}
+
+function startRecordingHeartbeat() {
+    stopRecordingHeartbeat();
+    updateTypingState('recording', true);
+    recordingHeartbeatInterval = setInterval(() => {
+        updateTypingState('recording', true);
+    }, RECORDING_HEARTBEAT_MS);
 }
 
 function clearTypingIdleTimer() {
@@ -3764,6 +3781,7 @@ async function startAudioRecording() {
         isRecordingAudio = false;
         updateVoiceButtonUI();
         stopVoiceTimer();
+        stopRecordingHeartbeat();
         updateTypingState(null, true);
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
@@ -3793,7 +3811,7 @@ async function startAudioRecording() {
     updateVoiceButtonUI();
     startVoiceTimer();
     clearTypingIdleTimer();
-    updateTypingState('recording', true);
+    startRecordingHeartbeat();
 }
 
 async function handleChatFile(file) {
@@ -3896,6 +3914,7 @@ function resetChatUI() {
         stopAudioRecording(false);
     }
     stopVoiceTimer();
+    stopRecordingHeartbeat();
     currentConversationId = null;
     currentConversationMessages = [];
 }
