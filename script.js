@@ -1,4 +1,4 @@
-// Configuração do Firebase (substitua pelos seus dados)
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls",
     authDomain: "camechat-4fb88.firebaseapp.com",
@@ -906,6 +906,7 @@ auth.onAuthStateChanged(async (user) => {
         }
         userName.textContent = currentUserProfile.name || user.displayName || 'Usuário';
         userStatus.textContent = 'Online';
+        setOnlineStatusClass(userStatus, true);
         updateRoleBadge(currentUserRole);
         updateRegisterRoleAvailability();
         setAdminAccess(currentUserRole === 'administrador');
@@ -932,6 +933,7 @@ auth.onAuthStateChanged(async (user) => {
         currentUser = null;
         currentUserProfile = null;
         currentUserRole = 'user_chat';
+        setOnlineStatusClass(userStatus, false);
         authContainer.classList.remove('hidden');
         app.classList.add('hidden');
         updateRoleBadge('user_chat');
@@ -2806,7 +2808,7 @@ function renderFriendUsers() {
             selectedFriendData = updatedFriend;
         }
         if (friendModal?.classList.contains('show')) {
-            if (friendDetailStatus) friendDetailStatus.textContent = getFriendStatusText(selectedFriendData);
+            renderFriendDetailStatus(selectedFriendData);
             updateFriendModalState();
         }
         if (selectedUserId === selectedFriendData.uid) {
@@ -2826,6 +2828,7 @@ function renderFriendUsers() {
         if (chatPartnerStatus) {
             chatPartnerStatus.textContent = '';
             chatPartnerStatus.classList.remove('chat-partner-status-activity');
+            setOnlineStatusClass(chatPartnerStatus, false);
         }
         setChatPartnerActivity(null);
         messageInput.disabled = true;
@@ -2875,13 +2878,14 @@ function renderUsers(users) {
         
         const lastSeen = user.lastSeen ? formatLastSeen(user.lastSeen.toDate()) : '';
         const status = user.online ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
+        const statusClass = user.online ? 'status-online-text' : '';
         
         const fallbackPhoto = user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
         li.innerHTML = `
             <img src="${fallbackPhoto}" data-photo-url="${user.photoURL || ''}" alt="avatar">
             <div class="user-item-info">
                 <h4>${user.name || 'Usuário'}</h4>
-                <p>${status}</p>
+                <p class="${statusClass}">${status}</p>
             </div>
         `;
 
@@ -3218,6 +3222,11 @@ function formatFileSize(bytes) {
     return `${size} ${units[index]}`;
 }
 
+function setOnlineStatusClass(element, isOnline) {
+    if (!element) return;
+    element.classList.toggle('status-online-text', !!isOnline);
+}
+
 function getDefaultChatPartnerStatus() {
     if (!selectedFriendData) return '';
     if (isFriendBlocked(selectedFriendData.uid)) return 'Bloqueado';
@@ -3228,10 +3237,10 @@ function getDefaultChatPartnerStatus() {
 function getChatPartnerActivityLabel(state) {
     const displayName = selectedFriendData?.name || chatPartnerName?.textContent || 'Usu\u00e1rio';
     if (state === 'recording') {
-        return `O usu\u00e1rio ${displayName} est\u00e1 gravando \u00e1udio`;
+        return `${displayName} est\u00e1 gravando \u00e1udio...`;
     }
     if (state === 'typing') {
-        return `O usu\u00e1rio ${displayName} est\u00e1 escrevendo`;
+        return `${displayName} est\u00e1 escrevendo...`;
     }
     return '';
 }
@@ -3247,6 +3256,7 @@ function renderChatPartnerStatus() {
     if (!selectedFriendData || selectedUserId !== selectedFriendData.uid) {
         chatPartnerStatus.textContent = '';
         chatPartnerStatus.classList.remove('chat-partner-status-activity');
+        setOnlineStatusClass(chatPartnerStatus, false);
         return;
     }
 
@@ -3257,11 +3267,14 @@ function renderChatPartnerStatus() {
     if (showActivity) {
         chatPartnerStatus.textContent = getChatPartnerActivityLabel(effectiveRemoteActivity);
         chatPartnerStatus.classList.add('chat-partner-status-activity');
+        setOnlineStatusClass(chatPartnerStatus, false);
         return;
     }
 
-    chatPartnerStatus.textContent = getDefaultChatPartnerStatus();
+    const defaultStatus = getDefaultChatPartnerStatus();
+    chatPartnerStatus.textContent = defaultStatus;
     chatPartnerStatus.classList.remove('chat-partner-status-activity');
+    setOnlineStatusClass(chatPartnerStatus, defaultStatus === 'Online');
 }
 
 function setChatPartnerActivity(state) {
@@ -3954,6 +3967,7 @@ function resetChatUI() {
     if (chatPartnerStatus) {
         chatPartnerStatus.textContent = '';
         chatPartnerStatus.classList.remove('chat-partner-status-activity');
+        setOnlineStatusClass(chatPartnerStatus, false);
     }
     if (callIndicator) callIndicator.classList.add('hidden');
     if (defaultChatPartnerPhoto) {
@@ -4025,7 +4039,7 @@ function openFriendModal() {
     }
     if (friendDetailName) friendDetailName.textContent = selectedFriendData.name || 'Usuário';
     if (friendDetailEmail) friendDetailEmail.textContent = selectedFriendData.email || '';
-    if (friendDetailStatus) friendDetailStatus.textContent = getFriendStatusText(selectedFriendData);
+    renderFriendDetailStatus(selectedFriendData);
     updateFriendModalState();
     friendModal.classList.add('show');
 }
@@ -4044,6 +4058,12 @@ function getFriendStatusText(friend) {
         return `Visto por \u00faltimo \u00e0s ${lastSeen}`;
     }
     return 'Offline';
+}
+
+function renderFriendDetailStatus(friend) {
+    if (!friendDetailStatus) return;
+    friendDetailStatus.textContent = getFriendStatusText(friend);
+    setOnlineStatusClass(friendDetailStatus, !!friend?.online);
 }
 
 function updateFriendModalState() {
