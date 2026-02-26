@@ -996,6 +996,14 @@ body.sidebar-open {
     opacity: 0.9;
 }
 
+.user-info-header #user-status.status-online-text,
+.chat-partner-info #chat-partner-status.status-online-text,
+.user-item-info p.status-online-text,
+#friend-detail-status.status-online-text {
+    color: #1ea34a;
+    font-weight: 600;
+}
+
 .role-badge {
     display: inline-block;
     margin-top: 6px;
