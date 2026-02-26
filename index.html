@@ -39,7 +39,7 @@
                 </div>
                 <div class="form-group">
                     <label for="login-password">Senha</label>
-                    <input type="password" id="login-password" placeholder="••••••••" required>
+                    <input type="password" id="login-password" placeholder="Digite sua senha" required>
                 </div>
                 
                 <div class="form-options">
@@ -170,7 +170,7 @@
                         <span id="call-indicator" class="call-indicator hidden">Em chamada</span>
                     </div>
                     <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de vídeo">&#128249;</button>
-                    <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">📞</button>
+                    <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">&#128222;</button>
                 </header>
                 
                 <div id="messages-container" class="messages-container">
@@ -193,33 +193,33 @@
                     <input type="file" id="file-upload-camera-video" style="display: none;" accept="video/*" capture="environment" multiple>
                     <input type="file" id="file-upload-audio" style="display: none;" accept="audio/*" capture="microphone" multiple>
                     <input type="file" id="file-upload-document" style="display: none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple>
-                    <button id="btn-attach" class="btn-icon" disabled title="Anexar arquivo">📎</button>
-                    <button id="btn-emoji" class="btn-icon" disabled title="Emojis">😊</button>
+                    <button id="btn-attach" class="btn-icon" disabled title="Anexar arquivo">&#128206;</button>
+                    <button id="btn-emoji" class="btn-icon" disabled title="Emojis">&#128522;</button>
                     <button id="btn-voice" class="btn-icon btn-voice" disabled title="Enviar áudio"></button>
                     <span id="voice-recording-status" class="voice-recording-status hidden">00:00</span>
                     <button id="btn-camera-quick" class="btn-icon btn-camera-quick" disabled title="Abrir câmera">&#128247;</button>
-                    <button id="btn-send" class="btn-icon btn-send" disabled title="Enviar mensagem">➤</button>
+                    <button id="btn-send" class="btn-icon btn-send" disabled title="Enviar mensagem">&#10148;</button>
                 </div>
                 <emoji-picker id="emoji-picker" class="emoji-picker hidden"></emoji-picker>
                 <div id="attach-menu" class="attach-menu hidden">
                     <button type="button" class="attach-option" data-attach="gallery">
-                        <span class="attach-icon" aria-hidden="true">🖼️</span>
+                        <span class="attach-icon" aria-hidden="true">&#128444;&#65039;</span>
                         Galeria
                     </button>
                     <button type="button" class="attach-option" data-attach="camera-photo">
-                        <span class="attach-icon" aria-hidden="true">📷</span>
+                        <span class="attach-icon" aria-hidden="true">&#128247;</span>
                         Câmera (foto)
                     </button>
                     <button type="button" class="attach-option" data-attach="camera-video">
-                        <span class="attach-icon" aria-hidden="true">🎥</span>
+                        <span class="attach-icon" aria-hidden="true">&#127909;</span>
                         Câmera (vídeo)
                     </button>
                     <button type="button" class="attach-option" data-attach="audio">
-                        <span class="attach-icon" aria-hidden="true">🎤</span>
+                        <span class="attach-icon" aria-hidden="true">&#127908;</span>
                         Áudio
                     </button>
                     <button type="button" class="attach-option" data-attach="document">
-                        <span class="attach-icon" aria-hidden="true">📄</span>
+                        <span class="attach-icon" aria-hidden="true">&#128196;</span>
                         Documento
                     </button>
                 </div>
@@ -429,8 +429,8 @@
         <div id="call-mini-header" class="call-mini-header">
             <span class="call-mini-title">Chamada de vídeo</span>
             <div class="call-mini-buttons">
-                <button id="btn-call-restore" class="btn-icon btn-call-restore" type="button" title="Restaurar">⤢</button>
-                <button id="btn-call-mini-hangup" class="btn-icon btn-call-mini-hangup" type="button" title="Desligar">✕</button>
+                <button id="btn-call-restore" class="btn-icon btn-call-restore" type="button" title="Restaurar">&#8634;</button>
+                <button id="btn-call-mini-hangup" class="btn-icon btn-call-mini-hangup" type="button" title="Desligar">&#128222;</button>
             </div>
         </div>
         <div id="call-mini-body" class="call-mini-body"></div>
