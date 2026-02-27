@@ -440,6 +440,45 @@ async function ensureUserDocument(user, options = {}) {
     return data;
 }
 
+function normalizePhotoValue(value) {
+    if (typeof value !== 'string') return '';
+    const normalized = value.trim();
+    if (!normalized || normalized === 'null' || normalized === 'undefined' || normalized === '[object Object]') {
+        return '';
+    }
+    return normalized;
+}
+
+function getSafePhotoData(value) {
+    const normalized = normalizePhotoValue(value);
+    return normalized.startsWith('data:image/') ? normalized : '';
+}
+
+function getSafePhotoUrl(value) {
+    const normalized = normalizePhotoValue(value);
+    if (!normalized) return '';
+    if (/^https?:\/\//i.test(normalized)) return normalized;
+    if (normalized.startsWith('blob:')) return normalized;
+    if (normalized.startsWith('data:image/')) return normalized;
+    return '';
+}
+
+function resolvePhotoSources(entity, defaultFallback) {
+    const fallback = getSafePhotoData(entity?.photoData) || defaultFallback;
+    const url = getSafePhotoUrl(entity?.photoURL);
+    return { fallback, url };
+}
+
+function applyProfilePhoto(imgEl, entity, defaultFallback, extraUrl = '') {
+    if (!imgEl) return;
+    const { fallback, url } = resolvePhotoSources(entity, defaultFallback);
+    imgEl.src = fallback;
+    const candidateUrl = url || getSafePhotoUrl(extraUrl);
+    if (candidateUrl) {
+        hydratePhotoFromUrl(imgEl, candidateUrl, fallback);
+    }
+}
+
 function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -897,13 +936,12 @@ auth.onAuthStateChanged(async (user) => {
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
 
         // Atualizar interface do usuário
-        const fallbackPhoto = currentUserProfile.photoData || 'https://via.placeholder.com/45/002776/ffffff?text=User';
-        userPhoto.src = fallbackPhoto;
-        if (currentUserProfile.photoURL) {
-            hydratePhotoFromUrl(userPhoto, currentUserProfile.photoURL, fallbackPhoto);
-        } else if (user.photoURL) {
-            hydratePhotoFromUrl(userPhoto, user.photoURL, fallbackPhoto);
-        }
+        applyProfilePhoto(
+            userPhoto,
+            currentUserProfile,
+            'https://via.placeholder.com/45/002776/ffffff?text=User',
+            user.photoURL || ''
+        );
         userName.textContent = currentUserProfile.name || user.displayName || 'Usuário';
         userStatus.textContent = 'Online';
         setOnlineStatusClass(userStatus, true);
@@ -1020,11 +1058,12 @@ function subscribeToCurrentUserDoc() {
             }
 
             if (data.name) userName.textContent = data.name;
-            if (data.photoURL) {
-                userPhoto.src = data.photoURL;
-            } else if (data.photoData) {
-                userPhoto.src = data.photoData;
-            }
+            applyProfilePhoto(
+                userPhoto,
+                data,
+                'https://via.placeholder.com/45/002776/ffffff?text=User',
+                currentUser?.photoURL || ''
+            );
 
             updateRoleBadge(currentUserRole);
             setAdminAccess(currentUserRole === 'administrador');
@@ -1925,9 +1964,7 @@ function updateCallModal({ title, status, user }) {
     if (callStatus) callStatus.textContent = status || '';
     if (callUserName) callUserName.textContent = user?.name || 'Usuário';
     if (callUserPhoto) {
-        const fallback = user?.photoData || 'https://via.placeholder.com/90/cccccc/666666?text=User';
-        callUserPhoto.src = fallback;
-        if (user?.photoURL) hydratePhotoFromUrl(callUserPhoto, user.photoURL, fallback);
+        applyProfilePhoto(callUserPhoto, user, 'https://via.placeholder.com/90/cccccc/666666?text=User');
     }
     if (callModal && !isCallMinimized) callModal.classList.add('show');
 }
@@ -2880,7 +2917,10 @@ function renderUsers(users) {
         const status = user.online ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
         const statusClass = user.online ? 'status-online-text' : '';
         
-        const fallbackPhoto = user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
+        const { fallback: fallbackPhoto, url: photoUrl } = resolvePhotoSources(
+            user,
+            'https://via.placeholder.com/45/cccccc/666666?text=User'
+        );
         li.innerHTML = `
             <img src="${fallbackPhoto}" data-photo-url="${user.photoURL || ''}" alt="avatar">
             <div class="user-item-info">
@@ -2890,7 +2930,6 @@ function renderUsers(users) {
         `;
 
         const avatar = li.querySelector('img');
-        const photoUrl = user.photoURL || '';
         if (photoUrl) {
             hydratePhotoFromUrl(avatar, photoUrl, fallbackPhoto);
         }
@@ -2936,11 +2975,7 @@ async function selectUser(user) {
     
     // Atualizar cabeçalho do chat
     chatPartnerName.textContent = user.name || 'Usuário';
-    const fallbackPhoto = user.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
-    chatPartnerPhoto.src = fallbackPhoto;
-    if (user.photoURL) {
-        hydratePhotoFromUrl(chatPartnerPhoto, user.photoURL, fallbackPhoto);
-    }
+    applyProfilePhoto(chatPartnerPhoto, user, 'https://via.placeholder.com/45/cccccc/666666?text=User');
     const isBlocked = isFriendBlocked(user.uid);
     remoteUserActivityState = null;
     setChatPartnerActivity(null);
@@ -3417,11 +3452,7 @@ function subscribeToFriendDoc(uid) {
             }
 
             if (chatPartnerPhoto) {
-                const fallbackPhoto = data.photoData || 'https://via.placeholder.com/45/cccccc/666666?text=User';
-                chatPartnerPhoto.src = fallbackPhoto;
-                if (data.photoURL) {
-                    hydratePhotoFromUrl(chatPartnerPhoto, data.photoURL, fallbackPhoto);
-                }
+                applyProfilePhoto(chatPartnerPhoto, data, 'https://via.placeholder.com/45/cccccc/666666?text=User');
             }
 
             setRemoteUserActivity(data.activity || null);
@@ -4030,12 +4061,8 @@ function closeProfileModal() {
 
 function openFriendModal() {
     if (!friendModal || !selectedFriendData) return;
-    const fallbackPhoto = selectedFriendData.photoData || 'https://via.placeholder.com/120/cccccc/666666?text=User';
     if (friendPreviewImage) {
-        friendPreviewImage.src = fallbackPhoto;
-        if (selectedFriendData.photoURL) {
-            hydratePhotoFromUrl(friendPreviewImage, selectedFriendData.photoURL, fallbackPhoto);
-        }
+        applyProfilePhoto(friendPreviewImage, selectedFriendData, 'https://via.placeholder.com/120/cccccc/666666?text=User');
     }
     if (friendDetailName) friendDetailName.textContent = selectedFriendData.name || 'Usuário';
     if (friendDetailEmail) friendDetailEmail.textContent = selectedFriendData.email || '';
