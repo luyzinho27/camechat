@@ -3313,6 +3313,7 @@ function renderMessages(messages) {
     if (messages.length === 0) {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
+                <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
                 <p>Inicie uma conversa com ${chatPartnerName.textContent}!</p>
             </div>
         `;
@@ -4126,6 +4127,7 @@ function resetChatUI() {
     if (messagesContainer) {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
+                <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
                 <h3>Bem-vindo ao CameChat! 👋</h3>
                 <p>Selecione um usuário para começar a conversar.</p>
             </div>
