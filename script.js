@@ -712,13 +712,95 @@ async function uploadChatFileViaBackend(file, options = {}) {
     return normalizeBackendUrl(data.url);
 }
 
+function sanitizeStorageFileName(fileName) {
+    const value = (fileName || 'arquivo').toString().trim();
+    return value
+        .replace(/[^a-zA-Z0-9._-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 80) || 'arquivo';
+}
+
+function hideUploadProgressIfEmpty() {
+    if (uploadProgressList && !uploadProgressList.querySelector('.upload-progress-item')) {
+        uploadProgressList.classList.add('hidden');
+    }
+}
+
+async function uploadChatFileViaFirebaseStorage(file, options = {}) {
+    if (!file) throw new Error('Arquivo inválido.');
+    const uid = (options.uid || currentUser?.uid || 'user').toString().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'user';
+    const safeName = sanitizeStorageFileName(file.name);
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    const storagePath = `chat-files/${uid}/${unique}-${safeName}`;
+    const item = createUploadProgressItem(file.name || 'arquivo');
+
+    return await new Promise((resolve, reject) => {
+        const ref = storage.ref().child(storagePath);
+        const metadata = file.type ? { contentType: file.type } : undefined;
+        const task = ref.put(file, metadata);
+
+        task.on('state_changed',
+            (snapshot) => {
+                const total = snapshot.totalBytes || 0;
+                const loaded = snapshot.bytesTransferred || 0;
+                const percent = total > 0 ? Math.round((loaded / total) * 100) : 0;
+                updateUploadProgressItem(item, percent, `${percent}%`);
+            },
+            (error) => {
+                if (item) item.remove();
+                hideUploadProgressIfEmpty();
+                reject(error);
+            },
+            async () => {
+                try {
+                    updateUploadProgressItem(item, 100, 'Processando');
+                    const url = await task.snapshot.ref.getDownloadURL();
+                    finalizeUploadItem(item);
+                    resolve(url);
+                } catch (error) {
+                    if (item) item.remove();
+                    hideUploadProgressIfEmpty();
+                    reject(error);
+                }
+            }
+        );
+    });
+}
+
+async function uploadChatFile(file, options = {}) {
+    try {
+        return await uploadChatFileViaFirebaseStorage(file, options);
+    } catch (firebaseError) {
+        console.warn('Falha no upload via Firebase Storage, usando backend.', firebaseError);
+        return await uploadChatFileViaBackend(file, options);
+    }
+}
+
 function normalizeBackendUrl(url) {
     if (!url) return url;
-    if (/^https?:\/\//i.test(url)) return url;
-    if (BACKEND_BASE_URL && url.startsWith('/')) {
-        return `${BACKEND_BASE_URL}${url}`;
+    const raw = String(url).trim();
+    if (!raw) return '';
+    if (/^(https?:\/\/|data:|blob:)/i.test(raw)) return raw;
+
+    let path = raw;
+    if (path.startsWith('./')) path = path.slice(2);
+
+    if (path.startsWith('/uploads/')) {
+        path = `/images${path}`;
+    } else if (!path.startsWith('/')) {
+        if (path.startsWith('uploads/')) {
+            path = `/images/${path}`;
+        } else if (path.startsWith('profile/')) {
+            path = `/images/${path}`;
+        } else {
+            path = `/${path}`;
+        }
     }
-    return url;
+
+    if (BACKEND_BASE_URL) {
+        return `${BACKEND_BASE_URL}${path}`;
+    }
+    return path;
 }
 
 function createUploadProgressItem(fileName) {
@@ -4971,7 +5053,7 @@ async function handleChatFile(file) {
     const delivered = isUserEffectivelyOnline(selectedFriendData);
 
     try {
-        const fileUrl = await uploadChatFileViaBackend(file, { uid: currentUser.uid });
+        const fileUrl = await uploadChatFile(file, { uid: currentUser.uid });
 
         const conversationId = getConversationId(currentUser.uid, selectedUserId);
 
