@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>CameChat - Conectando Pessoas</title>
-    <link rel="stylesheet" href="style.css?v=20260301-3">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
+    <link rel="apple-touch-icon" href="images/camechat_logo.png">
+    <link rel="stylesheet" href="style.css?v=20260301-5">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -21,6 +23,7 @@
     <div id="auth-container" class="auth-container">
         <div class="auth-box">
             <div class="auth-header">
+                <img src="images/camechat_logo.png" alt="Logo do CameChat" class="auth-brand-logo">
                 <h1>CameChat</h1>
                 <p class="subtitle">Faça login ou crie sua conta</p>
             </div>
@@ -150,7 +153,10 @@
             </div>
             
             <div class="users-header">
-                <h3>Conversas</h3>
+                <div class="users-header-title">
+                    <img src="images/camechat_logo.png" alt="Logo do CameChat" class="users-header-logo">
+                    <h3>Conversas</h3>
+                </div>
                 <span id="total-users"></span>
             </div>
             
@@ -175,6 +181,7 @@
                 
                 <div id="messages-container" class="messages-container">
                     <div class="welcome-message">
+                        <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
                         <h3>Bem-vindo ao CameChat! &#128075;</h3>
                         <p>Selecione um usu&#225;rio para come&#231;ar a conversar.</p>
                     </div>
@@ -442,6 +449,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260301-3"></script>
+    <script src="script.js?v=20260301-5"></script>
 </body>
 </html>
