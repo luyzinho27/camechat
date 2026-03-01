@@ -3099,6 +3099,9 @@ searchUser.addEventListener('input', (e) => {
 // Selecionar usuário para conversar
 async function selectUser(user) {
     clearLocalTypingState();
+    if (isMobileLayout() && document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
     selectedUserId = user.uid;
     selectedFriendData = user;
     
