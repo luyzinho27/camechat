@@ -5,6 +5,13 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 body {
     background: linear-gradient(135deg, #002776, #E30613);
     min-height: 100vh;
@@ -978,6 +985,7 @@ body.sidebar-open {
     width: 100%;
     height: 90vh;
     max-width: 1200px;
+    min-width: 0;
     background: white;
     border-radius: 12px;
     overflow: hidden;
@@ -988,6 +996,7 @@ body.sidebar-open {
     flex: 1;
     display: flex;
     position: relative;
+    min-width: 0;
 }
 
 /* Sidebar */
@@ -1136,7 +1145,7 @@ body.sidebar-open {
     z-index: 40;
 }
 
-.settings-menu .logout-btn {
+.settings-menu .settings-item {
     width: 100%;
     border: 1px solid #dfe3ea;
     background: white;
@@ -1145,12 +1154,35 @@ body.sidebar-open {
     padding: 8px 10px;
     text-align: left;
     font-size: 13px;
+    cursor: pointer;
 }
 
-.settings-menu .logout-btn:hover {
+.settings-menu .settings-item + .settings-item {
+    margin-top: 6px;
+}
+
+.settings-menu .settings-item:hover {
     background: #f0f4ff;
     color: #002776;
     border-color: #cbd8ff;
+}
+
+.settings-menu .settings-item[aria-pressed="true"] {
+    background: #e6ecff;
+    color: #002776;
+    border-color: #cbd8ff;
+    font-weight: 600;
+}
+
+.settings-menu .logout-btn {
+    color: #b00020;
+    border-color: #f0d3d9;
+}
+
+.settings-menu .logout-btn:hover {
+    background: #fff1f4;
+    color: #8a0018;
+    border-color: #f2b8c4;
 }
 
 .search-box {
@@ -1308,6 +1340,7 @@ body.sidebar-open {
     flex-direction: column;
     background: #f5f7fb;
     position: relative;
+    min-width: 0;
 }
 
 .chat-header {
@@ -1328,6 +1361,7 @@ body.sidebar-open {
 
 .chat-partner-info {
     flex: 1;
+    min-width: 0;
 }
 
 .chat-partner-info span {
@@ -1335,11 +1369,17 @@ body.sidebar-open {
     font-weight: 600;
     color: #333;
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chat-partner-info small {
     font-size: 12px;
     color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chat-partner-info #chat-partner-status.chat-partner-status-activity {
@@ -1357,10 +1397,12 @@ body.sidebar-open {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 10px;
     position: relative;
+    min-width: 0;
 }
 
 .welcome-message {
@@ -1386,7 +1428,17 @@ body.sidebar-open {
     padding: 10px 15px;
     border-radius: 12px;
     word-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     position: relative;
+    min-width: 0;
+}
+
+.message p,
+.message a,
+.message .file-info {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .message.sent {
@@ -1488,6 +1540,7 @@ body.sidebar-open {
 
 #message-input {
     flex: 1;
+    min-width: 0;
     padding: 12px 15px;
     border: 1px solid #ddd;
     border-radius: 25px;
@@ -1899,6 +1952,141 @@ body.sidebar-open {
     background: #8a0018;
 }
 
+
+body.theme-dark {
+    background: linear-gradient(135deg, #0b1220, #1f2937);
+}
+
+body.theme-dark .auth-box,
+body.theme-dark .modal-content,
+body.theme-dark .sidebar,
+body.theme-dark .chat-header,
+body.theme-dark .message-input-area,
+body.theme-dark .search-box,
+body.theme-dark .add-friend-box,
+body.theme-dark .users-header,
+body.theme-dark .chat-area,
+body.theme-dark .admin-panel,
+body.theme-dark .admin-users,
+body.theme-dark .admin-create,
+body.theme-dark .settings-menu,
+body.theme-dark .upload-progress-item {
+    background: #111827;
+    color: #e5e7eb;
+    border-color: #253044;
+}
+
+body.theme-dark .auth-header h1,
+body.theme-dark .welcome-message h3,
+body.theme-dark .chat-partner-info span,
+body.theme-dark .user-item-info h4,
+body.theme-dark .admin-header h2,
+body.theme-dark .metric-card strong {
+    color: #f9fafb;
+}
+
+body.theme-dark .subtitle,
+body.theme-dark .users-header,
+body.theme-dark .chat-partner-info small,
+body.theme-dark .user-item-info p,
+body.theme-dark .admin-header p,
+body.theme-dark .metric-label {
+    color: #cbd5e1;
+}
+
+body.theme-dark .user-item {
+    border-bottom-color: #1f2a3d;
+}
+
+body.theme-dark .user-item:hover {
+    background: #1c2433;
+}
+
+body.theme-dark .user-item.active {
+    background: #1f2a44;
+    border-left-color: #60a5fa;
+}
+
+body.theme-dark .message.received {
+    background: #1f2937;
+    color: #e5e7eb;
+    box-shadow: none;
+}
+
+body.theme-dark .message.sent {
+    background: #1d4ed8;
+    color: #ffffff;
+}
+
+body.theme-dark .message.sent small {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+body.theme-dark .message.received small {
+    color: #94a3b8;
+}
+
+body.theme-dark input,
+body.theme-dark select,
+body.theme-dark .modal-input {
+    background: #0f172a;
+    color: #e5e7eb;
+    border-color: #334155;
+}
+
+body.theme-dark input::placeholder {
+    color: #94a3b8;
+}
+
+body.theme-dark .form-group label {
+    color: #e5e7eb;
+}
+
+body.theme-dark .settings-btn {
+    background: #1d4ed8;
+}
+
+body.theme-dark .settings-btn:hover {
+    background: #2563eb;
+}
+
+body.theme-dark .settings-menu .settings-item {
+    background: #111827;
+    color: #e5e7eb;
+    border-color: #334155;
+}
+
+body.theme-dark .settings-menu .settings-item:hover {
+    background: #1f2937;
+    color: #ffffff;
+    border-color: #475569;
+}
+
+body.theme-dark .settings-menu .logout-btn {
+    color: #fda4af;
+    border-color: #7f1d1d;
+}
+
+body.theme-dark .settings-menu .logout-btn:hover {
+    background: #3f1d24;
+    color: #fecdd3;
+    border-color: #be123c;
+}
+
+body.theme-dark .btn-primary {
+    background: #1d4ed8;
+}
+
+body.theme-dark .btn-primary:hover {
+    background: #2563eb;
+}
+
+body.theme-dark .btn-google {
+    background: #0f172a;
+    color: #e5e7eb;
+    border-color: #334155;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
@@ -2001,6 +2189,10 @@ body.sidebar-open {
 
     .messages-container {
         padding: 16px;
+    }
+
+    .message {
+        max-width: 85%;
     }
 
     .admin-grid {
