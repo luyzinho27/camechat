@@ -1014,6 +1014,7 @@ body.sidebar-open {
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid white;
+    cursor: pointer;
 }
 
 .user-info-header {
@@ -1024,6 +1025,10 @@ body.sidebar-open {
     display: block;
     font-weight: 600;
     margin-bottom: 3px;
+}
+
+.user-info-header #user-name {
+    cursor: pointer;
 }
 
 .user-info-header small {
