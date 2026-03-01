@@ -23,6 +23,11 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
+// Mantem sessao ativa ate o usuario clicar em "Sair"
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((error) => {
+    console.warn('Nao foi possivel definir persistencia LOCAL:', error);
+});
+
 // ========== ELEMENTOS DOM ==========
 // Auth
 const authContainer = document.getElementById('auth-container');
@@ -43,6 +48,14 @@ const closeModal = document.getElementById('forgot-close-modal');
 const btnResetPassword = document.getElementById('btn-reset-password');
 const resetEmail = document.getElementById('reset-email');
 const rememberMe = document.getElementById('remember-me');
+const rememberMeContainer = rememberMe?.closest('.checkbox-container');
+
+if (rememberMe) {
+    rememberMe.checked = true;
+}
+if (rememberMeContainer) {
+    rememberMeContainer.classList.add('hidden');
+}
 
 // App
 const userPhoto = document.getElementById('user-photo');
@@ -91,6 +104,7 @@ const btnAdminPanel = document.getElementById('btn-admin-panel');
 const btnLogout = document.getElementById('btn-logout');
 const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
+const sidebarHeader = document.querySelector('.sidebar-header');
 const ADMIN_TAB_STORAGE_KEY = 'camechat_admin_tab';
 
 // Admin panel
@@ -720,13 +734,10 @@ loginForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('login-password').value;
     
     try {
-        const persistence = rememberMe.checked 
-            ? firebase.auth.Auth.Persistence.LOCAL 
-            : firebase.auth.Auth.Persistence.SESSION;
-        
-        await auth.setPersistence(persistence);
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         await auth.signInWithEmailAndPassword(email, password);
         loginForm.reset();
+        if (rememberMe) rememberMe.checked = true;
     } catch (error) {
         handleAuthError(error);
     }
@@ -769,6 +780,7 @@ registerForm.addEventListener('submit', async (e) => {
     }
     
     try {
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
 
         await userCredential.user.updateProfile({
@@ -941,6 +953,7 @@ auth.onAuthStateChanged(async (user) => {
         currentUser = user;
         authContainer.classList.add('hidden');
         app.classList.remove('hidden');
+        setLogoutButtonVisible(false);
 
         const fallbackRole = await resolveRoleForSignup('user_chat');
         currentUserProfile = await ensureUserDocument(user, {
@@ -990,6 +1003,7 @@ auth.onAuthStateChanged(async (user) => {
         setOnlineStatusClass(userStatus, false);
         authContainer.classList.remove('hidden');
         app.classList.add('hidden');
+        setLogoutButtonVisible(false);
         updateRoleBadge('user_chat');
         setAdminAccess(false);
         updateRegisterRoleAvailability();
@@ -2607,6 +2621,19 @@ function setSidebarOpen(open) {
     if (sidebarOverlay) {
         sidebarOverlay.classList.toggle('show', open);
     }
+    if (!open) {
+        setLogoutButtonVisible(false);
+    }
+}
+
+function setLogoutButtonVisible(isVisible) {
+    if (!btnLogout) return;
+    btnLogout.classList.toggle('hidden', !isVisible);
+}
+
+function toggleLogoutButtonVisible() {
+    if (!btnLogout) return;
+    setLogoutButtonVisible(btnLogout.classList.contains('hidden'));
 }
 
 function getStoredAdminTab() {
@@ -4804,9 +4831,26 @@ if (callHangupBtn) {
 if (userPhoto) {
     userPhoto.addEventListener('click', () => {
         if (!currentUser) return;
+        toggleLogoutButtonVisible();
+    });
+}
+
+if (userName) {
+    userName.addEventListener('click', () => {
+        if (!currentUser) return;
+        setLogoutButtonVisible(false);
         openProfileModal();
     });
 }
+
+document.addEventListener('click', (event) => {
+    if (!btnLogout || btnLogout.classList.contains('hidden')) return;
+    const target = event.target;
+    if (userPhoto && userPhoto.contains(target)) return;
+    if (btnLogout.contains(target)) return;
+    if (sidebarHeader && sidebarHeader.contains(target)) return;
+    setLogoutButtonVisible(false);
+});
 
 if (profileCloseModal) {
     profileCloseModal.addEventListener('click', closeProfileModal);
@@ -4960,6 +5004,7 @@ messageInput.addEventListener('keypress', (e) => {
 // Logout
 btnLogout.addEventListener('click', async () => {
     try {
+        setLogoutButtonVisible(false);
         await updateUserOnlineStatus(false);
         await auth.signOut();
         resetRegisterForm();
