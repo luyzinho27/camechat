@@ -260,6 +260,18 @@ let callMiniOrigX = 0;
 let callMiniOrigY = 0;
 let callMiniDragMoved = false;
 let suppressVideoSwapUntil = 0;
+let callMiniDragPointerId = null;
+let callMiniDragTouchId = null;
+let callPreviewDragging = false;
+let callPreviewStartX = 0;
+let callPreviewStartY = 0;
+let callPreviewOrigX = 0;
+let callPreviewOrigY = 0;
+let callPreviewDragMoved = false;
+let callPreviewDragPointerId = null;
+let callPreviewDragTouchId = null;
+let callPreviewTarget = null;
+let lastTouchSwapAt = 0;
 let proximitySensor = null;
 let proximityActive = false;
 let deviceProximityHandler = null;
@@ -1040,6 +1052,14 @@ function setupOnlineStatus() {
     }, ONLINE_HEARTBEAT_MS);
 }
 
+window.addEventListener('online', () => {
+    if (currentUser) updateUserOnlineStatus(true);
+});
+
+window.addEventListener('offline', () => {
+    if (currentUser) updateUserOnlineStatus(false);
+});
+
 function subscribeToCurrentUserDoc() {
     if (!currentUser) return;
     if (currentUserDocUnsubscribe) currentUserDocUnsubscribe();
@@ -1269,11 +1289,16 @@ function moveCallMedia(target) {
 function applyVideoSwapState() {
     if (!callMedia) return;
     callMedia.classList.toggle('swap', isVideoSwapped);
+    const currentMainVideo = isVideoSwapped ? localVideo : remoteVideo;
+    resetVideoOverlayPosition(currentMainVideo);
 }
 
 function toggleVideoSwap() {
     if (currentCallType !== 'video' || callPhase !== 'active') return;
     if (!callMedia || callMedia.classList.contains('hidden')) return;
+    if (callPreviewDragging) {
+        stopCallPreviewDrag();
+    }
     isVideoSwapped = !isVideoSwapped;
     applyVideoSwapState();
 }
@@ -1811,6 +1836,20 @@ function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
+function resetVideoOverlayPosition(videoElement) {
+    if (!videoElement) return;
+    videoElement.style.left = '';
+    videoElement.style.top = '';
+    videoElement.style.right = '';
+    videoElement.style.bottom = '';
+}
+
+function getCurrentMiniPreviewVideo() {
+    if (currentCallType !== 'video' || callPhase !== 'active') return null;
+    if (!callMedia || callMedia.classList.contains('hidden')) return null;
+    return isVideoSwapped ? remoteVideo : localVideo;
+}
+
 function startCallMiniDrag(clientX, clientY) {
     if (!callMini || callMini.classList.contains('hidden')) return;
     const rect = callMini.getBoundingClientRect();
@@ -1847,6 +1886,61 @@ function stopCallMiniDrag() {
     }
     callMiniDragMoved = false;
     callMiniDragging = false;
+    callMiniDragPointerId = null;
+    callMiniDragTouchId = null;
+}
+
+function startCallPreviewDrag(videoElement, clientX, clientY) {
+    if (!videoElement || !callMedia || callMedia.classList.contains('hidden')) return;
+    const miniPreview = getCurrentMiniPreviewVideo();
+    if (miniPreview !== videoElement) return;
+
+    const mediaRect = callMedia.getBoundingClientRect();
+    const previewRect = videoElement.getBoundingClientRect();
+    const startLeft = previewRect.left - mediaRect.left;
+    const startTop = previewRect.top - mediaRect.top;
+
+    videoElement.style.left = `${startLeft}px`;
+    videoElement.style.top = `${startTop}px`;
+    videoElement.style.right = 'auto';
+    videoElement.style.bottom = 'auto';
+
+    callPreviewDragging = true;
+    callPreviewDragMoved = false;
+    callPreviewTarget = videoElement;
+    callPreviewStartX = clientX;
+    callPreviewStartY = clientY;
+    callPreviewOrigX = startLeft;
+    callPreviewOrigY = startTop;
+}
+
+function moveCallPreviewDrag(clientX, clientY) {
+    if (!callPreviewDragging || !callPreviewTarget || !callMedia) return;
+
+    const deltaX = clientX - callPreviewStartX;
+    const deltaY = clientY - callPreviewStartY;
+    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+        callPreviewDragMoved = true;
+    }
+
+    const maxX = callMedia.clientWidth - callPreviewTarget.offsetWidth;
+    const maxY = callMedia.clientHeight - callPreviewTarget.offsetHeight;
+    const nextX = clamp(callPreviewOrigX + deltaX, 8, Math.max(8, maxX - 8));
+    const nextY = clamp(callPreviewOrigY + deltaY, 8, Math.max(8, maxY - 8));
+
+    callPreviewTarget.style.left = `${nextX}px`;
+    callPreviewTarget.style.top = `${nextY}px`;
+}
+
+function stopCallPreviewDrag() {
+    if (callPreviewDragMoved) {
+        suppressVideoSwapUntil = Date.now() + 250;
+    }
+    callPreviewDragMoved = false;
+    callPreviewDragging = false;
+    callPreviewDragPointerId = null;
+    callPreviewDragTouchId = null;
+    callPreviewTarget = null;
 }
 
 function startRingtone(mode = 'incoming') {
@@ -1937,6 +2031,10 @@ function resetCallState() {
     if (callMini) callMini.classList.add('hidden');
     if (callMediaContainer) moveCallMedia(callMediaContainer);
     exitCallFullscreen();
+    stopCallMiniDrag();
+    stopCallPreviewDrag();
+    resetVideoOverlayPosition(localVideo);
+    resetVideoOverlayPosition(remoteVideo);
     if (callMini) {
         callMini.style.left = '';
         callMini.style.top = '';
@@ -4464,18 +4562,189 @@ function canSwapFrom(target) {
     return false;
 }
 
-if (localVideo) {
-    localVideo.addEventListener('click', () => {
-        if (canSwapFrom(localVideo)) {
-            toggleVideoSwap();
+function requestVideoSwap(videoElement, source = 'click') {
+    if (source === 'click' && Date.now() - lastTouchSwapAt < 450) return;
+    if (source === 'touch') {
+        lastTouchSwapAt = Date.now();
+    }
+    if (canSwapFrom(videoElement)) {
+        toggleVideoSwap();
+    }
+}
+
+function findTouchById(touchList, touchId) {
+    if (!touchList || touchId === null || touchId === undefined) return null;
+    for (let index = 0; index < touchList.length; index += 1) {
+        const touch = touchList[index];
+        if (touch.identifier === touchId) return touch;
+    }
+    return null;
+}
+
+function bindVideoSwapAndMiniDrag(videoElement) {
+    if (!videoElement) return;
+
+    videoElement.addEventListener('click', () => {
+        requestVideoSwap(videoElement, 'click');
+    });
+
+    videoElement.addEventListener('touchend', (event) => {
+        if (!event.changedTouches || event.changedTouches.length !== 1) return;
+        const isDraggingThisVideo = callPreviewDragging && callPreviewTarget === videoElement;
+        if (isDraggingThisVideo && callPreviewDragMoved) return;
+        event.preventDefault();
+        requestVideoSwap(videoElement, 'touch');
+    }, { passive: false });
+
+    videoElement.addEventListener('pointerdown', (event) => {
+        if (event.button !== undefined && event.button !== 0) return;
+        callPreviewDragPointerId = event.pointerId;
+        startCallPreviewDrag(videoElement, event.clientX, event.clientY);
+        if (!callPreviewDragging || callPreviewTarget !== videoElement) {
+            callPreviewDragPointerId = null;
+            return;
         }
+        if (typeof videoElement.setPointerCapture === 'function') {
+            try {
+                videoElement.setPointerCapture(event.pointerId);
+            } catch (error) {
+                // ignore unsupported capture
+            }
+        }
+    });
+
+    if (!('PointerEvent' in window)) {
+        videoElement.addEventListener('touchstart', (event) => {
+            if (!event.touches || event.touches.length !== 1) return;
+            const touch = event.touches[0];
+            callPreviewDragTouchId = touch.identifier;
+            startCallPreviewDrag(videoElement, touch.clientX, touch.clientY);
+            if (!callPreviewDragging || callPreviewTarget !== videoElement) {
+                callPreviewDragTouchId = null;
+            }
+        }, { passive: true });
+    }
+}
+
+bindVideoSwapAndMiniDrag(localVideo);
+bindVideoSwapAndMiniDrag(remoteVideo);
+
+if (btnCallMiniHangup) {
+    btnCallMiniHangup.addEventListener('click', () => {
+        endCall('ended');
     });
 }
 
-if (remoteVideo) {
-    remoteVideo.addEventListener('click', () => {
-        if (canSwapFrom(remoteVideo)) {
-            toggleVideoSwap();
+if (callMini) {
+    callMini.addEventListener('pointerdown', (event) => {
+        if (callMini.classList.contains('hidden')) return;
+        if (event.button !== undefined && event.button !== 0) return;
+        if (event.target?.closest?.('button')) return;
+        callMiniDragPointerId = event.pointerId;
+        startCallMiniDrag(event.clientX, event.clientY);
+        if (typeof callMini.setPointerCapture === 'function') {
+            try {
+                callMini.setPointerCapture(event.pointerId);
+            } catch (error) {
+                // ignore unsupported capture
+            }
+        }
+    });
+
+    if (!('PointerEvent' in window)) {
+        callMini.addEventListener('touchstart', (event) => {
+            if (callMini.classList.contains('hidden')) return;
+            if (!event.touches || event.touches.length !== 1) return;
+            if (event.target?.closest?.('button')) return;
+            const touch = event.touches[0];
+            callMiniDragTouchId = touch.identifier;
+            startCallMiniDrag(touch.clientX, touch.clientY);
+        }, { passive: true });
+    }
+}
+
+document.addEventListener('pointermove', (event) => {
+    if (callMiniDragPointerId !== null && event.pointerId === callMiniDragPointerId) {
+        moveCallMini(event.clientX, event.clientY);
+    }
+    if (callPreviewDragPointerId !== null && event.pointerId === callPreviewDragPointerId) {
+        moveCallPreviewDrag(event.clientX, event.clientY);
+        event.preventDefault();
+    }
+});
+
+document.addEventListener('pointerup', (event) => {
+    if (callMiniDragPointerId !== null && event.pointerId === callMiniDragPointerId) {
+        if (callMini && typeof callMini.releasePointerCapture === 'function') {
+            try {
+                callMini.releasePointerCapture(event.pointerId);
+            } catch (error) {
+                // ignore
+            }
+        }
+        stopCallMiniDrag();
+    }
+    if (callPreviewDragPointerId !== null && event.pointerId === callPreviewDragPointerId) {
+        if (callPreviewTarget && typeof callPreviewTarget.releasePointerCapture === 'function') {
+            try {
+                callPreviewTarget.releasePointerCapture(event.pointerId);
+            } catch (error) {
+                // ignore
+            }
+        }
+        stopCallPreviewDrag();
+    }
+});
+
+document.addEventListener('pointercancel', (event) => {
+    if (callMiniDragPointerId !== null && event.pointerId === callMiniDragPointerId) {
+        stopCallMiniDrag();
+    }
+    if (callPreviewDragPointerId !== null && event.pointerId === callPreviewDragPointerId) {
+        stopCallPreviewDrag();
+    }
+});
+
+if (!('PointerEvent' in window)) {
+    document.addEventListener('touchmove', (event) => {
+        let shouldPreventDefault = false;
+
+        if (callMiniDragTouchId !== null) {
+            const miniTouch = findTouchById(event.touches, callMiniDragTouchId);
+            if (miniTouch) {
+                moveCallMini(miniTouch.clientX, miniTouch.clientY);
+                shouldPreventDefault = true;
+            }
+        }
+
+        if (callPreviewDragTouchId !== null) {
+            const previewTouch = findTouchById(event.touches, callPreviewDragTouchId);
+            if (previewTouch) {
+                moveCallPreviewDrag(previewTouch.clientX, previewTouch.clientY);
+                shouldPreventDefault = true;
+            }
+        }
+
+        if (shouldPreventDefault) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', (event) => {
+        if (callMiniDragTouchId !== null && findTouchById(event.changedTouches, callMiniDragTouchId)) {
+            stopCallMiniDrag();
+        }
+        if (callPreviewDragTouchId !== null && findTouchById(event.changedTouches, callPreviewDragTouchId)) {
+            stopCallPreviewDrag();
+        }
+    });
+
+    document.addEventListener('touchcancel', (event) => {
+        if (callMiniDragTouchId !== null && findTouchById(event.changedTouches, callMiniDragTouchId)) {
+            stopCallMiniDrag();
+        }
+        if (callPreviewDragTouchId !== null && findTouchById(event.changedTouches, callPreviewDragTouchId)) {
+            stopCallPreviewDrag();
         }
     });
 }
@@ -4485,58 +4754,6 @@ if (btnCallRestore) {
         restoreCall();
     });
 }
-
-if (btnCallMiniHangup) {
-    btnCallMiniHangup.addEventListener('click', () => {
-        endCall('ended');
-    });
-}
-
-if (callMiniHeader) {
-    callMiniHeader.addEventListener('mousedown', (event) => {
-        if (event.target?.closest?.('button')) return;
-        startCallMiniDrag(event.clientX, event.clientY);
-    });
-    callMiniHeader.addEventListener('touchstart', (event) => {
-        if (!event.touches || event.touches.length !== 1) return;
-        if (event.target?.closest?.('button')) return;
-        const touch = event.touches[0];
-        startCallMiniDrag(touch.clientX, touch.clientY);
-    }, { passive: true });
-}
-
-if (callMiniBody) {
-    callMiniBody.addEventListener('mousedown', (event) => {
-        startCallMiniDrag(event.clientX, event.clientY);
-    });
-    callMiniBody.addEventListener('touchstart', (event) => {
-        if (!event.touches || event.touches.length !== 1) return;
-        const touch = event.touches[0];
-        startCallMiniDrag(touch.clientX, touch.clientY);
-    }, { passive: true });
-}
-
-document.addEventListener('mousemove', (event) => {
-    moveCallMini(event.clientX, event.clientY);
-});
-
-document.addEventListener('mouseup', () => {
-    stopCallMiniDrag();
-});
-
-document.addEventListener('touchmove', (event) => {
-    if (!event.touches || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    moveCallMini(touch.clientX, touch.clientY);
-}, { passive: true });
-
-document.addEventListener('touchend', () => {
-    stopCallMiniDrag();
-});
-
-document.addEventListener('touchcancel', () => {
-    stopCallMiniDrag();
-});
 
 if (callAcceptBtn) {
     callAcceptBtn.addEventListener('click', async () => {
