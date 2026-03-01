@@ -2630,6 +2630,12 @@ function isMobileLayout() {
     return window.matchMedia('(max-width: 900px)').matches;
 }
 
+function shouldAutoFocusMessageInput() {
+    const hasCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    const hasTouch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
+    return !isMobileLayout() && !hasCoarsePointer && !hasTouch;
+}
+
 function loadAdminUsers() {
     if (!adminUsersList || currentUserRole !== 'administrador') return;
     if (adminUsersUnsubscribe) adminUsersUnsubscribe();
@@ -3118,7 +3124,9 @@ async function selectUser(user) {
     if (btnCameraQuick) btnCameraQuick.disabled = disableChat;
     if (btnCall) btnCall.disabled = disableChat;
     if (btnVideoCall) btnVideoCall.disabled = disableChat;
-    messageInput.focus();
+    if (!disableChat && shouldAutoFocusMessageInput()) {
+        messageInput.focus();
+    }
 
     if (emojiPicker) emojiPicker.classList.add('hidden');
     
