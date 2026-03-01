@@ -1536,6 +1536,8 @@ body.sidebar-open {
     align-items: center;
     border-top: 1px solid #e0e0e0;
     position: relative;
+    min-width: 0;
+    overflow: hidden;
 }
 
 #message-input {
@@ -1588,6 +1590,11 @@ body.sidebar-open {
 
 .btn-send {
     background: #E30613;
+}
+
+.btn-send,
+.btn-voice {
+    flex: 0 0 auto;
 }
 
 .btn-call {
@@ -2244,9 +2251,10 @@ body.theme-dark .btn-google {
     }
 
     .btn-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
+        width: 36px;
+        height: 36px;
+        font-size: 15px;
+        flex: 0 0 36px;
     }
 
     .btn-toggle-sidebar {
@@ -2263,13 +2271,18 @@ body.theme-dark .btn-google {
     }
 
     .message-input-area {
-        padding: 10px 12px;
-        gap: 8px;
+        padding: 8px 10px;
+        gap: 6px;
     }
 
     #message-input {
         padding: 10px 12px;
-        font-size: 14px;
+        font-size: 15px;
+        min-width: 0;
+    }
+
+    .btn-camera-quick {
+        display: none;
     }
 
     .emoji-picker {
