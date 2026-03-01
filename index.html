@@ -6,7 +6,7 @@
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
-    <link rel="stylesheet" href="style.css?v=20260301-10">
+    <link rel="stylesheet" href="style.css?v=20260301-19">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -163,7 +163,16 @@
 
             <div id="sidebar-settings" class="sidebar-settings">
                 <div id="settings-menu" class="settings-menu hidden">
-                    <button id="btn-logout" class="logout-btn" type="button">Sair</button>
+                    <button id="btn-theme-toggle" class="settings-item" type="button" aria-pressed="false">Tema escuro</button>
+                    <button id="btn-sound-toggle" class="settings-item" type="button" aria-pressed="true">Som: ligado</button>
+                    <button id="btn-desktop-notifications-toggle" class="settings-item" type="button" aria-pressed="false">Notificações: desligadas</button>
+                    <button id="btn-read-receipts-toggle" class="settings-item" type="button" aria-pressed="true">Leitura: ligada</button>
+                    <button id="btn-online-status-toggle" class="settings-item" type="button" aria-pressed="true">Status: visível</button>
+                    <button id="btn-chat-font-toggle" class="settings-item" type="button" aria-pressed="false">Fonte do chat: normal</button>
+                    <button id="btn-call-block-toggle" class="settings-item" type="button" aria-pressed="false">Chamadas: permitidas</button>
+                    <button id="btn-last-seen-toggle" class="settings-item" type="button" aria-pressed="true">Visto por último: visível</button>
+                    <button id="btn-language-toggle" class="settings-item" type="button" aria-pressed="false">Idioma: português</button>
+                    <button id="btn-logout" class="settings-item logout-btn" type="button">Sair</button>
                 </div>
                 <button id="btn-settings" class="settings-btn" type="button" title="Configurações" aria-label="Configurações">&#9881;</button>
             </div>
@@ -455,6 +464,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260301-10"></script>
+    <script src="script.js?v=20260301-19"></script>
 </body>
 </html>
