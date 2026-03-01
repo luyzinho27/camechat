@@ -102,9 +102,11 @@ const friendEmailInput = document.getElementById('friend-email');
 const btnAddFriend = document.getElementById('btn-add-friend');
 const btnAdminPanel = document.getElementById('btn-admin-panel');
 const btnLogout = document.getElementById('btn-logout');
+const btnSettings = document.getElementById('btn-settings');
+const settingsMenu = document.getElementById('settings-menu');
+const sidebarSettings = document.getElementById('sidebar-settings');
 const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
-const sidebarHeader = document.querySelector('.sidebar-header');
 const ADMIN_TAB_STORAGE_KEY = 'camechat_admin_tab';
 
 // Admin panel
@@ -2627,11 +2629,19 @@ function setSidebarOpen(open) {
 }
 
 function setLogoutButtonVisible(isVisible) {
+    if (settingsMenu) {
+        settingsMenu.classList.toggle('hidden', !isVisible);
+        return;
+    }
     if (!btnLogout) return;
     btnLogout.classList.toggle('hidden', !isVisible);
 }
 
 function toggleLogoutButtonVisible() {
+    if (settingsMenu) {
+        setLogoutButtonVisible(settingsMenu.classList.contains('hidden'));
+        return;
+    }
     if (!btnLogout) return;
     setLogoutButtonVisible(btnLogout.classList.contains('hidden'));
 }
@@ -4831,7 +4841,8 @@ if (callHangupBtn) {
 if (userPhoto) {
     userPhoto.addEventListener('click', () => {
         if (!currentUser) return;
-        toggleLogoutButtonVisible();
+        setLogoutButtonVisible(false);
+        openProfileModal();
     });
 }
 
@@ -4843,12 +4854,18 @@ if (userName) {
     });
 }
 
+if (btnSettings) {
+    btnSettings.addEventListener('click', (event) => {
+        if (!currentUser) return;
+        event.stopPropagation();
+        toggleLogoutButtonVisible();
+    });
+}
+
 document.addEventListener('click', (event) => {
-    if (!btnLogout || btnLogout.classList.contains('hidden')) return;
+    if (!settingsMenu || settingsMenu.classList.contains('hidden')) return;
     const target = event.target;
-    if (userPhoto && userPhoto.contains(target)) return;
-    if (btnLogout.contains(target)) return;
-    if (sidebarHeader && sidebarHeader.contains(target)) return;
+    if (sidebarSettings && sidebarSettings.contains(target)) return;
     setLogoutButtonVisible(false);
 });
 
