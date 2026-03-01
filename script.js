@@ -103,11 +103,38 @@ const btnAddFriend = document.getElementById('btn-add-friend');
 const btnAdminPanel = document.getElementById('btn-admin-panel');
 const btnLogout = document.getElementById('btn-logout');
 const btnSettings = document.getElementById('btn-settings');
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
+const btnSoundToggle = document.getElementById('btn-sound-toggle');
+const btnReadReceiptsToggle = document.getElementById('btn-read-receipts-toggle');
+const btnDesktopNotificationsToggle = document.getElementById('btn-desktop-notifications-toggle');
+const btnOnlineStatusToggle = document.getElementById('btn-online-status-toggle');
+const btnChatFontToggle = document.getElementById('btn-chat-font-toggle');
+const btnCallBlockToggle = document.getElementById('btn-call-block-toggle');
+const btnLastSeenToggle = document.getElementById('btn-last-seen-toggle');
+const btnLanguageToggle = document.getElementById('btn-language-toggle');
 const settingsMenu = document.getElementById('settings-menu');
 const sidebarSettings = document.getElementById('sidebar-settings');
 const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
 const ADMIN_TAB_STORAGE_KEY = 'camechat_admin_tab';
+const THEME_STORAGE_KEY = 'camechat_theme';
+const SOUND_NOTIFICATIONS_STORAGE_KEY = 'camechat_sound_notifications';
+const READ_RECEIPTS_STORAGE_KEY = 'camechat_read_receipts';
+const DESKTOP_NOTIFICATIONS_STORAGE_KEY = 'camechat_desktop_notifications';
+const ONLINE_STATUS_VISIBILITY_STORAGE_KEY = 'camechat_online_status_visibility';
+const CHAT_FONT_SIZE_STORAGE_KEY = 'camechat_chat_font_size';
+const CALL_BLOCK_STORAGE_KEY = 'camechat_block_incoming_calls';
+const LAST_SEEN_VISIBILITY_STORAGE_KEY = 'camechat_last_seen_visible';
+const LANGUAGE_STORAGE_KEY = 'camechat_language';
+
+let soundNotificationsEnabled = true;
+let readReceiptsEnabled = true;
+let desktopNotificationsEnabled = false;
+let showOnlineStatusEnabled = true;
+let chatFontSizePreference = 'normal';
+let blockIncomingCallsEnabled = false;
+let showLastSeenEnabled = true;
+let selectedLanguage = 'pt-BR';
 
 // Admin panel
 const chatPanel = document.getElementById('chat-panel');
@@ -419,7 +446,24 @@ async function updateRegisterRoleAvailability() {
 
 async function ensureUserDocument(user, options = {}) {
     const userRef = db.collection('users').doc(user.uid);
-    const snapshot = await userRef.get();
+    let snapshot = null;
+    try {
+        snapshot = await userRef.get();
+    } catch (error) {
+        console.warn('Falha ao ler perfil do usuário. Usando dados básicos da sessão.', error);
+        return {
+            uid: user.uid,
+            name: options.name || user.displayName || '',
+            email: options.email || user.email || '',
+            photoURL: options.photoURL ?? user.photoURL ?? null,
+            photoData: options.photoData ?? null,
+            role: options.role || 'user_chat',
+            friends: Array.isArray(options.friends) ? options.friends : [],
+            blocked: Array.isArray(options.blocked) ? options.blocked : [],
+            showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
+            online: true
+        };
+    }
     const emailValue = options.email || user.email || '';
     const emailLower = emailValue ? emailValue.toLowerCase() : '';
     const baseData = {
@@ -432,6 +476,7 @@ async function ensureUserDocument(user, options = {}) {
         role: options.role || 'user_chat',
         friends: Array.isArray(options.friends) ? options.friends : [],
         blocked: Array.isArray(options.blocked) ? options.blocked : [],
+        showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
         online: true,
         lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -439,8 +484,13 @@ async function ensureUserDocument(user, options = {}) {
     };
 
     if (!snapshot.exists) {
-        await userRef.set(baseData);
-        return baseData;
+        try {
+            await userRef.set(baseData);
+            return baseData;
+        } catch (error) {
+            console.warn('Falha ao criar documento do usuário. Continuando com dados básicos.', error);
+            return baseData;
+        }
     }
 
     const data = snapshot.data() || {};
@@ -462,11 +512,39 @@ async function ensureUserDocument(user, options = {}) {
     if (shouldUpdatePhotoData) updates.photoData = options.photoData ?? null;
     if (!Array.isArray(data.friends)) updates.friends = [];
     if (!Array.isArray(data.blocked)) updates.blocked = [];
+    if (typeof data.showOnlineStatus !== 'boolean') updates.showOnlineStatus = true;
 
     if (Object.keys(updates).length > 0) {
         updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-        await userRef.update(updates);
-        return { ...data, ...updates };
+
+        try {
+            await userRef.update(updates);
+            return { ...data, ...updates };
+        } catch (error) {
+            const denied = error?.code === 'permission-denied';
+            if (denied && Object.prototype.hasOwnProperty.call(updates, 'showOnlineStatus')) {
+                const fallbackUpdates = { ...updates };
+                delete fallbackUpdates.showOnlineStatus;
+                if (Object.keys(fallbackUpdates).length === 1 && Object.prototype.hasOwnProperty.call(fallbackUpdates, 'updatedAt')) {
+                    delete fallbackUpdates.updatedAt;
+                }
+
+                if (Object.keys(fallbackUpdates).length > 0) {
+                    try {
+                        await userRef.update(fallbackUpdates);
+                        return { ...data, ...fallbackUpdates };
+                    } catch (retryError) {
+                        console.warn('Falha ao atualizar perfil do usuário.', retryError);
+                        return data;
+                    }
+                }
+
+                return data;
+            }
+
+            console.warn('Falha ao atualizar perfil do usuário.', error);
+            return data;
+        }
     }
 
     return data;
@@ -958,13 +1036,34 @@ auth.onAuthStateChanged(async (user) => {
         setLogoutButtonVisible(false);
 
         const fallbackRole = await resolveRoleForSignup('user_chat');
-        currentUserProfile = await ensureUserDocument(user, {
+        let ensuredProfile = null;
+        try {
+            ensuredProfile = await ensureUserDocument(user, {
+                name: user.displayName || '',
+                email: user.email || '',
+                role: fallbackRole,
+                photoURL: user.photoURL || null
+            });
+        } catch (error) {
+            console.warn('Falha ao preparar documento do usuário. Continuando com dados básicos.', error);
+        }
+        currentUserProfile = ensuredProfile || {
+            uid: user.uid,
             name: user.displayName || '',
             email: user.email || '',
             role: fallbackRole,
-            photoURL: user.photoURL || null
-        });
+            photoURL: user.photoURL || null,
+            photoData: null,
+            friends: [],
+            blocked: [],
+            showOnlineStatus: showOnlineStatusEnabled
+        };
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
+        if (typeof currentUserProfile.showOnlineStatus === 'boolean') {
+            applyOnlineStatusVisibilitySetting(currentUserProfile.showOnlineStatus, true, false);
+        } else {
+            applyOnlineStatusVisibilitySetting(showOnlineStatusEnabled, true, true);
+        }
 
         // Atualizar interface do usuário
         applyProfilePhoto(
@@ -1095,6 +1194,9 @@ function subscribeToCurrentUserDoc() {
             currentFriends = Array.isArray(data.friends) ? data.friends : [];
             if (!Array.isArray(currentUserProfile.blocked)) {
                 currentUserProfile.blocked = [];
+            }
+            if (typeof data.showOnlineStatus === 'boolean' && data.showOnlineStatus !== showOnlineStatusEnabled) {
+                applyOnlineStatusVisibilitySetting(data.showOnlineStatus, true, false);
             }
 
             if (data.name) userName.textContent = data.name;
@@ -2325,6 +2427,12 @@ async function handleIncomingCall(callDoc) {
         return;
     }
 
+    if (blockIncomingCallsEnabled) {
+        await callDoc.ref.set({ status: 'rejected', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        showCallToast(getUiText('callAutoBlockedToast'));
+        return;
+    }
+
     callDocRef = callDoc.ref;
     currentCallId = callDoc.id;
     currentCallRole = 'callee';
@@ -2644,6 +2752,496 @@ function toggleLogoutButtonVisible() {
     }
     if (!btnLogout) return;
     setLogoutButtonVisible(btnLogout.classList.contains('hidden'));
+}
+
+function getStoredTheme() {
+    try {
+        const value = localStorage.getItem(THEME_STORAGE_KEY);
+        return value === 'dark' ? 'dark' : 'light';
+    } catch (error) {
+        return 'light';
+    }
+}
+
+function getStoredBooleanSetting(storageKey, defaultValue = true) {
+    try {
+        const value = localStorage.getItem(storageKey);
+        if (value === null) return defaultValue;
+        return value === 'true';
+    } catch (error) {
+        return defaultValue;
+    }
+}
+
+function getStoredChatFontSize(defaultValue = 'normal') {
+    try {
+        const value = localStorage.getItem(CHAT_FONT_SIZE_STORAGE_KEY);
+        if (value === 'large') return 'large';
+        return defaultValue;
+    } catch (error) {
+        return defaultValue;
+    }
+}
+
+function getStoredLanguage(defaultValue = 'pt-BR') {
+    try {
+        const value = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+        return value === 'en-US' ? 'en-US' : defaultValue;
+    } catch (error) {
+        return defaultValue;
+    }
+}
+
+const UI_TEXT = {
+    'pt-BR': {
+        themeDark: 'Tema escuro',
+        themeLight: 'Tema claro',
+        soundOn: 'Som: ligado',
+        soundOff: 'Som: desligado',
+        notificationsOff: 'Notificações: desligadas',
+        notificationsOn: 'Notificações: ligadas',
+        notificationsBlocked: 'Notificações: bloqueadas',
+        notificationsPending: 'Notificações: pendentes',
+        notificationsUnavailable: 'Notificações: indisponíveis',
+        readOn: 'Leitura: ligada',
+        readOff: 'Leitura: desligada',
+        statusVisible: 'Status: visível',
+        statusHidden: 'Status: oculto',
+        chatFontNormal: 'Fonte do chat: normal',
+        chatFontLarge: 'Fonte do chat: grande',
+        callsAllowed: 'Chamadas: permitidas',
+        callsBlocked: 'Chamadas: bloqueadas',
+        lastSeenVisible: 'Visto por último: visível',
+        lastSeenHidden: 'Visto por último: oculto',
+        languagePt: 'Idioma: português',
+        languageEn: 'Idioma: inglês',
+        settingsTitle: 'Configurações',
+        logout: 'Sair',
+        presenceHidden: 'Status oculto',
+        presenceLastSeen: 'Visto por último às {time}',
+        presenceOffline: 'Offline',
+        presenceBlocked: 'Bloqueado',
+        typingActivity: '{name} está escrevendo...',
+        recordingActivity: '{name} está gravando áudio...',
+        callAutoBlockedToast: 'Chamada recusada automaticamente: chamadas bloqueadas.'
+    },
+    'en-US': {
+        themeDark: 'Dark theme',
+        themeLight: 'Light theme',
+        soundOn: 'Sound: on',
+        soundOff: 'Sound: off',
+        notificationsOff: 'Notifications: off',
+        notificationsOn: 'Notifications: on',
+        notificationsBlocked: 'Notifications: blocked',
+        notificationsPending: 'Notifications: pending',
+        notificationsUnavailable: 'Notifications: unavailable',
+        readOn: 'Read receipts: on',
+        readOff: 'Read receipts: off',
+        statusVisible: 'Status: visible',
+        statusHidden: 'Status: hidden',
+        chatFontNormal: 'Chat font: normal',
+        chatFontLarge: 'Chat font: large',
+        callsAllowed: 'Calls: allowed',
+        callsBlocked: 'Calls: blocked',
+        lastSeenVisible: 'Last seen: visible',
+        lastSeenHidden: 'Last seen: hidden',
+        languagePt: 'Language: Portuguese',
+        languageEn: 'Language: English',
+        settingsTitle: 'Settings',
+        logout: 'Sign out',
+        presenceHidden: 'Status hidden',
+        presenceLastSeen: 'Last seen at {time}',
+        presenceOffline: 'Offline',
+        presenceBlocked: 'Blocked',
+        typingActivity: '{name} is typing...',
+        recordingActivity: '{name} is recording audio...',
+        callAutoBlockedToast: 'Call rejected automatically: calls are blocked.'
+    }
+};
+
+function getUiText(key) {
+    const lang = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
+    return UI_TEXT[lang]?.[key] || UI_TEXT['pt-BR']?.[key] || '';
+}
+
+function formatUiText(key, params = {}) {
+    const template = getUiText(key);
+    return template.replace(/\{(\w+)\}/g, (_, token) => String(params[token] ?? ''));
+}
+
+function refreshSettingsMenuLabels() {
+    if (btnThemeToggle) {
+        const isDark = document.body.classList.contains('theme-dark');
+        btnThemeToggle.textContent = isDark ? getUiText('themeLight') : getUiText('themeDark');
+    }
+
+    if (btnSoundToggle) {
+        btnSoundToggle.textContent = soundNotificationsEnabled ? getUiText('soundOn') : getUiText('soundOff');
+    }
+
+    if (btnDesktopNotificationsToggle) {
+        if (!isDesktopNotificationsSupported()) {
+            btnDesktopNotificationsToggle.textContent = getUiText('notificationsUnavailable');
+        } else if (!desktopNotificationsEnabled) {
+            btnDesktopNotificationsToggle.textContent = getUiText('notificationsOff');
+        } else {
+            const permission = getDesktopNotificationPermission();
+            if (permission === 'granted') {
+                btnDesktopNotificationsToggle.textContent = getUiText('notificationsOn');
+            } else if (permission === 'denied') {
+                btnDesktopNotificationsToggle.textContent = getUiText('notificationsBlocked');
+            } else {
+                btnDesktopNotificationsToggle.textContent = getUiText('notificationsPending');
+            }
+        }
+    }
+
+    if (btnReadReceiptsToggle) {
+        btnReadReceiptsToggle.textContent = readReceiptsEnabled ? getUiText('readOn') : getUiText('readOff');
+    }
+
+    if (btnOnlineStatusToggle) {
+        btnOnlineStatusToggle.textContent = showOnlineStatusEnabled ? getUiText('statusVisible') : getUiText('statusHidden');
+    }
+
+    if (btnChatFontToggle) {
+        btnChatFontToggle.textContent = chatFontSizePreference === 'large' ? getUiText('chatFontLarge') : getUiText('chatFontNormal');
+    }
+
+    if (btnCallBlockToggle) {
+        btnCallBlockToggle.textContent = blockIncomingCallsEnabled ? getUiText('callsBlocked') : getUiText('callsAllowed');
+    }
+
+    if (btnLastSeenToggle) {
+        btnLastSeenToggle.textContent = showLastSeenEnabled ? getUiText('lastSeenVisible') : getUiText('lastSeenHidden');
+    }
+
+    if (btnLanguageToggle) {
+        btnLanguageToggle.textContent = selectedLanguage === 'en-US' ? getUiText('languageEn') : getUiText('languagePt');
+    }
+
+    if (btnLogout) {
+        btnLogout.textContent = getUiText('logout');
+    }
+
+    if (btnSettings) {
+        const title = getUiText('settingsTitle');
+        btnSettings.title = title;
+        btnSettings.setAttribute('aria-label', title);
+    }
+}
+
+function refreshPresenceDisplay() {
+    renderFriendUsers();
+    renderChatPartnerStatus();
+    if (friendModal?.classList.contains('show') && selectedFriendData) {
+        renderFriendDetailStatus(selectedFriendData);
+    }
+}
+
+try {
+    initializeUserPreferences();
+} catch (error) {
+    console.warn('Falha ao inicializar preferências locais:', error);
+}
+
+function isDesktopNotificationsSupported() {
+    return typeof Notification !== 'undefined';
+}
+
+function getDesktopNotificationPermission() {
+    if (!isDesktopNotificationsSupported()) return 'unsupported';
+    return Notification.permission;
+}
+
+async function syncOnlineStatusVisibilityPreference() {
+    if (!currentUser) return;
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            showOnlineStatus: showOnlineStatusEnabled,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    } catch (error) {
+        console.warn('Falha ao salvar preferência de status online.', error);
+    }
+}
+
+function applyTheme(theme, persist = false) {
+    const isDark = theme === 'dark';
+    document.body.classList.toggle('theme-dark', isDark);
+
+    if (btnThemeToggle) {
+        btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
+    } catch (error) {
+        // ignore
+    }
+}
+
+function applySoundNotificationsSetting(isEnabled, persist = false) {
+    soundNotificationsEnabled = !!isEnabled;
+
+    if (btnSoundToggle) {
+        btnSoundToggle.setAttribute('aria-pressed', soundNotificationsEnabled ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(SOUND_NOTIFICATIONS_STORAGE_KEY, soundNotificationsEnabled ? 'true' : 'false');
+    } catch (error) {
+        // ignore
+    }
+}
+
+function applyReadReceiptsSetting(isEnabled, persist = false) {
+    readReceiptsEnabled = !!isEnabled;
+
+    if (btnReadReceiptsToggle) {
+        btnReadReceiptsToggle.setAttribute('aria-pressed', readReceiptsEnabled ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(READ_RECEIPTS_STORAGE_KEY, readReceiptsEnabled ? 'true' : 'false');
+    } catch (error) {
+        // ignore
+    }
+}
+
+function applyDesktopNotificationsSetting(isEnabled, persist = false) {
+    if (!isDesktopNotificationsSupported()) {
+        desktopNotificationsEnabled = false;
+        if (btnDesktopNotificationsToggle) {
+            btnDesktopNotificationsToggle.setAttribute('aria-pressed', 'false');
+            btnDesktopNotificationsToggle.disabled = true;
+        }
+        refreshSettingsMenuLabels();
+        return;
+    }
+
+    desktopNotificationsEnabled = !!isEnabled;
+    const permission = getDesktopNotificationPermission();
+
+    if (btnDesktopNotificationsToggle) {
+        btnDesktopNotificationsToggle.setAttribute('aria-pressed', desktopNotificationsEnabled && permission === 'granted' ? 'true' : 'false');
+        btnDesktopNotificationsToggle.disabled = false;
+    }
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(DESKTOP_NOTIFICATIONS_STORAGE_KEY, desktopNotificationsEnabled ? 'true' : 'false');
+    } catch (error) {
+        // ignore
+    }
+}
+
+function applyOnlineStatusVisibilitySetting(isEnabled, persist = false, syncRemote = false) {
+    showOnlineStatusEnabled = !!isEnabled;
+
+    if (btnOnlineStatusToggle) {
+        btnOnlineStatusToggle.setAttribute('aria-pressed', showOnlineStatusEnabled ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+    refreshPresenceDisplay();
+
+    if (persist) {
+        try {
+            localStorage.setItem(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, showOnlineStatusEnabled ? 'true' : 'false');
+        } catch (error) {
+            // ignore
+        }
+    }
+
+    if (syncRemote && currentUser) {
+        syncOnlineStatusVisibilityPreference();
+    }
+}
+
+function applyChatFontSizeSetting(size, persist = false) {
+    const normalizedSize = size === 'large' ? 'large' : 'normal';
+    chatFontSizePreference = normalizedSize;
+    document.body.classList.toggle('chat-font-large', normalizedSize === 'large');
+
+    if (btnChatFontToggle) {
+        btnChatFontToggle.setAttribute('aria-pressed', normalizedSize === 'large' ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(CHAT_FONT_SIZE_STORAGE_KEY, normalizedSize);
+    } catch (error) {
+        // ignore
+    }
+}
+
+function applyCallBlockingSetting(isEnabled, persist = false) {
+    blockIncomingCallsEnabled = !!isEnabled;
+
+    if (btnCallBlockToggle) {
+        btnCallBlockToggle.setAttribute('aria-pressed', blockIncomingCallsEnabled ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(CALL_BLOCK_STORAGE_KEY, blockIncomingCallsEnabled ? 'true' : 'false');
+    } catch (error) {
+        // ignore
+    }
+}
+
+function applyLastSeenVisibilitySetting(isEnabled, persist = false) {
+    showLastSeenEnabled = !!isEnabled;
+
+    if (btnLastSeenToggle) {
+        btnLastSeenToggle.setAttribute('aria-pressed', showLastSeenEnabled ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+    refreshPresenceDisplay();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(LAST_SEEN_VISIBILITY_STORAGE_KEY, showLastSeenEnabled ? 'true' : 'false');
+    } catch (error) {
+        // ignore
+    }
+}
+
+function applyLanguageSetting(language, persist = false) {
+    selectedLanguage = language === 'en-US' ? 'en-US' : 'pt-BR';
+
+    if (btnLanguageToggle) {
+        btnLanguageToggle.setAttribute('aria-pressed', selectedLanguage === 'en-US' ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+    refreshPresenceDisplay();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, selectedLanguage);
+    } catch (error) {
+        // ignore
+    }
+}
+
+function initializeTheme() {
+    applyTheme(getStoredTheme(), false);
+}
+
+function initializeUserPreferences() {
+    applyLanguageSetting(getStoredLanguage('pt-BR'), false);
+    initializeTheme();
+    applySoundNotificationsSetting(getStoredBooleanSetting(SOUND_NOTIFICATIONS_STORAGE_KEY, true), false);
+    applyDesktopNotificationsSetting(getStoredBooleanSetting(DESKTOP_NOTIFICATIONS_STORAGE_KEY, false), false);
+    applyReadReceiptsSetting(getStoredBooleanSetting(READ_RECEIPTS_STORAGE_KEY, true), false);
+    applyOnlineStatusVisibilitySetting(getStoredBooleanSetting(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, true), false, false);
+    applyChatFontSizeSetting(getStoredChatFontSize('normal'), false);
+    applyCallBlockingSetting(getStoredBooleanSetting(CALL_BLOCK_STORAGE_KEY, false), false);
+    applyLastSeenVisibilitySetting(getStoredBooleanSetting(LAST_SEEN_VISIBILITY_STORAGE_KEY, true), false);
+    refreshSettingsMenuLabels();
+}
+
+function playIncomingMessageTone() {
+    if (!soundNotificationsEnabled) return;
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    try {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+
+        setTimeout(() => {
+            ctx.close().catch(() => {});
+        }, 260);
+    } catch (error) {
+        // ignore
+    }
+}
+
+function buildIncomingNotificationBody(messageData) {
+    const text = (messageData?.text || '').trim();
+    if (text) {
+        return text.length > 120 ? `${text.slice(0, 117)}...` : text;
+    }
+
+    const fileType = (messageData?.fileType || '').toLowerCase();
+    if (fileType.startsWith('image/')) return 'Enviou uma imagem';
+    if (fileType.startsWith('video/')) return 'Enviou um vídeo';
+    if (fileType.startsWith('audio/')) return 'Enviou um áudio';
+    if (fileType.includes('pdf')) return 'Enviou um PDF';
+    if (messageData?.fileName) return `Enviou ${messageData.fileName}`;
+    return 'Nova mensagem';
+}
+
+function getCachedUserByUid(uid) {
+    if (!uid || !Array.isArray(allUsersCache)) return null;
+    return allUsersCache.find((user) => user.uid === uid) || null;
+}
+
+function showIncomingDesktopNotification(senderUid, messageData) {
+    if (!desktopNotificationsEnabled) return;
+    if (!isDesktopNotificationsSupported()) return;
+    if (getDesktopNotificationPermission() !== 'granted') return;
+    if (document.visibilityState === 'visible' && document.hasFocus()) return;
+
+    const sender = (selectedFriendData && selectedFriendData.uid === senderUid)
+        ? selectedFriendData
+        : getCachedUserByUid(senderUid);
+    const senderName = sender?.name || 'Usuário';
+    const icon = getSafePhotoData(sender?.photoData) || getSafePhotoUrl(sender?.photoURL) || 'images/camechat_logo.png';
+    const body = buildIncomingNotificationBody(messageData);
+
+    try {
+        const notification = new Notification(`Nova mensagem de ${senderName}`, {
+            body,
+            icon,
+            tag: `camechat-message-${senderUid}`,
+            renotify: true
+        });
+
+        notification.onclick = () => {
+            window.focus();
+            notification.close();
+            const friend = getCachedUserByUid(senderUid);
+            if (friend && selectedUserId !== senderUid) {
+                Promise.resolve(selectUser(friend)).catch(() => {});
+            }
+        };
+    } catch (error) {
+        // ignore
+    }
 }
 
 function getStoredAdminTab() {
@@ -2997,8 +3595,8 @@ function renderFriendUsers() {
 
     // Ordenar: online primeiro, depois por lastSeen
     friends.sort((a, b) => {
-        const aOnline = isUserEffectivelyOnline(a);
-        const bOnline = isUserEffectivelyOnline(b);
+        const aOnline = isUserPresenceVisible(a) && isUserEffectivelyOnline(a);
+        const bOnline = isUserPresenceVisible(b) && isUserEffectivelyOnline(b);
         if (aOnline && !bOnline) return -1;
         if (!aOnline && bOnline) return 1;
         return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
@@ -3083,11 +3681,8 @@ function renderUsers(users) {
         li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
         li.dataset.uid = user.uid;
         
-        const lastSeenDate = timestampToDate(user.lastSeen);
-        const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
-        const isOnline = isUserEffectivelyOnline(user);
-        const status = isOnline ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
-        const statusClass = isOnline ? 'status-online-text' : '';
+        const status = getUserPresenceStatusText(user);
+        const statusClass = status === 'Online' ? 'status-online-text' : '';
         
         const { fallback: fallbackPhoto, url: photoUrl } = resolvePhotoSources(
             user,
@@ -3114,14 +3709,15 @@ function renderUsers(users) {
 // Formatar última visualização
 function formatLastSeen(date) {
     if (!date) return '';
+    const locale = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
     const now = new Date();
     const diffMs = now - date;
-    const timeText = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const timeText = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     const dayMs = 24 * 60 * 60 * 1000;
     if (diffMs < dayMs) {
         return timeText;
     }
-    const dateText = date.toLocaleDateString('pt-BR');
+    const dateText = date.toLocaleDateString(locale);
     return `${dateText} ${timeText}`;
 }
 
@@ -3137,6 +3733,21 @@ function isUserEffectivelyOnline(user) {
     const lastSeenDate = timestampToDate(user.lastSeen);
     if (!lastSeenDate) return false;
     return Date.now() - lastSeenDate.getTime() <= ONLINE_STALE_MS;
+}
+
+function isUserPresenceVisible(user) {
+    return user?.showOnlineStatus !== false;
+}
+
+function getUserPresenceStatusText(user) {
+    if (!user) return '';
+    if (!isUserPresenceVisible(user)) return getUiText('presenceHidden');
+    if (isUserEffectivelyOnline(user)) return 'Online';
+    if (!showLastSeenEnabled) return getUiText('presenceOffline');
+
+    const lastSeenDate = timestampToDate(user.lastSeen);
+    const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
+    return lastSeen ? formatUiText('presenceLastSeen', { time: lastSeen }) : getUiText('presenceOffline');
 }
 
 // Filtrar usuários
@@ -3203,6 +3814,7 @@ async function loadMessages(otherUid) {
     
     const conversationId = getConversationId(currentUser.uid, otherUid);
     currentConversationId = conversationId;
+    let hasLoadedInitialSnapshot = false;
 
     listenTypingStatus(otherUid);
     
@@ -3211,6 +3823,20 @@ async function loadMessages(otherUid) {
         .collection('messages')
         .orderBy('timestamp', 'asc')
         .onSnapshot((snapshot) => {
+            if (hasLoadedInitialSnapshot) {
+                const incomingChanges = snapshot.docChanges().filter((change) => {
+                    if (change.type !== 'added') return false;
+                    const data = change.doc.data();
+                    return data?.senderId === otherUid;
+                });
+
+                if (incomingChanges.length > 0) {
+                    playIncomingMessageTone();
+                    const latestIncoming = incomingChanges[incomingChanges.length - 1].doc.data();
+                    showIncomingDesktopNotification(otherUid, latestIncoming);
+                }
+            }
+
             const messages = [];
             snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
             currentConversationMessages = messages;
@@ -3221,6 +3847,7 @@ async function loadMessages(otherUid) {
             
             // Marcar mensagens como lidas
             markMessagesAsRead(conversationId);
+            hasLoadedInitialSnapshot = true;
         });
 }
 
@@ -3232,6 +3859,7 @@ function getConversationId(uid1, uid2) {
 // Marcar mensagens como lidas
 async function markMessagesAsRead(conversationId) {
     if (!currentUser || !selectedUserId) return;
+    if (!readReceiptsEnabled) return;
     
     const messagesRef = db.collection('conversations')
         .doc(conversationId)
@@ -3456,19 +4084,17 @@ function setOnlineStatusClass(element, isOnline) {
 
 function getDefaultChatPartnerStatus() {
     if (!selectedFriendData) return '';
-    if (isFriendBlocked(selectedFriendData.uid)) return 'Bloqueado';
-    const lastSeenDate = timestampToDate(selectedFriendData.lastSeen);
-    const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
-    return isUserEffectivelyOnline(selectedFriendData) ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
+    if (isFriendBlocked(selectedFriendData.uid)) return getUiText('presenceBlocked');
+    return getUserPresenceStatusText(selectedFriendData);
 }
 
 function getChatPartnerActivityLabel(state) {
     const displayName = selectedFriendData?.name || chatPartnerName?.textContent || 'Usu\u00e1rio';
     if (state === 'recording') {
-        return `${displayName} est\u00e1 gravando \u00e1udio...`;
+        return formatUiText('recordingActivity', { name: displayName });
     }
     if (state === 'typing') {
-        return `${displayName} est\u00e1 escrevendo...`;
+        return formatUiText('typingActivity', { name: displayName });
     }
     return '';
 }
@@ -4273,19 +4899,14 @@ function closeFriendModal() {
 
 function getFriendStatusText(friend) {
     if (!friend) return '';
-    if (isUserEffectivelyOnline(friend)) return 'Online';
-    const lastSeenDate = timestampToDate(friend.lastSeen);
-    if (lastSeenDate) {
-        const lastSeen = formatLastSeen(lastSeenDate);
-        return `Visto por \u00faltimo \u00e0s ${lastSeen}`;
-    }
-    return 'Offline';
+    return getUserPresenceStatusText(friend);
 }
 
 function renderFriendDetailStatus(friend) {
     if (!friendDetailStatus) return;
-    friendDetailStatus.textContent = getFriendStatusText(friend);
-    setOnlineStatusClass(friendDetailStatus, isUserEffectivelyOnline(friend));
+    const statusText = getFriendStatusText(friend);
+    friendDetailStatus.textContent = statusText;
+    setOnlineStatusClass(friendDetailStatus, statusText === 'Online');
 }
 
 function updateFriendModalState() {
@@ -4859,6 +5480,101 @@ if (btnSettings) {
         if (!currentUser) return;
         event.stopPropagation();
         toggleLogoutButtonVisible();
+    });
+}
+
+if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const isDark = document.body.classList.contains('theme-dark');
+        applyTheme(isDark ? 'light' : 'dark', true);
+    });
+}
+
+if (btnSoundToggle) {
+    btnSoundToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        applySoundNotificationsSetting(!soundNotificationsEnabled, true);
+    });
+}
+
+if (btnReadReceiptsToggle) {
+    btnReadReceiptsToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        applyReadReceiptsSetting(!readReceiptsEnabled, true);
+    });
+}
+
+if (btnDesktopNotificationsToggle) {
+    btnDesktopNotificationsToggle.addEventListener('click', async (event) => {
+        event.stopPropagation();
+
+        if (!isDesktopNotificationsSupported()) {
+            applyDesktopNotificationsSetting(false, false);
+            return;
+        }
+
+        if (desktopNotificationsEnabled) {
+            applyDesktopNotificationsSetting(false, true);
+            return;
+        }
+
+        let permission = getDesktopNotificationPermission();
+        if (permission !== 'granted') {
+            try {
+                permission = await Notification.requestPermission();
+            } catch (error) {
+                permission = 'denied';
+            }
+        }
+
+        if (permission === 'granted') {
+            applyDesktopNotificationsSetting(true, true);
+        } else {
+            applyDesktopNotificationsSetting(false, true);
+            if (permission === 'denied') {
+                alert('Notificações bloqueadas pelo navegador. Libere nas configurações do site para ativar.');
+            }
+        }
+    });
+}
+
+if (btnOnlineStatusToggle) {
+    btnOnlineStatusToggle.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const nextValue = !showOnlineStatusEnabled;
+        applyOnlineStatusVisibilitySetting(nextValue, true, false);
+        await syncOnlineStatusVisibilityPreference();
+    });
+}
+
+if (btnChatFontToggle) {
+    btnChatFontToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const nextSize = chatFontSizePreference === 'large' ? 'normal' : 'large';
+        applyChatFontSizeSetting(nextSize, true);
+    });
+}
+
+if (btnCallBlockToggle) {
+    btnCallBlockToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        applyCallBlockingSetting(!blockIncomingCallsEnabled, true);
+    });
+}
+
+if (btnLastSeenToggle) {
+    btnLastSeenToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        applyLastSeenVisibilitySetting(!showLastSeenEnabled, true);
+    });
+}
+
+if (btnLanguageToggle) {
+    btnLanguageToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const nextLanguage = selectedLanguage === 'en-US' ? 'pt-BR' : 'en-US';
+        applyLanguageSetting(nextLanguage, true);
     });
 }
 
