@@ -56,6 +56,13 @@ body.sidebar-open {
     margin-bottom: 30px;
 }
 
+.auth-brand-logo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
 .auth-header h1 {
     color: #002776;
     font-size: 36px;
@@ -1148,6 +1155,19 @@ body.sidebar-open {
     font-size: 14px;
 }
 
+.users-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.users-header-logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
 .users-list {
     flex: 1;
     overflow-y: auto;
@@ -1281,6 +1301,13 @@ body.sidebar-open {
     text-align: center;
     color: #999;
     margin: auto;
+}
+
+.welcome-logo {
+    width: clamp(64px, 14vw, 92px);
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 10px;
 }
 
 .welcome-message h3 {
