@@ -3644,6 +3644,7 @@ function renderFriendUsers() {
         if (btnCameraQuick) btnCameraQuick.disabled = true;
         if (btnCall) btnCall.disabled = true;
         if (btnVideoCall) btnVideoCall.disabled = true;
+        updateComposerPrimaryAction();
     }
 
     if (selectedFriendData && blockedSet.has(selectedFriendData.uid)) {
@@ -3656,6 +3657,7 @@ function renderFriendUsers() {
         renderChatPartnerStatus();
         if (btnCall) btnCall.disabled = true;
         if (btnVideoCall) btnVideoCall.disabled = true;
+        updateComposerPrimaryAction();
     }
 }
 
@@ -3793,6 +3795,7 @@ async function selectUser(user) {
     if (!disableChat && shouldAutoFocusMessageInput()) {
         messageInput.focus();
     }
+    updateComposerPrimaryAction();
 
     if (emojiPicker) emojiPicker.classList.add('hidden');
     
@@ -4281,7 +4284,9 @@ function subscribeToFriendDoc(uid) {
 }
 
 function handleTypingInput() {
-    if (!messageInput || messageInput.disabled || !selectedUserId) return;
+    if (!messageInput) return;
+    updateComposerPrimaryAction();
+    if (messageInput.disabled || !selectedUserId) return;
     if (isRecordingAudio) return;
     const hasText = messageInput.value.trim().length > 0;
     if (!hasText) {
@@ -4568,6 +4573,16 @@ function ensureVoiceRecordingBanner() {
     }
 }
 
+function updateComposerPrimaryAction() {
+    if (!btnSend || !btnVoice || !messageInput) return;
+
+    const hasText = messageInput.value.trim().length > 0;
+    const canSendText = !messageInput.disabled && !!selectedUserId && hasText && !isRecordingAudio;
+
+    btnSend.classList.toggle('hidden', !canSendText);
+    btnVoice.classList.toggle('hidden', canSendText);
+}
+
 function updateVoiceButtonUI() {
     if (!btnVoice) return;
     btnVoice.classList.toggle('recording', isRecordingAudio);
@@ -4583,6 +4598,7 @@ function updateVoiceButtonUI() {
         btnVoiceCancel.disabled = !isRecordingAudio;
     }
     ensureVoiceRecordingBanner();
+    updateComposerPrimaryAction();
 }
 
 function formatVoiceDuration(ms) {
@@ -4836,6 +4852,7 @@ function resetChatUI() {
     }
     stopVoiceTimer();
     stopRecordingHeartbeat();
+    updateComposerPrimaryAction();
     currentConversationId = null;
     currentConversationMessages = [];
 }
@@ -4958,6 +4975,7 @@ btnSend.addEventListener('click', async () => {
         
         messageInput.value = '';
         updateTypingState(null, true);
+        updateComposerPrimaryAction();
     } catch (error) {
         alert('Erro ao enviar mensagem: ' + error.message);
     }
@@ -5182,6 +5200,7 @@ if (friendUnblockBtn) {
                 if (btnCameraQuick) btnCameraQuick.disabled = false;
                 if (btnCall) btnCall.disabled = false;
                 if (btnVideoCall) btnVideoCall.disabled = false;
+                updateComposerPrimaryAction();
             }
         } catch (error) {
             alert('Erro ao desbloquear amigo: ' + error.message);
