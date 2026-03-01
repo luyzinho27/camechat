@@ -6,7 +6,7 @@
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
-    <link rel="stylesheet" href="style.css?v=20260301-9">
+    <link rel="stylesheet" href="style.css?v=20260301-10">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -139,7 +139,6 @@
                 </div>
                 <div class="sidebar-actions">
                     <button id="btn-admin-panel" class="admin-btn hidden">Admin</button>
-                    <button id="btn-logout" class="logout-btn hidden">Sair</button>
                 </div>
             </header>
             
@@ -161,6 +160,13 @@
             </div>
             
             <ul id="users-list" class="users-list"></ul>
+
+            <div id="sidebar-settings" class="sidebar-settings">
+                <div id="settings-menu" class="settings-menu hidden">
+                    <button id="btn-logout" class="logout-btn" type="button">Sair</button>
+                </div>
+                <button id="btn-settings" class="settings-btn" type="button" title="Configurações" aria-label="Configurações">&#9881;</button>
+            </div>
         </aside>
 
         <!-- Área de chat -->
@@ -449,6 +455,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260301-9"></script>
+    <script src="script.js?v=20260301-10"></script>
 </body>
 </html>
