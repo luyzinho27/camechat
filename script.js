@@ -2630,6 +2630,14 @@ function isMobileLayout() {
     return window.matchMedia('(max-width: 900px)').matches;
 }
 
+function syncMobileViewportSize() {
+    const viewportWidth = Math.round(window.visualViewport?.width || window.innerWidth || 0);
+    const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight || 0);
+    if (!viewportWidth || !viewportHeight) return;
+    document.documentElement.style.setProperty('--chat-viewport-width', `${viewportWidth}px`);
+    document.documentElement.style.setProperty('--chat-viewport-height', `${viewportHeight}px`);
+}
+
 function shouldAutoFocusMessageInput() {
     const hasCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     const hasTouch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
@@ -2803,6 +2811,13 @@ if (sidebarOverlay) {
     sidebarOverlay.addEventListener('click', () => {
         setSidebarOpen(false);
     });
+}
+
+syncMobileViewportSize();
+window.addEventListener('resize', syncMobileViewportSize);
+window.addEventListener('orientationchange', syncMobileViewportSize);
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncMobileViewportSize);
 }
 
 document.addEventListener('touchstart', (event) => {
