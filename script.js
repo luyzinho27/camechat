@@ -227,6 +227,7 @@ const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="curre
 const RECORDING_HEARTBEAT_MS = 5000;
 const ONLINE_HEARTBEAT_MS = 30000;
 const ONLINE_STALE_MS = (ONLINE_HEARTBEAT_MS * 2) + 10000;
+const LARGE_AUTO_DOWNLOAD_BYTES = 4 * 1024 * 1024;
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -338,6 +339,8 @@ let cameraRecorderChunks = [];
 let isCameraRecording = false;
 let cancelCameraRecording = false;
 let currentCameraFacing = 'environment';
+let autoDownloadedAttachmentKeys = new Set();
+let autoDownloadingAttachmentKeys = new Set();
 
 // ========== FUNCOES DE AUTENTICACAO ==========
 
@@ -769,6 +772,195 @@ function finalizeUploadItem(item) {
     }, 2000);
 }
 
+function createDownloadProgressItem(fileName) {
+    const item = createUploadProgressItem(fileName || 'arquivo');
+    if (!item) return null;
+    item.classList.add('download-progress-item');
+    updateUploadProgressItem(item, 0, 'Baixando');
+    return item;
+}
+
+function updateDownloadProgressItem(item, loaded, total) {
+    if (!item) return;
+    if (!total || total <= 0) {
+        const bar = item.querySelector('.upload-progress-bar span');
+        if (bar) {
+            bar.style.width = '45%';
+            bar.classList.add('indeterminate');
+        }
+        updateUploadProgressItem(item, 0, 'Baixando');
+        return;
+    }
+
+    const percent = Math.max(0, Math.min(100, Math.round((loaded / total) * 100)));
+    const bar = item.querySelector('.upload-progress-bar span');
+    if (bar) bar.classList.remove('indeterminate');
+    updateUploadProgressItem(item, percent, `${percent}%`);
+}
+
+function finalizeDownloadItem(item) {
+    if (!item) return;
+    item.classList.remove('download-progress-item');
+    const bar = item.querySelector('.upload-progress-bar span');
+    if (bar) bar.classList.remove('indeterminate');
+    updateUploadProgressItem(item, 100, 'Salvo');
+    setTimeout(() => {
+        item.remove();
+        if (uploadProgressList && !uploadProgressList.querySelector('.upload-progress-item')) {
+            uploadProgressList.classList.add('hidden');
+        }
+    }, 2200);
+}
+
+function markDownloadError(item, message) {
+    if (!item) return;
+    item.classList.remove('download-progress-item');
+    const bar = item.querySelector('.upload-progress-bar span');
+    if (bar) bar.classList.remove('indeterminate');
+    markUploadError(item, message || 'Falha no download');
+}
+
+function sanitizeDownloadFileName(fileName) {
+    const value = String(fileName || '').trim();
+    if (!value) return `arquivo_${Date.now()}`;
+    return value.replace(/[\\/:*?"<>|]+/g, '_');
+}
+
+function inferAttachmentFileName(msg, url, blobType = '') {
+    const byMessage = sanitizeDownloadFileName(msg?.fileName || '');
+    if (byMessage && !/^arquivo_\d+$/.test(byMessage)) return byMessage;
+
+    try {
+        const parsed = new URL(url, window.location.href);
+        const fromPath = decodeURIComponent(parsed.pathname.split('/').pop() || '').trim();
+        if (fromPath) return sanitizeDownloadFileName(fromPath);
+    } catch (error) {
+        // ignore
+    }
+
+    const type = msg?.type || 'file';
+    let ext = 'bin';
+    if (type === 'image') ext = 'jpg';
+    if (type === 'video') ext = 'mp4';
+    if (type === 'audio') ext = 'webm';
+    if (blobType?.includes('pdf')) ext = 'pdf';
+    return sanitizeDownloadFileName(`${type}_${msg?.id || Date.now()}.${ext}`);
+}
+
+function getAttachmentDownloadUrl(msg) {
+    if (!msg) return '';
+    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
+    if (type === 'image') return normalizeBackendUrl(msg.imageUrl || msg.fileUrl || '');
+    if (type === 'video' || type === 'audio' || type === 'file') return normalizeBackendUrl(msg.fileUrl || msg.imageUrl || '');
+    return '';
+}
+
+function shouldAutoDownloadIncomingAttachment(msg) {
+    if (!msg || !currentUser) return false;
+    if (msg.senderId === currentUser.uid) return false;
+    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
+    if (!['image', 'video', 'audio', 'file'].includes(type)) return false;
+    return !!getAttachmentDownloadUrl(msg);
+}
+
+function triggerBlobDownload(blob, fileName) {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = sanitizeDownloadFileName(fileName);
+    anchor.rel = 'noopener';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+}
+
+function triggerDirectUrlDownload(url, fileName) {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = sanitizeDownloadFileName(fileName);
+    anchor.rel = 'noopener';
+    anchor.target = '_blank';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+}
+
+async function fetchBlobWithProgress(url, onProgress) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
+    const total = Number(response.headers.get('content-length')) || 0;
+    if (!response.body || typeof response.body.getReader !== 'function') {
+        const blob = await response.blob();
+        if (onProgress) onProgress(blob.size || total, blob.size || total);
+        return blob;
+    }
+
+    const reader = response.body.getReader();
+    const chunks = [];
+    let loaded = 0;
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+            chunks.push(value);
+            loaded += value.length;
+            if (onProgress) onProgress(loaded, total);
+        }
+    }
+
+    return new Blob(chunks, {
+        type: response.headers.get('content-type') || 'application/octet-stream'
+    });
+}
+
+async function autoDownloadIncomingAttachment(conversationId, msg) {
+    if (!conversationId || !msg?.id) return;
+    if (!shouldAutoDownloadIncomingAttachment(msg)) return;
+
+    const key = `${conversationId}:${msg.id}`;
+    if (autoDownloadedAttachmentKeys.has(key) || autoDownloadingAttachmentKeys.has(key)) {
+        return;
+    }
+
+    const url = getAttachmentDownloadUrl(msg);
+    if (!url) return;
+
+    autoDownloadingAttachmentKeys.add(key);
+    const isLargeFile = Number(msg.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
+    const progressItem = isLargeFile ? createDownloadProgressItem(msg.fileName || 'arquivo') : null;
+
+    try {
+        const blob = await fetchBlobWithProgress(url, (loaded, total) => {
+            if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
+        });
+        if (!blob || !blob.size) throw new Error('Arquivo vazio');
+
+        const fileName = inferAttachmentFileName(msg, url, blob.type);
+        triggerBlobDownload(blob, fileName);
+        autoDownloadedAttachmentKeys.add(key);
+        if (progressItem) finalizeDownloadItem(progressItem);
+    } catch (error) {
+        const fallbackName = inferAttachmentFileName(msg, url, '');
+        try {
+            triggerDirectUrlDownload(url, fallbackName);
+            autoDownloadedAttachmentKeys.add(key);
+            if (progressItem) finalizeDownloadItem(progressItem);
+        } catch (fallbackError) {
+            console.warn('Falha ao baixar mídia automaticamente.', error || fallbackError);
+            if (progressItem) markDownloadError(progressItem, 'Falha no download');
+        }
+    } finally {
+        autoDownloadingAttachmentKeys.delete(key);
+    }
+}
+
 function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = {}) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -1030,6 +1222,8 @@ function handleAuthError(error) {
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         resetChatUI();
+        autoDownloadedAttachmentKeys = new Set();
+        autoDownloadingAttachmentKeys = new Set();
         currentUser = user;
         authContainer.classList.add('hidden');
         app.classList.remove('hidden');
@@ -1098,6 +1292,8 @@ auth.onAuthStateChanged(async (user) => {
         });
     } else {
         // Usuário deslogado
+        autoDownloadedAttachmentKeys = new Set();
+        autoDownloadingAttachmentKeys = new Set();
         currentUser = null;
         currentUserProfile = null;
         currentUserRole = 'user_chat';
@@ -3837,6 +4033,12 @@ async function loadMessages(otherUid) {
                     playIncomingMessageTone();
                     const latestIncoming = incomingChanges[incomingChanges.length - 1].doc.data();
                     showIncomingDesktopNotification(otherUid, latestIncoming);
+
+                    incomingChanges.forEach((change) => {
+                        const msgData = change.doc.data() || {};
+                        const message = { id: change.doc.id, ...msgData };
+                        autoDownloadIncomingAttachment(conversationId, message);
+                    });
                 }
             }
 
