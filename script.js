@@ -182,6 +182,8 @@ const CALL_ICON_SWITCH_AUDIO = '<svg viewBox="0 0 24 24" fill="none" stroke="cur
 const VOICE_ICON_IDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line></svg>';
 const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle></svg>';
 const RECORDING_HEARTBEAT_MS = 5000;
+const ONLINE_HEARTBEAT_MS = 30000;
+const ONLINE_STALE_MS = (ONLINE_HEARTBEAT_MS * 2) + 10000;
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -256,6 +258,8 @@ let callMiniStartX = 0;
 let callMiniStartY = 0;
 let callMiniOrigX = 0;
 let callMiniOrigY = 0;
+let callMiniDragMoved = false;
+let suppressVideoSwapUntil = 0;
 let proximitySensor = null;
 let proximityActive = false;
 let deviceProximityHandler = null;
@@ -1033,7 +1037,7 @@ function setupOnlineStatus() {
     // Atualizar a cada 30 segundos
     onlineStatusInterval = setInterval(() => {
         updateUserOnlineStatus(true);
-    }, 30000);
+    }, ONLINE_HEARTBEAT_MS);
 }
 
 function subscribeToCurrentUserDoc() {
@@ -1815,6 +1819,7 @@ function startCallMiniDrag(clientX, clientY) {
     callMini.style.right = 'auto';
     callMini.style.bottom = 'auto';
     callMiniDragging = true;
+    callMiniDragMoved = false;
     callMiniStartX = clientX;
     callMiniStartY = clientY;
     callMiniOrigX = rect.left;
@@ -1825,6 +1830,9 @@ function moveCallMini(clientX, clientY) {
     if (!callMiniDragging || !callMini) return;
     const deltaX = clientX - callMiniStartX;
     const deltaY = clientY - callMiniStartY;
+    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+        callMiniDragMoved = true;
+    }
     const maxX = window.innerWidth - callMini.offsetWidth;
     const maxY = window.innerHeight - callMini.offsetHeight;
     const nextX = clamp(callMiniOrigX + deltaX, 8, Math.max(8, maxX - 8));
@@ -1834,6 +1842,10 @@ function moveCallMini(clientX, clientY) {
 }
 
 function stopCallMiniDrag() {
+    if (callMiniDragMoved) {
+        suppressVideoSwapUntil = Date.now() + 250;
+    }
+    callMiniDragMoved = false;
     callMiniDragging = false;
 }
 
@@ -2534,7 +2546,7 @@ function loadAdminUsers() {
 
             const total = users.length;
             const admins = users.filter(user => user.role === 'administrador').length;
-            const online = users.filter(user => user.online).length;
+            const online = users.filter(user => isUserEffectivelyOnline(user)).length;
 
             if (metricTotalUsers) metricTotalUsers.textContent = total;
             if (metricTotalAdmins) metricTotalAdmins.textContent = admins;
@@ -2829,8 +2841,10 @@ function renderFriendUsers() {
 
     // Ordenar: online primeiro, depois por lastSeen
     friends.sort((a, b) => {
-        if (a.online && !b.online) return -1;
-        if (!a.online && b.online) return 1;
+        const aOnline = isUserEffectivelyOnline(a);
+        const bOnline = isUserEffectivelyOnline(b);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
         return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
     });
 
@@ -2851,7 +2865,7 @@ function renderFriendUsers() {
         if (selectedUserId === selectedFriendData.uid) {
             renderChatPartnerStatus();
         }
-        if (selectedFriendData?.online && selectedUserId) {
+        if (isUserEffectivelyOnline(selectedFriendData) && selectedUserId) {
             updateOutgoingDeliveryStatus(currentConversationId, currentConversationMessages);
         }
     }
@@ -2913,9 +2927,11 @@ function renderUsers(users) {
         li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
         li.dataset.uid = user.uid;
         
-        const lastSeen = user.lastSeen ? formatLastSeen(user.lastSeen.toDate()) : '';
-        const status = user.online ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
-        const statusClass = user.online ? 'status-online-text' : '';
+        const lastSeenDate = timestampToDate(user.lastSeen);
+        const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
+        const isOnline = isUserEffectivelyOnline(user);
+        const status = isOnline ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
+        const statusClass = isOnline ? 'status-online-text' : '';
         
         const { fallback: fallbackPhoto, url: photoUrl } = resolvePhotoSources(
             user,
@@ -2951,6 +2967,20 @@ function formatLastSeen(date) {
     }
     const dateText = date.toLocaleDateString('pt-BR');
     return `${dateText} ${timeText}`;
+}
+
+function timestampToDate(value) {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (value?.toDate) return value.toDate();
+    return null;
+}
+
+function isUserEffectivelyOnline(user) {
+    if (!user?.online) return false;
+    const lastSeenDate = timestampToDate(user.lastSeen);
+    if (!lastSeenDate) return false;
+    return Date.now() - lastSeenDate.getTime() <= ONLINE_STALE_MS;
 }
 
 // Filtrar usuários
@@ -3094,7 +3124,7 @@ function updateOutgoingDeliveryStatus(conversationId, messages) {
     const resolvedConversationId = conversationId || currentConversationId;
     const resolvedMessages = messages?.length ? messages : currentConversationMessages;
     if (!currentUser || !resolvedConversationId || !resolvedMessages?.length) return;
-    if (!selectedFriendData?.online) return;
+    if (!isUserEffectivelyOnline(selectedFriendData)) return;
     const batch = db.batch();
     let hasUpdates = false;
 
@@ -3265,8 +3295,9 @@ function setOnlineStatusClass(element, isOnline) {
 function getDefaultChatPartnerStatus() {
     if (!selectedFriendData) return '';
     if (isFriendBlocked(selectedFriendData.uid)) return 'Bloqueado';
-    const lastSeen = selectedFriendData.lastSeen?.toDate ? formatLastSeen(selectedFriendData.lastSeen.toDate()) : '';
-    return selectedFriendData.online ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
+    const lastSeenDate = timestampToDate(selectedFriendData.lastSeen);
+    const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
+    return isUserEffectivelyOnline(selectedFriendData) ? 'Online' : (lastSeen ? `Visto por \u00faltimo \u00e0s ${lastSeen}` : 'Offline');
 }
 
 function getChatPartnerActivityLabel(state) {
@@ -3931,7 +3962,7 @@ async function handleChatFile(file) {
     if (isImage) messageType = 'image';
     if (isVideo) messageType = 'video';
     if (isAudio) messageType = 'audio';
-    const delivered = !!selectedFriendData?.online;
+    const delivered = isUserEffectivelyOnline(selectedFriendData);
 
     try {
         const fileUrl = await uploadChatFileViaBackend(file, { uid: currentUser.uid });
@@ -4079,9 +4110,10 @@ function closeFriendModal() {
 
 function getFriendStatusText(friend) {
     if (!friend) return '';
-    if (friend.online) return 'Online';
-    if (friend.lastSeen?.toDate) {
-        const lastSeen = formatLastSeen(friend.lastSeen.toDate());
+    if (isUserEffectivelyOnline(friend)) return 'Online';
+    const lastSeenDate = timestampToDate(friend.lastSeen);
+    if (lastSeenDate) {
+        const lastSeen = formatLastSeen(lastSeenDate);
         return `Visto por \u00faltimo \u00e0s ${lastSeen}`;
     }
     return 'Offline';
@@ -4090,7 +4122,7 @@ function getFriendStatusText(friend) {
 function renderFriendDetailStatus(friend) {
     if (!friendDetailStatus) return;
     friendDetailStatus.textContent = getFriendStatusText(friend);
-    setOnlineStatusClass(friendDetailStatus, !!friend?.online);
+    setOnlineStatusClass(friendDetailStatus, isUserEffectivelyOnline(friend));
 }
 
 function updateFriendModalState() {
@@ -4123,7 +4155,7 @@ btnSend.addEventListener('click', async () => {
     }
     
     const conversationId = getConversationId(currentUser.uid, selectedUserId);
-    const delivered = !!selectedFriendData?.online;
+    const delivered = isUserEffectivelyOnline(selectedFriendData);
     
     try {
         await db.collection('conversations')
@@ -4425,6 +4457,7 @@ if (btnCallSwitchAudio) {
 
 function canSwapFrom(target) {
     if (!callMedia) return false;
+    if (Date.now() < suppressVideoSwapUntil) return false;
     const swapped = callMedia.classList.contains('swap');
     if (!swapped && target === localVideo) return true;
     if (swapped && target === remoteVideo) return true;
@@ -4461,9 +4494,22 @@ if (btnCallMiniHangup) {
 
 if (callMiniHeader) {
     callMiniHeader.addEventListener('mousedown', (event) => {
+        if (event.target?.closest?.('button')) return;
         startCallMiniDrag(event.clientX, event.clientY);
     });
     callMiniHeader.addEventListener('touchstart', (event) => {
+        if (!event.touches || event.touches.length !== 1) return;
+        if (event.target?.closest?.('button')) return;
+        const touch = event.touches[0];
+        startCallMiniDrag(touch.clientX, touch.clientY);
+    }, { passive: true });
+}
+
+if (callMiniBody) {
+    callMiniBody.addEventListener('mousedown', (event) => {
+        startCallMiniDrag(event.clientX, event.clientY);
+    });
+    callMiniBody.addEventListener('touchstart', (event) => {
         if (!event.touches || event.touches.length !== 1) return;
         const touch = event.touches[0];
         startCallMiniDrag(touch.clientX, touch.clientY);
@@ -4485,6 +4531,10 @@ document.addEventListener('touchmove', (event) => {
 }, { passive: true });
 
 document.addEventListener('touchend', () => {
+    stopCallMiniDrag();
+});
+
+document.addEventListener('touchcancel', () => {
     stopCallMiniDrag();
 });
 
