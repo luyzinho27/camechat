@@ -531,12 +531,15 @@ body.sidebar-open {
     object-fit: cover;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
     cursor: pointer;
+    touch-action: none;
 }
 
 .call-media.swap #local-video {
-    position: relative;
-    right: auto;
-    bottom: auto;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     aspect-ratio: auto;
@@ -559,6 +562,7 @@ body.sidebar-open {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
     z-index: 2;
     cursor: pointer;
+    touch-action: none;
 }
 
 #call-modal.fullscreen .call-media-container {
@@ -576,7 +580,7 @@ body.sidebar-open {
 }
 
 #call-modal.fullscreen .call-media video {
-    object-fit: contain;
+    object-fit: cover;
 }
 
 #call-modal.fullscreen.video-call .call-user {
@@ -624,11 +628,15 @@ body.sidebar-open {
 }
 
 #call-modal.fullscreen .call-media.swap #local-video {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    right: auto;
-    bottom: auto;
     aspect-ratio: auto;
+    object-fit: cover;
     border: none;
     box-shadow: none;
     border-radius: 0;
@@ -636,6 +644,12 @@ body.sidebar-open {
 
 #call-modal.fullscreen .call-media.swap #remote-video {
     width: clamp(110px, 24vw, 220px);
+}
+
+#call-modal.fullscreen .call-media:not(.swap) #remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .call-mini {
@@ -651,6 +665,7 @@ body.sidebar-open {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    touch-action: none;
 }
 
 .call-mini-header {
