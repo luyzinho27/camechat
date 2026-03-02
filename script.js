@@ -182,6 +182,9 @@ const friendUnblockBtn = document.getElementById('friend-unblock-btn');
 // Call modal
 const btnCall = document.getElementById('btn-call');
 const btnVideoCall = document.getElementById('btn-video-call');
+const btnSelectMessages = document.getElementById('btn-select-messages');
+const btnDeleteSelected = document.getElementById('btn-delete-selected');
+const btnCancelSelection = document.getElementById('btn-cancel-selection');
 const callIndicator = document.getElementById('call-indicator');
 const callModal = document.getElementById('call-modal');
 const callTitle = document.getElementById('call-title');
@@ -228,6 +231,8 @@ const RECORDING_HEARTBEAT_MS = 5000;
 const ONLINE_HEARTBEAT_MS = 30000;
 const ONLINE_STALE_MS = (ONLINE_HEARTBEAT_MS * 2) + 10000;
 const LARGE_AUTO_DOWNLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_CHAT_FILE_SIZE_BYTES = 60 * 1024 * 1024;
+const MAX_CHAT_FILE_SIZE_MB = Math.round(MAX_CHAT_FILE_SIZE_BYTES / (1024 * 1024));
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -341,6 +346,8 @@ let cancelCameraRecording = false;
 let currentCameraFacing = 'environment';
 let autoDownloadedAttachmentKeys = new Set();
 let autoDownloadingAttachmentKeys = new Set();
+let isMessageSelectionMode = false;
+let selectedMessageIds = new Set();
 
 // ========== FUNCOES DE AUTENTICACAO ==========
 
@@ -673,9 +680,12 @@ async function uploadChatFileViaBackend(file, options = {}) {
     if (options.uid) formData.append('uid', options.uid);
 
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-chat` : '/api/upload-chat';
+    const timeoutMs = Number(options.timeoutMs) > 0
+        ? Number(options.timeoutMs)
+        : Math.max(120000, Math.ceil((Number(file?.size || 0) / (1024 * 1024)) * 5000));
     let response;
     try {
-        response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options);
+        response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, { ...options, timeoutMs });
     } catch (error) {
         throw new Error('Não foi possível conectar ao backend de upload.');
     }
@@ -733,7 +743,7 @@ async function uploadChatFileViaFirebaseStorage(file, options = {}) {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
     const storagePath = `chat-files/${uid}/${unique}-${safeName}`;
     const item = createUploadProgressItem(file.name || 'arquivo');
-    const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 20000;
+    const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 180000;
 
     return await new Promise((resolve, reject) => {
         let settled = false;
@@ -790,19 +800,10 @@ async function uploadChatFileViaFirebaseStorage(file, options = {}) {
 }
 
 async function uploadChatFile(file, options = {}) {
-    try {
-        return await uploadChatFileViaBackend(file, options);
-    } catch (backendError) {
-        console.warn('Falha no upload via backend, tentando Firebase Storage.', backendError);
-        try {
-            return await uploadChatFileViaFirebaseStorage(file, { ...options, timeoutMs: 20000 });
-        } catch (firebaseError) {
-            console.warn('Falha no upload via Firebase Storage.', firebaseError);
-            const backendMessage = backendError?.message ? `Backend: ${backendError.message}` : 'Backend indisponível';
-            const firebaseMessage = firebaseError?.message ? `Storage: ${firebaseError.message}` : 'Storage indisponível';
-            throw new Error(`Não foi possível enviar o arquivo. ${backendMessage}. ${firebaseMessage}.`);
-        }
-    }
+    const timeoutMs = Number(options.timeoutMs) > 0
+        ? Number(options.timeoutMs)
+        : Math.max(120000, Math.ceil((Number(file?.size || 0) / (1024 * 1024)) * 5000));
+    return await uploadChatFileViaBackend(file, { ...options, timeoutMs });
 }
 
 function normalizeBackendUrl(url) {
@@ -4239,6 +4240,7 @@ async function selectUser(user) {
     }
     selectedUserId = user.uid;
     selectedFriendData = user;
+    resetMessageSelectionState();
     
     // Atualizar seleção na lista
     document.querySelectorAll('.user-item').forEach(item => {
@@ -4319,7 +4321,14 @@ async function loadMessages(otherUid) {
             const messages = [];
             snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
             currentConversationMessages = messages;
+            if (isMessageSelectionMode) {
+                const validIds = new Set(messages.map((msg) => msg.id));
+                selectedMessageIds.forEach((id) => {
+                    if (!validIds.has(id)) selectedMessageIds.delete(id);
+                });
+            }
             renderMessages(messages);
+            updateMessageSelectionUI();
             updateMessageAttachmentUrls(conversationId, messages);
             updateMessageDeliveryStatus(conversationId, messages);
             updateOutgoingDeliveryStatus(conversationId, messages);
@@ -4450,6 +4459,104 @@ function updateMessageAttachmentUrls(conversationId, messages) {
     }
 }
 
+function resetMessageSelectionState() {
+    isMessageSelectionMode = false;
+    selectedMessageIds = new Set();
+    updateMessageSelectionUI();
+}
+
+function updateMessageSelectionUI() {
+    const hasConversationSelected = !!selectedUserId;
+
+    if (btnSelectMessages) {
+        btnSelectMessages.classList.toggle('hidden', !hasConversationSelected || isMessageSelectionMode);
+        btnSelectMessages.disabled = !hasConversationSelected;
+    }
+
+    if (btnDeleteSelected) {
+        btnDeleteSelected.classList.toggle('hidden', !isMessageSelectionMode);
+        btnDeleteSelected.disabled = !hasConversationSelected || selectedMessageIds.size === 0;
+        btnDeleteSelected.title = selectedMessageIds.size > 0
+            ? `Excluir selecionadas (${selectedMessageIds.size})`
+            : 'Excluir selecionadas';
+    }
+
+    if (btnCancelSelection) {
+        btnCancelSelection.classList.toggle('hidden', !isMessageSelectionMode);
+        btnCancelSelection.disabled = !hasConversationSelected;
+    }
+}
+
+function setMessageSelectionMode(enabled) {
+    const shouldEnable = !!enabled && !!selectedUserId;
+    isMessageSelectionMode = shouldEnable;
+    if (!shouldEnable) {
+        selectedMessageIds = new Set();
+    }
+    updateMessageSelectionUI();
+    renderMessages(currentConversationMessages || []);
+}
+
+function toggleMessageSelection(messageId) {
+    if (!isMessageSelectionMode || !messageId) return;
+    if (selectedMessageIds.has(messageId)) {
+        selectedMessageIds.delete(messageId);
+    } else {
+        selectedMessageIds.add(messageId);
+    }
+    updateMessageSelectionUI();
+    renderMessages(currentConversationMessages || []);
+}
+
+async function deleteMessagesByIds(messageIds) {
+    if (!currentConversationId || !Array.isArray(messageIds) || messageIds.length === 0) return;
+
+    const uniqueIds = Array.from(new Set(messageIds.filter(Boolean)));
+    if (!uniqueIds.length) return;
+
+    const chunkSize = 400;
+    for (let i = 0; i < uniqueIds.length; i += chunkSize) {
+        const batch = db.batch();
+        const chunk = uniqueIds.slice(i, i + chunkSize);
+        chunk.forEach((id) => {
+            const ref = db.collection('conversations')
+                .doc(currentConversationId)
+                .collection('messages')
+                .doc(id);
+            batch.delete(ref);
+        });
+        await batch.commit();
+    }
+}
+
+async function deleteSingleMessage(messageId) {
+    if (!messageId || !currentConversationId) return;
+    const confirmed = confirm('Deseja excluir esta mensagem/arquivo?');
+    if (!confirmed) return;
+
+    try {
+        await deleteMessagesByIds([messageId]);
+    } catch (error) {
+        alert('Não foi possível excluir esta mensagem. Verifique as regras do Firestore.');
+    }
+}
+
+async function deleteSelectedMessages() {
+    if (!isMessageSelectionMode || selectedMessageIds.size === 0) return;
+    const total = selectedMessageIds.size;
+    const confirmed = confirm(`Deseja excluir ${total} item(ns) selecionado(s)?`);
+    if (!confirmed) return;
+
+    try {
+        await deleteMessagesByIds(Array.from(selectedMessageIds));
+        selectedMessageIds = new Set();
+        updateMessageSelectionUI();
+        renderMessages(currentConversationMessages || []);
+    } catch (error) {
+        alert('Não foi possível excluir os itens selecionados. Verifique as regras do Firestore.');
+    }
+}
+
 // Renderizar mensagens
 function renderMessages(messages) {
     messagesContainer.innerHTML = '';
@@ -4464,11 +4571,17 @@ function renderMessages(messages) {
         ensureVoiceRecordingBanner();
         return;
     }
-    
+
+    const isSelectionMode = isMessageSelectionMode;
+
     messages.forEach(msg => {
         const isSent = msg.senderId === currentUser.uid;
         const div = document.createElement('div');
         div.className = `message ${isSent ? 'sent' : 'received'}`;
+        if (isSelectionMode) {
+            div.classList.add('message-select-mode');
+            div.classList.toggle('message-selected', selectedMessageIds.has(msg.id));
+        }
         const meta = buildMessageMeta(msg, isSent);
         
         const messageType = msg.type || (msg.imageUrl ? 'image' : 'text');
@@ -4482,9 +4595,11 @@ function renderMessages(messages) {
                 const imageEl = div.querySelector('.chat-media-image');
                 if (imageEl) {
                     attachMediaFallbackHandlers(imageEl, msg);
-                    imageEl.addEventListener('click', () => {
-                        openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
-                    });
+                    if (!isSelectionMode) {
+                        imageEl.addEventListener('click', () => {
+                            openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
+                        });
+                    }
                 }
             } else {
                 div.innerHTML = `
@@ -4542,16 +4657,59 @@ function renderMessages(messages) {
             `;
             const fileLink = div.querySelector('.chat-media-file-link');
             if (fileLink) {
-                fileLink.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    openAttachmentInNewTab(msg, fileLink.href);
-                });
+                if (!isSelectionMode) {
+                    fileLink.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        openAttachmentInNewTab(msg, fileLink.href);
+                    });
+                }
             }
         } else {
             div.innerHTML = `
                 <p>${msg.text || ''}</p>
                 ${meta}
             `;
+        }
+
+        const canManageMessage = !!msg.id
+            && !!currentConversationId
+            && !!currentUser
+            && (msg.senderId === currentUser.uid || msg.receiverId === currentUser.uid);
+
+        if (canManageMessage) {
+            if (isSelectionMode) {
+                const selectButton = document.createElement('button');
+                selectButton.type = 'button';
+                selectButton.className = `message-select-toggle${selectedMessageIds.has(msg.id) ? ' selected' : ''}`;
+                selectButton.title = selectedMessageIds.has(msg.id) ? 'Desmarcar item' : 'Selecionar item';
+                selectButton.setAttribute('aria-label', selectButton.title);
+                selectButton.textContent = selectedMessageIds.has(msg.id) ? '✓' : '○';
+                selectButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    toggleMessageSelection(msg.id);
+                });
+                div.appendChild(selectButton);
+
+                div.addEventListener('click', (event) => {
+                    if (event.target.closest('.message-select-toggle')) return;
+                    if (event.target.closest('a')) {
+                        event.preventDefault();
+                    }
+                    toggleMessageSelection(msg.id);
+                });
+            } else {
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'message-delete-btn';
+                deleteButton.title = 'Excluir mensagem';
+                deleteButton.setAttribute('aria-label', 'Excluir mensagem');
+                deleteButton.innerHTML = '&#128465;';
+                deleteButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    deleteSingleMessage(msg.id);
+                });
+                div.appendChild(deleteButton);
+            }
         }
         
         messagesContainer.appendChild(div);
@@ -5250,9 +5408,9 @@ async function handleChatFile(file) {
         return;
     }
 
-    const maxSize = 20 * 1024 * 1024;
+    const maxSize = MAX_CHAT_FILE_SIZE_BYTES;
     if (file.size > maxSize) {
-        alert('O arquivo deve ter no máximo 20MB.');
+        alert(`O arquivo deve ter no máximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
         return;
     }
 
@@ -5301,6 +5459,8 @@ async function handleFileInputChange(input) {
 }
 
 function resetChatUI() {
+    selectedUserId = null;
+    selectedFriendData = null;
     if (messagesContainer) {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
@@ -5353,6 +5513,7 @@ function resetChatUI() {
     updateComposerPrimaryAction();
     currentConversationId = null;
     currentConversationMessages = [];
+    resetMessageSelectionState();
 }
 
 function resetRegisterForm() {
@@ -5562,6 +5723,7 @@ if (btnVoiceCancel) {
 }
 
 updateVoiceButtonUI();
+updateMessageSelectionUI();
 
 if (btnCameraCapture) {
     btnCameraCapture.addEventListener('click', () => {
@@ -5717,6 +5879,24 @@ if (btnVideoCall) {
     btnVideoCall.addEventListener('click', async () => {
         if (!selectedFriendData) return;
         await startCall('video');
+    });
+}
+
+if (btnSelectMessages) {
+    btnSelectMessages.addEventListener('click', () => {
+        setMessageSelectionMode(true);
+    });
+}
+
+if (btnDeleteSelected) {
+    btnDeleteSelected.addEventListener('click', async () => {
+        await deleteSelectedMessages();
+    });
+}
+
+if (btnCancelSelection) {
+    btnCancelSelection.addEventListener('click', () => {
+        setMessageSelectionMode(false);
     });
 }
 
