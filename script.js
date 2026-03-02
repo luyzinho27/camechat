@@ -108,6 +108,8 @@ const btnReadReceiptsToggle = document.getElementById('btn-read-receipts-toggle'
 const btnDesktopNotificationsToggle = document.getElementById('btn-desktop-notifications-toggle');
 const btnOnlineStatusToggle = document.getElementById('btn-online-status-toggle');
 const btnChatFontToggle = document.getElementById('btn-chat-font-toggle');
+const btnChatBackground = document.getElementById('btn-chat-background');
+const chatBackgroundUpload = document.getElementById('chat-background-upload');
 const btnCallBlockToggle = document.getElementById('btn-call-block-toggle');
 const btnLastSeenToggle = document.getElementById('btn-last-seen-toggle');
 const btnLanguageToggle = document.getElementById('btn-language-toggle');
@@ -122,6 +124,7 @@ const READ_RECEIPTS_STORAGE_KEY = 'camechat_read_receipts';
 const DESKTOP_NOTIFICATIONS_STORAGE_KEY = 'camechat_desktop_notifications';
 const ONLINE_STATUS_VISIBILITY_STORAGE_KEY = 'camechat_online_status_visibility';
 const CHAT_FONT_SIZE_STORAGE_KEY = 'camechat_chat_font_size';
+const CHAT_BACKGROUND_STORAGE_KEY = 'camechat_chat_background';
 const CALL_BLOCK_STORAGE_KEY = 'camechat_block_incoming_calls';
 const LAST_SEEN_VISIBILITY_STORAGE_KEY = 'camechat_last_seen_visible';
 const LANGUAGE_STORAGE_KEY = 'camechat_language';
@@ -131,6 +134,7 @@ let readReceiptsEnabled = true;
 let desktopNotificationsEnabled = false;
 let showOnlineStatusEnabled = true;
 let chatFontSizePreference = 'normal';
+let chatBackgroundDataUrl = '';
 let blockIncomingCallsEnabled = false;
 let showLastSeenEnabled = true;
 let selectedLanguage = 'pt-BR';
@@ -3191,6 +3195,16 @@ function getStoredLanguage(defaultValue = 'pt-BR') {
     }
 }
 
+function getStoredChatBackground() {
+    try {
+        const value = localStorage.getItem(CHAT_BACKGROUND_STORAGE_KEY) || '';
+        if (!value.startsWith('data:image/')) return '';
+        return value;
+    } catch (error) {
+        return '';
+    }
+}
+
 const UI_TEXT = {
     'pt-BR': {
         themeDark: 'Tema escuro',
@@ -3208,6 +3222,8 @@ const UI_TEXT = {
         statusHidden: 'Status: oculto',
         chatFontNormal: 'Fonte do chat: normal',
         chatFontLarge: 'Fonte do chat: grande',
+        chatBackgroundDefault: 'Plano de fundo do chat',
+        chatBackgroundCustom: 'Plano de fundo: personalizado',
         callsAllowed: 'Chamadas: permitidas',
         callsBlocked: 'Chamadas: bloqueadas',
         lastSeenVisible: 'Visto por último: visível',
@@ -3240,6 +3256,8 @@ const UI_TEXT = {
         statusHidden: 'Status: hidden',
         chatFontNormal: 'Chat font: normal',
         chatFontLarge: 'Chat font: large',
+        chatBackgroundDefault: 'Chat wallpaper',
+        chatBackgroundCustom: 'Wallpaper: custom',
         callsAllowed: 'Calls: allowed',
         callsBlocked: 'Calls: blocked',
         lastSeenVisible: 'Last seen: visible',
@@ -3307,6 +3325,10 @@ function refreshSettingsMenuLabels() {
         btnChatFontToggle.textContent = chatFontSizePreference === 'large' ? getUiText('chatFontLarge') : getUiText('chatFontNormal');
     }
 
+    if (btnChatBackground) {
+        btnChatBackground.textContent = chatBackgroundDataUrl ? getUiText('chatBackgroundCustom') : getUiText('chatBackgroundDefault');
+    }
+
     if (btnCallBlockToggle) {
         btnCallBlockToggle.textContent = blockIncomingCallsEnabled ? getUiText('callsBlocked') : getUiText('callsAllowed');
     }
@@ -3368,6 +3390,7 @@ async function syncOnlineStatusVisibilityPreference() {
 function applyTheme(theme, persist = false) {
     const isDark = theme === 'dark';
     document.body.classList.toggle('theme-dark', isDark);
+    applyChatBackground(chatBackgroundDataUrl, false);
 
     if (btnThemeToggle) {
         btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
@@ -3552,6 +3575,7 @@ function initializeUserPreferences() {
     applyReadReceiptsSetting(getStoredBooleanSetting(READ_RECEIPTS_STORAGE_KEY, true), false);
     applyOnlineStatusVisibilitySetting(getStoredBooleanSetting(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, true), false, false);
     applyChatFontSizeSetting(getStoredChatFontSize('normal'), false);
+    applyChatBackground(getStoredChatBackground(), false);
     applyCallBlockingSetting(getStoredBooleanSetting(CALL_BLOCK_STORAGE_KEY, false), false);
     applyLastSeenVisibilitySetting(getStoredBooleanSetting(LAST_SEEN_VISIBILITY_STORAGE_KEY, true), false);
     refreshSettingsMenuLabels();
@@ -4392,6 +4416,72 @@ function updateMessageAttachmentUrls(conversationId, messages) {
             console.warn('Falha ao atualizar URLs antigas.', error);
         });
     }
+}
+
+function applyChatBackground(backgroundDataUrl, persist = false) {
+    const normalized = (backgroundDataUrl || '').startsWith('data:image/') ? backgroundDataUrl : '';
+    chatBackgroundDataUrl = normalized;
+    const darkTheme = document.body.classList.contains('theme-dark');
+    const overlay = darkTheme
+        ? 'linear-gradient(rgba(17, 24, 39, 0.72), rgba(17, 24, 39, 0.72))'
+        : 'linear-gradient(rgba(245, 247, 251, 0.68), rgba(245, 247, 251, 0.68))';
+
+    if (messagesContainer) {
+        if (normalized) {
+            messagesContainer.style.backgroundImage = `${overlay}, url("${normalized}")`;
+            messagesContainer.style.backgroundSize = 'cover';
+            messagesContainer.style.backgroundRepeat = 'no-repeat';
+            messagesContainer.style.backgroundPosition = 'center center';
+            messagesContainer.classList.add('messages-container-custom-bg');
+        } else {
+            messagesContainer.style.backgroundImage = '';
+            messagesContainer.style.backgroundSize = '';
+            messagesContainer.style.backgroundRepeat = '';
+            messagesContainer.style.backgroundPosition = '';
+            messagesContainer.classList.remove('messages-container-custom-bg');
+        }
+    }
+
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+    try {
+        if (normalized) {
+            localStorage.setItem(CHAT_BACKGROUND_STORAGE_KEY, normalized);
+        } else {
+            localStorage.removeItem(CHAT_BACKGROUND_STORAGE_KEY);
+        }
+    } catch (error) {
+        alert('Não foi possível salvar o plano de fundo neste dispositivo.');
+    }
+}
+
+async function buildChatBackgroundDataUrl(file) {
+    if (!file) return '';
+    const sourceDataUrl = await readFileAsDataUrl(file);
+    const image = await loadImageFromDataUrl(sourceDataUrl);
+    const maxSide = 1600;
+    let { width, height } = image;
+
+    if (width > height) {
+        if (width > maxSide) {
+            height = Math.round((height * maxSide) / width);
+            width = maxSide;
+        }
+    } else {
+        if (height > maxSide) {
+            width = Math.round((width * maxSide) / height);
+            height = maxSide;
+        }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return sourceDataUrl;
+    ctx.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', 0.82);
 }
 
 function resetMessageSelectionState() {
@@ -6339,6 +6429,37 @@ if (btnChatFontToggle) {
         event.stopPropagation();
         const nextSize = chatFontSizePreference === 'large' ? 'normal' : 'large';
         applyChatFontSizeSetting(nextSize, true);
+    });
+}
+
+if (btnChatBackground) {
+    btnChatBackground.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!chatBackgroundUpload) return;
+        chatBackgroundUpload.click();
+    });
+}
+
+if (chatBackgroundUpload) {
+    chatBackgroundUpload.addEventListener('change', async () => {
+        const file = chatBackgroundUpload.files?.[0];
+        chatBackgroundUpload.value = '';
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('Selecione apenas imagens para o plano de fundo.');
+            return;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+            alert('A imagem deve ter no máximo 20MB.');
+            return;
+        }
+
+        try {
+            const dataUrl = await buildChatBackgroundDataUrl(file);
+            applyChatBackground(dataUrl, true);
+        } catch (error) {
+            alert('Não foi possível aplicar este plano de fundo.');
+        }
     });
 }
 
