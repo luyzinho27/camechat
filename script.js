@@ -733,11 +733,33 @@ async function uploadChatFileViaFirebaseStorage(file, options = {}) {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
     const storagePath = `chat-files/${uid}/${unique}-${safeName}`;
     const item = createUploadProgressItem(file.name || 'arquivo');
+    const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 20000;
 
     return await new Promise((resolve, reject) => {
+        let settled = false;
+        let timeoutId = null;
+
+        const finish = (fn, value) => {
+            if (settled) return;
+            settled = true;
+            if (timeoutId) clearTimeout(timeoutId);
+            fn(value);
+        };
+
         const ref = storage.ref().child(storagePath);
         const metadata = file.type ? { contentType: file.type } : undefined;
         const task = ref.put(file, metadata);
+
+        timeoutId = setTimeout(() => {
+            try {
+                task.cancel();
+            } catch (error) {
+                // ignore
+            }
+            if (item) item.remove();
+            hideUploadProgressIfEmpty();
+            finish(reject, new Error('Tempo esgotado ao enviar arquivo para o Storage.'));
+        }, timeoutMs);
 
         task.on('state_changed',
             (snapshot) => {
@@ -749,18 +771,18 @@ async function uploadChatFileViaFirebaseStorage(file, options = {}) {
             (error) => {
                 if (item) item.remove();
                 hideUploadProgressIfEmpty();
-                reject(error);
+                finish(reject, error);
             },
             async () => {
                 try {
                     updateUploadProgressItem(item, 100, 'Processando');
                     const url = await task.snapshot.ref.getDownloadURL();
                     finalizeUploadItem(item);
-                    resolve(url);
+                    finish(resolve, url);
                 } catch (error) {
                     if (item) item.remove();
                     hideUploadProgressIfEmpty();
-                    reject(error);
+                    finish(reject, error);
                 }
             }
         );
@@ -769,10 +791,17 @@ async function uploadChatFileViaFirebaseStorage(file, options = {}) {
 
 async function uploadChatFile(file, options = {}) {
     try {
-        return await uploadChatFileViaFirebaseStorage(file, options);
-    } catch (firebaseError) {
-        console.warn('Falha no upload via Firebase Storage, usando backend.', firebaseError);
         return await uploadChatFileViaBackend(file, options);
+    } catch (backendError) {
+        console.warn('Falha no upload via backend, tentando Firebase Storage.', backendError);
+        try {
+            return await uploadChatFileViaFirebaseStorage(file, { ...options, timeoutMs: 20000 });
+        } catch (firebaseError) {
+            console.warn('Falha no upload via Firebase Storage.', firebaseError);
+            const backendMessage = backendError?.message ? `Backend: ${backendError.message}` : 'Backend indisponível';
+            const firebaseMessage = firebaseError?.message ? `Storage: ${firebaseError.message}` : 'Storage indisponível';
+            throw new Error(`Não foi possível enviar o arquivo. ${backendMessage}. ${firebaseMessage}.`);
+        }
     }
 }
 
@@ -1201,6 +1230,7 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         const item = createUploadProgressItem(file.name || 'arquivo');
+        xhr.timeout = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000;
         xhr.open('POST', apiUrl, true);
         xhr.upload.onprogress = (event) => {
             if (!event.lengthComputable) return;
@@ -1229,6 +1259,14 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
         xhr.onerror = () => {
             markUploadError(item, 'Falha na conexão');
             reject(new Error('Não foi possível conectar ao backend de upload.'));
+        };
+        xhr.ontimeout = () => {
+            markUploadError(item, 'Tempo esgotado');
+            reject(new Error('Tempo esgotado ao enviar arquivo.'));
+        };
+        xhr.onabort = () => {
+            markUploadError(item, 'Upload cancelado');
+            reject(new Error('Upload cancelado.'));
         };
         xhr.send(formData);
     });
