@@ -5155,6 +5155,7 @@ function insertAtCursor(input, text) {
     input.value = `${before}${text}${after}`;
     const newPos = start + text.length;
     input.setSelectionRange(newPos, newPos);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
     input.focus();
 }
 
