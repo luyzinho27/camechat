@@ -929,12 +929,149 @@ function inferAttachmentFileName(msg, url, blobType = '') {
     return sanitizeDownloadFileName(`${type}_${msg?.id || Date.now()}.${ext}`);
 }
 
-function getAttachmentDownloadUrl(msg) {
-    if (!msg) return '';
+function normalizeUrlForCompare(url) {
+    if (!url) return '';
+    try {
+        return new URL(url, window.location.href).href;
+    } catch (error) {
+        return String(url);
+    }
+}
+
+function addUniqueUrl(target, url) {
+    if (!url) return;
+    const normalized = normalizeUrlForCompare(url);
+    if (!normalized) return;
+    if (!target.some(existing => normalizeUrlForCompare(existing) === normalized)) {
+        target.push(url);
+    }
+}
+
+function extractFileNameFromUrl(url) {
+    if (!url) return '';
+    try {
+        const parsed = new URL(url, window.location.href);
+        const value = decodeURIComponent(parsed.pathname.split('/').pop() || '').trim();
+        return value || '';
+    } catch (error) {
+        return '';
+    }
+}
+
+function buildFirebaseMediaUrl(storagePath) {
+    const bucket = firebaseConfig?.storageBucket;
+    if (!bucket || !storagePath) return '';
+    return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media`;
+}
+
+function getAttachmentDownloadCandidates(msg) {
+    if (!msg) return [];
     const type = msg.type || (msg.imageUrl ? 'image' : 'text');
-    if (type === 'image') return normalizeBackendUrl(msg.imageUrl || msg.fileUrl || '');
-    if (type === 'video' || type === 'audio' || type === 'file') return normalizeBackendUrl(msg.fileUrl || msg.imageUrl || '');
+    if (!['image', 'video', 'audio', 'file'].includes(type)) return [];
+
+    const basePath = type === 'image'
+        ? (msg.imageUrl || msg.fileUrl || '')
+        : (msg.fileUrl || msg.imageUrl || '');
+    const primary = normalizeBackendUrl(basePath);
+    const candidates = [];
+    addUniqueUrl(candidates, primary);
+
+    const filename = extractFileNameFromUrl(primary || basePath);
+    if (filename) {
+        addUniqueUrl(candidates, normalizeBackendUrl(`/images/uploads/${filename}`));
+        addUniqueUrl(candidates, normalizeBackendUrl(`/uploads/${filename}`));
+        addUniqueUrl(candidates, normalizeBackendUrl(`uploads/${filename}`));
+        if (msg.senderId) {
+            addUniqueUrl(candidates, buildFirebaseMediaUrl(`chat-files/${msg.senderId}/${filename}`));
+        }
+        if (msg.receiverId) {
+            addUniqueUrl(candidates, buildFirebaseMediaUrl(`chat-files/${msg.receiverId}/${filename}`));
+        }
+        addUniqueUrl(candidates, buildFirebaseMediaUrl(`chat-files/${filename}`));
+    }
+
+    return candidates.filter(Boolean);
+}
+
+function getAttachmentDownloadUrl(msg) {
+    return getAttachmentDownloadCandidates(msg)[0] || '';
+}
+
+async function canAccessAttachmentUrl(url) {
+    if (!url) return false;
+    try {
+        const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        if (response.ok) return true;
+        if (response.status === 405) {
+            const fallback = await fetch(url, {
+                method: 'GET',
+                headers: { Range: 'bytes=0-0' },
+                cache: 'no-store'
+            });
+            return fallback.ok || fallback.status === 206;
+        }
+        return false;
+    } catch (error) {
+        // Quando não for possível validar (CORS/rede), tentamos usar a URL mesmo assim.
+        return true;
+    }
+}
+
+async function resolveAttachmentUrl(msg, preferredUrl = '') {
+    const candidates = getAttachmentDownloadCandidates(msg);
+    if (preferredUrl) {
+        addUniqueUrl(candidates, preferredUrl);
+    }
+    if (!candidates.length) return '';
+
+    for (const url of candidates) {
+        const ok = await canAccessAttachmentUrl(url);
+        if (ok) return url;
+    }
     return '';
+}
+
+function attachMediaFallbackHandlers(mediaEl, msg) {
+    if (!mediaEl || !msg) return;
+    const candidates = getAttachmentDownloadCandidates(msg);
+    if (!candidates.length) return;
+
+    let currentIndex = candidates.findIndex((item) => normalizeUrlForCompare(item) === normalizeUrlForCompare(mediaEl.src));
+    if (currentIndex < 0) currentIndex = 0;
+    const tried = new Set([normalizeUrlForCompare(candidates[currentIndex])]);
+    let switching = false;
+
+    mediaEl.addEventListener('error', () => {
+        if (switching) return;
+        switching = true;
+        try {
+            let nextUrl = '';
+            for (let i = 0; i < candidates.length; i += 1) {
+                const candidate = candidates[(currentIndex + 1 + i) % candidates.length];
+                const normalizedCandidate = normalizeUrlForCompare(candidate);
+                if (tried.has(normalizedCandidate)) continue;
+                nextUrl = candidate;
+                currentIndex = candidates.findIndex((item) => item === candidate);
+                tried.add(normalizedCandidate);
+                break;
+            }
+            if (nextUrl) {
+                mediaEl.src = nextUrl;
+                if (typeof mediaEl.load === 'function') mediaEl.load();
+            }
+        } finally {
+            switching = false;
+        }
+    });
+}
+
+async function openAttachmentInNewTab(msg, preferredUrl = '') {
+    const resolvedUrl = await resolveAttachmentUrl(msg, preferredUrl);
+    if (!resolvedUrl) {
+        alert('Arquivo de mídia indisponível. Peça para o contato reenviar.');
+        return;
+    }
+    window.open(resolvedUrl, '_blank', 'noopener');
 }
 
 function shouldAutoDownloadIncomingAttachment(msg) {
@@ -1011,27 +1148,44 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
         return;
     }
 
-    const url = getAttachmentDownloadUrl(msg);
-    if (!url) return;
+    const candidates = getAttachmentDownloadCandidates(msg);
+    if (!candidates.length) return;
 
     autoDownloadingAttachmentKeys.add(key);
     const isLargeFile = Number(msg.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
     const progressItem = isLargeFile ? createDownloadProgressItem(msg.fileName || 'arquivo') : null;
 
     try {
-        const blob = await fetchBlobWithProgress(url, (loaded, total) => {
-            if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
-        });
-        if (!blob || !blob.size) throw new Error('Arquivo vazio');
+        let resolvedBlob = null;
+        let resolvedUrl = '';
 
-        const fileName = inferAttachmentFileName(msg, url, blob.type);
-        triggerBlobDownload(blob, fileName);
+        for (const candidate of candidates) {
+            try {
+                const blob = await fetchBlobWithProgress(candidate, (loaded, total) => {
+                    if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
+                });
+                if (!blob || !blob.size) continue;
+                resolvedBlob = blob;
+                resolvedUrl = candidate;
+                break;
+            } catch (candidateError) {
+                // tenta o próximo candidato
+            }
+        }
+
+        if (!resolvedBlob || !resolvedUrl) {
+            throw new Error('Arquivo indisponível');
+        }
+
+        const fileName = inferAttachmentFileName(msg, resolvedUrl, resolvedBlob.type);
+        triggerBlobDownload(resolvedBlob, fileName);
         autoDownloadedAttachmentKeys.add(key);
         if (progressItem) finalizeDownloadItem(progressItem);
     } catch (error) {
-        const fallbackName = inferAttachmentFileName(msg, url, '');
+        const fallbackUrl = candidates[0];
+        const fallbackName = inferAttachmentFileName(msg, fallbackUrl, '');
         try {
-            triggerDirectUrlDownload(url, fallbackName);
+            triggerDirectUrlDownload(fallbackUrl, fallbackName);
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
         } catch (fallbackError) {
@@ -4281,12 +4435,19 @@ function renderMessages(messages) {
         
         const messageType = msg.type || (msg.imageUrl ? 'image' : 'text');
         if (messageType === 'image') {
-            const imageUrl = normalizeBackendUrl(msg.imageUrl || msg.fileUrl);
+            const imageUrl = getAttachmentDownloadUrl(msg);
             if (imageUrl) {
                 div.innerHTML = `
-                    <img src="${imageUrl}" alt="imagem" onclick="window.open('${imageUrl}', '_blank')" style="max-width: 200px;">
+                    <img class="chat-media-image" src="${imageUrl}" alt="imagem" style="max-width: 200px;">
                     ${meta}
                 `;
+                const imageEl = div.querySelector('.chat-media-image');
+                if (imageEl) {
+                    attachMediaFallbackHandlers(imageEl, msg);
+                    imageEl.addEventListener('click', () => {
+                        openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
+                    });
+                }
             } else {
                 div.innerHTML = `
                     <p>Imagem indisponível.</p>
@@ -4294,12 +4455,16 @@ function renderMessages(messages) {
                 `;
             }
         } else if (messageType === 'video') {
-            const videoUrl = normalizeBackendUrl(msg.fileUrl || msg.imageUrl);
+            const videoUrl = getAttachmentDownloadUrl(msg);
             if (videoUrl) {
                 div.innerHTML = `
-                    <video src="${videoUrl}" controls playsinline preload="metadata" style="max-width: 240px; border-radius: 10px;"></video>
+                    <video class="chat-media-video" src="${videoUrl}" controls playsinline preload="metadata" style="max-width: 240px; border-radius: 10px;"></video>
                     ${meta}
                 `;
+                const videoEl = div.querySelector('.chat-media-video');
+                if (videoEl) {
+                    attachMediaFallbackHandlers(videoEl, msg);
+                }
             } else {
                 div.innerHTML = `
                     <p>Vídeo indisponível.</p>
@@ -4307,12 +4472,16 @@ function renderMessages(messages) {
                 `;
             }
         } else if (messageType === 'audio') {
-            const audioUrl = normalizeBackendUrl(msg.fileUrl || msg.imageUrl);
+            const audioUrl = getAttachmentDownloadUrl(msg);
             if (audioUrl) {
                 div.innerHTML = `
-                    <audio src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
+                    <audio class="chat-media-audio" src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
                     ${meta}
                 `;
+                const audioEl = div.querySelector('.chat-media-audio');
+                if (audioEl) {
+                    attachMediaFallbackHandlers(audioEl, msg);
+                }
             } else {
                 div.innerHTML = `
                     <p>Áudio indisponível.</p>
@@ -4320,19 +4489,26 @@ function renderMessages(messages) {
                 `;
             }
         } else if (messageType === 'file') {
-            const fileUrl = normalizeBackendUrl(msg.fileUrl || msg.imageUrl || '#');
+            const fileUrl = getAttachmentDownloadUrl(msg) || '#';
             const fileName = msg.fileName || 'Arquivo';
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
                 <div class="file-attachment">
                     <span class="file-icon">&#128206;</span>
                     <div class="file-info">
-                        <a href="${fileUrl}" target="_blank" rel="noopener">${fileName}</a>
+                        <a class="chat-media-file-link" href="${fileUrl}" target="_blank" rel="noopener">${fileName}</a>
                         <small>${fileSize}</small>
                     </div>
                 </div>
                 ${meta}
             `;
+            const fileLink = div.querySelector('.chat-media-file-link');
+            if (fileLink) {
+                fileLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    openAttachmentInNewTab(msg, fileLink.href);
+                });
+            }
         } else {
             div.innerHTML = `
                 <p>${msg.text || ''}</p>
