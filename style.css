@@ -1499,6 +1499,64 @@ body.sidebar-open {
     opacity: 0.7;
 }
 
+.message.message-select-mode {
+    cursor: pointer;
+    padding-right: 46px;
+}
+
+.message.message-selected {
+    box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.45);
+}
+
+.message-delete-btn,
+.message-select-toggle {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.message-delete-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.message:hover .message-delete-btn,
+.message:focus-within .message-delete-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.message.sent .message-delete-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.message.received .message-delete-btn {
+    background: rgba(0, 39, 118, 0.12);
+    color: #002776;
+}
+
+.message-select-toggle {
+    background: rgba(0, 39, 118, 0.18);
+    color: #002776;
+}
+
+.message-select-toggle.selected {
+    background: #E30613;
+    color: #fff;
+}
+
 .message-meta {
     display: flex;
     align-items: center;
@@ -1619,6 +1677,38 @@ body.sidebar-open {
 
 .btn-video-call:hover {
     background: #2437a3;
+}
+
+.btn-select-messages,
+.btn-delete-selected,
+.btn-cancel-selection {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+}
+
+.btn-select-messages {
+    background: #4f5b72;
+}
+
+.btn-select-messages:hover {
+    background: #3f485a;
+}
+
+.btn-delete-selected {
+    background: #E30613;
+}
+
+.btn-delete-selected:hover {
+    background: #b80610;
+}
+
+.btn-cancel-selection {
+    background: #7b8794;
+}
+
+.btn-cancel-selection:hover {
+    background: #616c78;
 }
 
 .btn-icon:disabled {
@@ -2307,6 +2397,11 @@ body.theme-dark .download-progress-item .upload-progress-status::before {
 
     .message {
         max-width: 88%;
+    }
+
+    .message-delete-btn {
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .message-input-area {
