@@ -6,7 +6,7 @@
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
-    <link rel="stylesheet" href="style.css?v=20260302-29">
+    <link rel="stylesheet" href="style.css?v=20260302-32">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -194,6 +194,7 @@
                     <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de vídeo">&#128249;</button>
                     <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">&#128222;</button>
                     <button id="btn-delete-selected" class="btn-icon btn-delete-selected hidden" disabled title="Excluir selecionadas">&#128465;</button>
+                    <button id="btn-share-selected" class="btn-icon btn-share-selected hidden" disabled title="Compartilhar selecionadas">&#10150;</button>
                 </header>
                 
                 <div id="messages-container" class="messages-container">
@@ -475,9 +476,18 @@
         </div>
     </div>
 
+    <div id="share-message-modal" class="modal">
+        <div class="modal-content share-message-modal-content">
+            <h3>Compartilhar mensagem</h3>
+            <p>Escolha o amigo para compartilhar os itens selecionados.</p>
+            <ul id="share-message-friends-list" class="share-message-friends-list"></ul>
+            <button id="btn-share-message-cancel" class="btn-icon btn-share-message-cancel" type="button" title="Cancelar" aria-label="Cancelar">&#10006;</button>
+        </div>
+    </div>
+
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260302-30"></script>
+    <script src="script.js?v=20260302-32"></script>
 </body>
 </html>
