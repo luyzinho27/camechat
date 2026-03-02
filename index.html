@@ -6,7 +6,7 @@
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
-    <link rel="stylesheet" href="style.css?v=20260302-28">
+    <link rel="stylesheet" href="style.css?v=20260302-29">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -168,6 +168,8 @@
                     <button id="btn-read-receipts-toggle" class="settings-item" type="button" aria-pressed="true">Leitura: ligada</button>
                     <button id="btn-online-status-toggle" class="settings-item" type="button" aria-pressed="true">Status: visível</button>
                     <button id="btn-chat-font-toggle" class="settings-item" type="button" aria-pressed="false">Fonte do chat: normal</button>
+                    <button id="btn-chat-background" class="settings-item" type="button">Plano de fundo do chat</button>
+                    <input type="file" id="chat-background-upload" accept="image/*" class="hidden">
                     <button id="btn-call-block-toggle" class="settings-item" type="button" aria-pressed="false">Chamadas: permitidas</button>
                     <button id="btn-last-seen-toggle" class="settings-item" type="button" aria-pressed="true">Visto por último: visível</button>
                     <button id="btn-language-toggle" class="settings-item" type="button" aria-pressed="false">Idioma: português</button>
@@ -476,6 +478,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260302-28"></script>
+    <script src="script.js?v=20260302-29"></script>
 </body>
 </html>
