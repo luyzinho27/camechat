@@ -1434,6 +1434,10 @@ body.sidebar-open {
     min-width: 0;
 }
 
+.messages-container.messages-container-custom-bg {
+    background-attachment: scroll;
+}
+
 .welcome-message {
     text-align: center;
     color: #999;
