@@ -4,6 +4,14 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+let S3Client = null;
+let PutObjectCommand = null;
+try {
+    ({ S3Client, PutObjectCommand } = require('@aws-sdk/client-s3'));
+} catch (error) {
+    console.warn('SDK S3 nao encontrado. Upload em bucket externo desativado; usando disco local.');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,6 +21,10 @@ const chatUploadsDir = path.join(imagesRoot, 'uploads');
 
 fs.mkdirSync(profileDir, { recursive: true });
 fs.mkdirSync(chatUploadsDir, { recursive: true });
+
+function trimTrailingSlash(value) {
+    return (value || '').toString().trim().replace(/\/+$/, '');
+}
 
 function slugify(value) {
     return (value || '')
@@ -37,51 +49,144 @@ function safeBaseName(filename) {
 }
 
 function safeUid(value) {
-    return (value || '').toString().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12);
+    return (value || '').toString().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
 }
 
-const storage = multer.diskStorage({
+function buildUniqueSuffix() {
+    return `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+}
+
+function buildProfileFilename(req, file) {
+    const safeExt = safeExtFromName(file.originalname);
+    const nameSlug = slugify(req.body?.displayName) || 'usuario';
+    const uid = safeUid(req.body?.uid);
+    const unique = buildUniqueSuffix();
+    const prefix = uid ? `${nameSlug}-${uid}` : nameSlug;
+    return `${prefix}-${unique}${safeExt}`;
+}
+
+function buildChatFilename(req, file) {
+    const safeExt = safeExtFromName(file.originalname);
+    const baseName = safeBaseName(file.originalname);
+    const uid = safeUid(req.body?.uid) || 'user';
+    const unique = buildUniqueSuffix();
+    return `${uid}-${baseName}-${unique}${safeExt}`;
+}
+
+function buildPublicObjectUrl(baseUrl, key) {
+    const normalizedBase = trimTrailingSlash(baseUrl);
+    const encodedKey = (key || '').split('/').map(encodeURIComponent).join('/');
+    return `${normalizedBase}/${encodedKey}`;
+}
+
+const r2AccountId = (process.env.R2_ACCOUNT_ID || '').trim();
+const r2Endpoint = trimTrailingSlash(
+    process.env.R2_ENDPOINT
+        || (r2AccountId ? `https://${r2AccountId}.r2.cloudflarestorage.com` : '')
+);
+const r2Region = (process.env.R2_REGION || 'auto').trim() || 'auto';
+const r2AccessKeyId = (process.env.R2_ACCESS_KEY_ID || '').trim();
+const r2SecretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || '').trim();
+const r2Bucket = (process.env.R2_BUCKET || '').trim();
+const r2PublicBaseUrl = trimTrailingSlash(process.env.R2_PUBLIC_BASE_URL || '');
+const canUseObjectStorage = Boolean(
+    S3Client
+    && PutObjectCommand
+    && r2Endpoint
+    && r2AccessKeyId
+    && r2SecretAccessKey
+    && r2Bucket
+    && r2PublicBaseUrl
+);
+
+const objectStorageClient = canUseObjectStorage
+    ? new S3Client({
+        region: r2Region,
+        endpoint: r2Endpoint,
+        credentials: {
+            accessKeyId: r2AccessKeyId,
+            secretAccessKey: r2SecretAccessKey
+        },
+        forcePathStyle: true
+    })
+    : null;
+
+async function uploadBufferToObjectStorage(file, keyPrefix, generatedName) {
+    if (!objectStorageClient) {
+        throw new Error('Bucket externo nao configurado.');
+    }
+    const key = `${keyPrefix}/${generatedName}`;
+    const contentType = file?.mimetype || 'application/octet-stream';
+
+    await objectStorageClient.send(new PutObjectCommand({
+        Bucket: r2Bucket,
+        Key: key,
+        Body: file.buffer,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=31536000, immutable'
+    }));
+
+    return buildPublicObjectUrl(r2PublicBaseUrl, key);
+}
+
+function runMulter(middleware, req, res) {
+    return new Promise((resolve, reject) => {
+        middleware(req, res, (error) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve();
+        });
+    });
+}
+
+const profileFileFilter = (req, file, cb) => {
+    if (file.mimetype && file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Apenas imagens sao permitidas.'));
+    }
+};
+
+const profileStorageDisk = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, profileDir);
     },
     filename: (req, file, cb) => {
-        const safeExt = safeExtFromName(file.originalname);
-        const nameSlug = slugify(req.body?.displayName) || 'usuario';
-        const uid = safeUid(req.body?.uid);
-        const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-        const prefix = uid ? `${nameSlug}-${uid}` : nameSlug;
-        cb(null, `${prefix}-${unique}${safeExt}`);
+        cb(null, buildProfileFilename(req, file));
     }
 });
 
-const upload = multer({
-    storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype && file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Apenas imagens são permitidas.'));
-        }
-    }
-});
-
-const chatStorage = multer.diskStorage({
+const chatStorageDisk = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, chatUploadsDir);
     },
     filename: (req, file, cb) => {
-        const safeExt = safeExtFromName(file.originalname);
-        const baseName = safeBaseName(file.originalname);
-        const uid = safeUid(req.body?.uid) || 'user';
-        const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-        cb(null, `${uid}-${baseName}-${unique}${safeExt}`);
+        cb(null, buildChatFilename(req, file));
     }
 });
 
-const chatUpload = multer({
-    storage: chatStorage,
-    limits: { fileSize: 20 * 1024 * 1024 }
+const uploadProfileDisk = multer({
+    storage: profileStorageDisk,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: profileFileFilter
+});
+
+const uploadProfileMemory = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: profileFileFilter
+});
+
+const uploadChatDisk = multer({
+    storage: chatStorageDisk,
+    limits: { fileSize: 60 * 1024 * 1024 }
+});
+
+const uploadChatMemory = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 60 * 1024 * 1024 }
 });
 
 app.use(cors());
@@ -92,26 +197,65 @@ app.use('/images', express.static(imagesRoot, {
 }));
 app.use(express.static(__dirname));
 
-app.post('/api/upload-profile', upload.single('photo'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+app.post('/api/upload-profile', async (req, res, next) => {
+    try {
+        const uploadMiddleware = canUseObjectStorage
+            ? uploadProfileMemory.single('photo')
+            : uploadProfileDisk.single('photo');
+
+        await runMulter(uploadMiddleware, req, res);
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+        }
+
+        let url = '';
+        if (canUseObjectStorage) {
+            const filename = buildProfileFilename(req, req.file);
+            url = await uploadBufferToObjectStorage(req.file, 'profile', filename);
+        } else {
+            url = `/images/profile/${req.file.filename}`;
+        }
+
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        return res.json({ url });
+    } catch (error) {
+        return next(error);
     }
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
-    const url = `/images/profile/${req.file.filename}`;
-    return res.json({ url });
 });
 
-app.post('/api/upload-chat', chatUpload.single('file'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+app.post('/api/upload-chat', async (req, res, next) => {
+    try {
+        const uploadMiddleware = canUseObjectStorage
+            ? uploadChatMemory.single('file')
+            : uploadChatDisk.single('file');
+
+        await runMulter(uploadMiddleware, req, res);
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+        }
+
+        let url = '';
+        if (canUseObjectStorage) {
+            const filename = buildChatFilename(req, req.file);
+            url = await uploadBufferToObjectStorage(req.file, 'uploads', filename);
+        } else {
+            url = `/images/uploads/${req.file.filename}`;
+        }
+
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        return res.json({ url });
+    } catch (error) {
+        return next(error);
     }
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
-    const url = `/images/uploads/${req.file.filename}`;
-    return res.json({ url });
 });
 
 app.get('/api/health', (req, res) => {
-    res.json({ ok: true });
+    res.json({
+        ok: true,
+        storageMode: canUseObjectStorage ? 'object-storage' : 'local-disk'
+    });
 });
 
 app.use((err, req, res, next) => {
@@ -125,5 +269,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+    const mode = canUseObjectStorage ? 'bucket externo' : 'disco local';
+    console.log(`Servidor rodando em http://localhost:${PORT} (${mode})`);
 });
