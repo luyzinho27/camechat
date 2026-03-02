@@ -186,6 +186,7 @@ const friendUnblockBtn = document.getElementById('friend-unblock-btn');
 const btnCall = document.getElementById('btn-call');
 const btnVideoCall = document.getElementById('btn-video-call');
 const btnDeleteSelected = document.getElementById('btn-delete-selected');
+const btnShareSelected = document.getElementById('btn-share-selected');
 const callIndicator = document.getElementById('call-indicator');
 const callModal = document.getElementById('call-modal');
 const callTitle = document.getElementById('call-title');
@@ -221,6 +222,9 @@ const deleteMessageModalText = document.getElementById('delete-message-modal-tex
 const btnDeleteMessageMe = document.getElementById('btn-delete-message-me');
 const btnDeleteMessageAll = document.getElementById('btn-delete-message-all');
 const btnDeleteMessageCancel = document.getElementById('btn-delete-message-cancel');
+const shareMessageModal = document.getElementById('share-message-modal');
+const shareMessageFriendsList = document.getElementById('share-message-friends-list');
+const btnShareMessageCancel = document.getElementById('btn-share-message-cancel');
 
 const CALL_ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>';
 const CALL_ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
@@ -357,6 +361,7 @@ let isMessageSelectionMode = false;
 let selectedMessageIds = new Set();
 let suppressMediaOpenUntil = 0;
 let deleteMessageModalResolver = null;
+let shareMessageModalResolver = null;
 
 // ========== FUNCOES DE AUTENTICACAO ==========
 
@@ -4501,6 +4506,13 @@ function updateMessageSelectionUI() {
             ? `Excluir selecionadas (${selectedCount})`
             : 'Excluir selecionadas';
     }
+    if (btnShareSelected) {
+        btnShareSelected.classList.toggle('hidden', !hasSelection);
+        btnShareSelected.disabled = !hasSelection;
+        btnShareSelected.title = selectedCount > 0
+            ? `Compartilhar selecionadas (${selectedCount})`
+            : 'Compartilhar selecionadas';
+    }
 }
 
 function setMessageSelectionMode(enabled) {
@@ -4508,6 +4520,7 @@ function setMessageSelectionMode(enabled) {
     isMessageSelectionMode = shouldEnable;
     if (!shouldEnable) {
         selectedMessageIds = new Set();
+        closeShareMessageModal();
     }
     updateMessageSelectionUI();
     renderMessages(currentConversationMessages || []);
@@ -4570,6 +4583,105 @@ function closeDeleteMessageModal() {
         deleteMessageModalResolver(null);
         deleteMessageModalResolver = null;
     }
+}
+
+function closeShareMessageModal() {
+    if (shareMessageModal) {
+        shareMessageModal.classList.remove('show');
+    }
+    if (shareMessageFriendsList) {
+        shareMessageFriendsList.innerHTML = '';
+    }
+    if (shareMessageModalResolver) {
+        shareMessageModalResolver(null);
+        shareMessageModalResolver = null;
+    }
+}
+
+function getShareableFriends() {
+    if (!Array.isArray(allUsersCache) || !Array.isArray(currentFriends)) return [];
+    const friendSet = new Set(currentFriends);
+    const blockedSet = new Set(currentUserProfile?.blocked || []);
+
+    const shareable = allUsersCache.filter((user) => {
+        if (!user?.uid) return false;
+        if (!friendSet.has(user.uid)) return false;
+        if (user.disabled) return false;
+        if (blockedSet.has(user.uid)) return false;
+        if (user.uid === selectedUserId) return false;
+        return true;
+    });
+
+    shareable.sort((a, b) => {
+        const aOnline = isUserPresenceVisible(a) && isUserEffectivelyOnline(a);
+        const bOnline = isUserPresenceVisible(b) && isUserEffectivelyOnline(b);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+        return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
+    });
+
+    return shareable;
+}
+
+function buildShareFriendItem(user) {
+    const li = document.createElement('li');
+    li.className = 'share-message-friend-item';
+    li.dataset.uid = user.uid;
+    const safeName = escapeHtml(user.name || 'Usuário');
+    const safeStatus = escapeHtml(getUserPresenceStatusText(user));
+
+    li.innerHTML = `
+        <img src="https://via.placeholder.com/40/cccccc/666666?text=User" alt="avatar">
+        <div class="share-message-friend-info">
+            <strong>${safeName}</strong>
+            <small>${safeStatus}</small>
+        </div>
+        <button type="button" class="btn-primary share-message-pick-btn">Selecionar</button>
+    `;
+
+    const avatar = li.querySelector('img');
+    if (avatar) {
+        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666?text=User');
+    }
+
+    return li;
+}
+
+async function askShareTargetUser() {
+    const shareableFriends = getShareableFriends();
+    if (!shareableFriends.length) {
+        alert('Você precisa ter outro amigo disponível para compartilhar.');
+        return null;
+    }
+
+    if (!shareMessageModal || !shareMessageFriendsList) {
+        return shareableFriends[0].uid;
+    }
+
+    shareMessageFriendsList.innerHTML = '';
+    shareableFriends.forEach((friend) => {
+        const item = buildShareFriendItem(friend);
+        const choose = () => {
+            if (shareMessageModalResolver) {
+                const resolve = shareMessageModalResolver;
+                shareMessageModalResolver = null;
+                shareMessageModal.classList.remove('show');
+                shareMessageFriendsList.innerHTML = '';
+                resolve(friend.uid);
+            }
+        };
+        item.addEventListener('click', (event) => {
+            if (event.target.closest('.share-message-pick-btn') || event.target === item || event.target.closest('.share-message-friend-info') || event.target.tagName === 'IMG') {
+                choose();
+            }
+        });
+        shareMessageFriendsList.appendChild(item);
+    });
+
+    shareMessageModal.classList.add('show');
+    return await new Promise((resolve) => {
+        shareMessageModalResolver = resolve;
+    });
 }
 
 async function askDeleteScope(messagesToDelete) {
@@ -4670,6 +4782,94 @@ async function deleteSelectedMessages() {
     }
 }
 
+function getMessageTimestampMs(message) {
+    const date = timestampToDate(message?.timestamp);
+    return date ? date.getTime() : 0;
+}
+
+function buildForwardMessagePayload(msg, targetUid, delivered) {
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    const payload = {
+        senderId: currentUser.uid,
+        receiverId: targetUid,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        type: messageType,
+        read: false,
+        delivered: delivered,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        forwarded: true,
+        forwardedFromUid: msg?.senderId || null,
+        forwardedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (messageType === 'text') {
+        payload.text = msg?.text || '';
+        return payload;
+    }
+
+    payload.fileUrl = msg?.fileUrl || msg?.imageUrl || null;
+    payload.imageUrl = messageType === 'image'
+        ? (msg?.imageUrl || msg?.fileUrl || null)
+        : null;
+    payload.fileName = msg?.fileName || null;
+    payload.fileType = msg?.fileType || null;
+    payload.fileSize = Number(msg?.fileSize || 0) || null;
+    return payload;
+}
+
+async function forwardMessagesToFriend(messagesToForward, targetUid) {
+    if (!currentUser || !targetUid || !Array.isArray(messagesToForward) || !messagesToForward.length) return;
+    const conversationId = getConversationId(currentUser.uid, targetUid);
+    const targetFriend = allUsersCache.find((user) => user.uid === targetUid) || null;
+    const delivered = isUserEffectivelyOnline(targetFriend);
+    const sorted = [...messagesToForward].sort((a, b) => getMessageTimestampMs(a) - getMessageTimestampMs(b));
+
+    const chunkSize = 250;
+    for (let i = 0; i < sorted.length; i += chunkSize) {
+        const batch = db.batch();
+        const chunk = sorted.slice(i, i + chunkSize);
+        chunk.forEach((msg) => {
+            const ref = db.collection('conversations')
+                .doc(conversationId)
+                .collection('messages')
+                .doc();
+            const payload = buildForwardMessagePayload(msg, targetUid, delivered);
+            batch.set(ref, payload);
+        });
+        await batch.commit();
+    }
+}
+
+async function shareSelectedMessages() {
+    if (!isMessageSelectionMode || selectedMessageIds.size === 0) return;
+    const selectedMessages = getSelectedMessagesData();
+    if (!selectedMessages.length) {
+        resetMessageSelectionState();
+        renderMessages(currentConversationMessages || []);
+        return;
+    }
+
+    const targetUid = await askShareTargetUser();
+    if (!targetUid) return;
+    if (isFriendBlocked(targetUid)) {
+        alert('Você bloqueou este usuário. Desbloqueie para compartilhar.');
+        return;
+    }
+
+    try {
+        const targetFriend = getCachedUserByUid(targetUid);
+        await forwardMessagesToFriend(selectedMessages, targetUid);
+        resetMessageSelectionState();
+        if (targetFriend) {
+            await selectUser(targetFriend);
+        } else {
+            renderMessages(currentConversationMessages || []);
+        }
+    } catch (error) {
+        alert('Não foi possível compartilhar as mensagens selecionadas.');
+    }
+}
+
 function shouldBlockMessagePrimaryAction(event) {
     if (Date.now() < suppressMediaOpenUntil || isMessageSelectionMode) {
         if (event) {
@@ -4734,6 +4934,63 @@ function bindMessageSelectionInteractions(messageEl, messageId) {
         }
         toggleMessageSelection(messageId);
     });
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function normalizeExternalLink(rawUrl) {
+    let value = String(rawUrl || '').trim();
+    if (!value) return '';
+    if (/^www\./i.test(value)) {
+        value = `https://${value}`;
+    }
+    try {
+        const parsed = new URL(value);
+        if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+        return parsed.href;
+    } catch (error) {
+        return '';
+    }
+}
+
+function linkifyMessageText(text) {
+    const source = String(text || '');
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+    let lastIndex = 0;
+    let output = '';
+    let match = null;
+
+    while ((match = urlRegex.exec(source)) !== null) {
+        const fullMatch = match[0];
+        const start = match.index;
+        const end = start + fullMatch.length;
+        output += escapeHtml(source.slice(lastIndex, start));
+
+        let candidate = fullMatch;
+        let trailing = '';
+        while (candidate && /[),.;!?]$/.test(candidate)) {
+            trailing = candidate.slice(-1) + trailing;
+            candidate = candidate.slice(0, -1);
+        }
+
+        const normalizedUrl = normalizeExternalLink(candidate);
+        if (normalizedUrl) {
+            output += `<a class="chat-text-link" href="${escapeHtml(normalizedUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(candidate)}</a>${escapeHtml(trailing)}`;
+        } else {
+            output += escapeHtml(fullMatch);
+        }
+        lastIndex = end;
+    }
+
+    output += escapeHtml(source.slice(lastIndex));
+    return output;
 }
 
 // Renderizar mensagens
@@ -4828,7 +5085,7 @@ function renderMessages(messages) {
             }
         } else if (messageType === 'file') {
             const fileUrl = getAttachmentDownloadUrl(msg) || '#';
-            const fileName = msg.fileName || 'Arquivo';
+            const fileName = escapeHtml(msg.fileName || 'Arquivo');
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
                 <div class="file-attachment">
@@ -4852,9 +5109,16 @@ function renderMessages(messages) {
             }
         } else {
             div.innerHTML = `
-                <p>${msg.text || ''}</p>
+                <p>${linkifyMessageText(msg.text || '')}</p>
                 ${meta}
             `;
+            const textLinks = div.querySelectorAll('.chat-text-link');
+            textLinks.forEach((link) => {
+                link.addEventListener('click', (event) => {
+                    if (shouldBlockMessagePrimaryAction(event)) return;
+                    event.stopPropagation();
+                });
+            });
         }
 
         if (canManageMessage) {
@@ -5667,6 +5931,7 @@ function resetChatUI() {
     stopRecordingHeartbeat();
     updateComposerPrimaryAction();
     closeDeleteMessageModal();
+    closeShareMessageModal();
     currentConversationId = null;
     currentConversationMessages = [];
     resetMessageSelectionState();
@@ -6044,6 +6309,12 @@ if (btnDeleteSelected) {
     });
 }
 
+if (btnShareSelected) {
+    btnShareSelected.addEventListener('click', async () => {
+        await shareSelectedMessages();
+    });
+}
+
 if (btnDeleteMessageMe) {
     btnDeleteMessageMe.addEventListener('click', () => {
         if (deleteMessageModalResolver) {
@@ -6076,6 +6347,20 @@ if (deleteMessageModal) {
     deleteMessageModal.addEventListener('click', (event) => {
         if (event.target === deleteMessageModal) {
             closeDeleteMessageModal();
+        }
+    });
+}
+
+if (btnShareMessageCancel) {
+    btnShareMessageCancel.addEventListener('click', () => {
+        closeShareMessageModal();
+    });
+}
+
+if (shareMessageModal) {
+    shareMessageModal.addEventListener('click', (event) => {
+        if (event.target === shareMessageModal) {
+            closeShareMessageModal();
         }
     });
 }
