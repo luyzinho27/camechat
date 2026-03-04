@@ -1126,6 +1126,22 @@ body.media-viewer-open {
     width: auto;
     height: auto;
     object-fit: contain;
+    transform-origin: center center;
+}
+
+.media-viewer-content img.media-viewer-zoomable {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    cursor: zoom-in;
+}
+
+.media-viewer-content img.media-viewer-zoomable.is-zoomed {
+    cursor: grab;
+}
+
+.media-viewer-content img.media-viewer-zoomable.is-zoomed:active {
+    cursor: grabbing;
 }
 
 .media-viewer-content video {
