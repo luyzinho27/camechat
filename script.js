@@ -225,6 +225,9 @@ const btnDeleteMessageCancel = document.getElementById('btn-delete-message-cance
 const shareMessageModal = document.getElementById('share-message-modal');
 const shareMessageFriendsList = document.getElementById('share-message-friends-list');
 const btnShareMessageCancel = document.getElementById('btn-share-message-cancel');
+const mediaViewerModal = document.getElementById('media-viewer-modal');
+const mediaViewerContent = document.getElementById('media-viewer-content');
+const btnMediaViewerClose = document.getElementById('btn-media-viewer-close');
 
 const CALL_ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>';
 const CALL_ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
@@ -1032,13 +1035,113 @@ function attachMediaFallbackHandlers(mediaEl, msg) {
     });
 }
 
+function clearMediaViewerContent() {
+    if (!mediaViewerContent) return;
+    const mediaNodes = mediaViewerContent.querySelectorAll('video, audio, iframe');
+    mediaNodes.forEach((node) => {
+        try {
+            if (node.tagName === 'VIDEO' || node.tagName === 'AUDIO') {
+                node.pause();
+            }
+            if ('src' in node) {
+                node.src = '';
+            }
+        } catch (error) {
+            // ignore
+        }
+    });
+    mediaViewerContent.innerHTML = '';
+}
+
+function closeMediaViewer() {
+    if (!mediaViewerModal) return;
+    mediaViewerModal.classList.add('hidden');
+    document.body.classList.remove('media-viewer-open');
+    clearMediaViewerContent();
+}
+
+function isPdfFile(msg, resolvedUrl) {
+    const fileType = String(msg?.fileType || '').toLowerCase();
+    if (fileType.includes('pdf')) return true;
+    return /\.pdf($|\?)/i.test(String(resolvedUrl || ''));
+}
+
+function isAttachmentImage(msg) {
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    return messageType === 'image';
+}
+
+function isAttachmentVideo(msg) {
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    return messageType === 'video';
+}
+
+function isAttachmentAudio(msg) {
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    return messageType === 'audio';
+}
+
+function buildMediaViewerFallback(fileName, resolvedUrl) {
+    const safeName = escapeHtml(fileName || 'Arquivo');
+    const safeUrl = escapeHtml(resolvedUrl);
+    return `
+        <div class="media-viewer-file-fallback">
+            <h3>${safeName}</h3>
+            <p>Não foi possível visualizar este arquivo diretamente. Toque no botão para abrir na mesma aba.</p>
+            <a href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
+        </div>
+    `;
+}
+
+function openMediaViewer(msg, resolvedUrl) {
+    if (!mediaViewerModal || !mediaViewerContent) {
+        window.location.href = resolvedUrl;
+        return;
+    }
+
+    clearMediaViewerContent();
+
+    if (isAttachmentImage(msg)) {
+        const img = document.createElement('img');
+        img.src = resolvedUrl;
+        img.alt = msg?.fileName || 'Imagem';
+        mediaViewerContent.appendChild(img);
+    } else if (isAttachmentVideo(msg)) {
+        const video = document.createElement('video');
+        video.src = resolvedUrl;
+        video.controls = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        mediaViewerContent.appendChild(video);
+    } else if (isAttachmentAudio(msg)) {
+        const audio = document.createElement('audio');
+        audio.src = resolvedUrl;
+        audio.controls = true;
+        audio.autoplay = true;
+        mediaViewerContent.appendChild(audio);
+    } else if (isPdfFile(msg, resolvedUrl)) {
+        const iframe = document.createElement('iframe');
+        iframe.src = resolvedUrl;
+        iframe.title = msg?.fileName || 'Documento PDF';
+        mediaViewerContent.appendChild(iframe);
+    } else {
+        const iframe = document.createElement('iframe');
+        iframe.src = resolvedUrl;
+        iframe.title = msg?.fileName || 'Documento';
+        mediaViewerContent.appendChild(iframe);
+    }
+
+    mediaViewerModal.classList.remove('hidden');
+    document.body.classList.add('media-viewer-open');
+}
+
 async function openAttachmentInNewTab(msg, preferredUrl = '') {
     const resolvedUrl = await resolveAttachmentUrl(msg, preferredUrl);
     if (!resolvedUrl) {
         alert('Arquivo de mídia indisponível. Peça para o contato reenviar.');
         return;
     }
-    window.open(resolvedUrl, '_blank', 'noopener');
+    openMediaViewer(msg, resolvedUrl);
 }
 
 function shouldAutoDownloadIncomingAttachment(msg) {
@@ -5091,7 +5194,7 @@ function renderMessages(messages) {
                 <div class="file-attachment">
                     <span class="file-icon">&#128206;</span>
                     <div class="file-info">
-                        <a class="chat-media-file-link" href="${fileUrl}" target="_blank" rel="noopener">${fileName}</a>
+                        <a class="chat-media-file-link" href="${fileUrl}" target="_self" rel="noopener">${fileName}</a>
                         <small>${fileSize}</small>
                     </div>
                 </div>
@@ -5932,6 +6035,7 @@ function resetChatUI() {
     updateComposerPrimaryAction();
     closeDeleteMessageModal();
     closeShareMessageModal();
+    closeMediaViewer();
     currentConversationId = null;
     currentConversationMessages = [];
     resetMessageSelectionState();
@@ -6364,6 +6468,26 @@ if (shareMessageModal) {
         }
     });
 }
+
+if (btnMediaViewerClose) {
+    btnMediaViewerClose.addEventListener('click', () => {
+        closeMediaViewer();
+    });
+}
+
+if (mediaViewerModal) {
+    mediaViewerModal.addEventListener('click', (event) => {
+        if (event.target === mediaViewerModal) {
+            closeMediaViewer();
+        }
+    });
+}
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && mediaViewerModal && !mediaViewerModal.classList.contains('hidden')) {
+        closeMediaViewer();
+    }
+});
 
 if (btnCallMute) {
     btnCallMute.addEventListener('click', () => {
