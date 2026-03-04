@@ -2562,7 +2562,10 @@ body.theme-dark .download-progress-item .upload-progress-status::before {
 
 @media (max-width: 420px) {
     .sidebar {
-        max-height: 50vh;
+        top: 0;
+        bottom: 0;
+        height: 100dvh;
+        max-height: none;
     }
 
     .users-header {
