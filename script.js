@@ -195,6 +195,7 @@ const friendUnblockBtn = document.getElementById('friend-unblock-btn');
 const btnCall = document.getElementById('btn-call');
 const btnVideoCall = document.getElementById('btn-video-call');
 const btnDeleteSelected = document.getElementById('btn-delete-selected');
+const btnCopySelected = document.getElementById('btn-copy-selected');
 const btnShareSelected = document.getElementById('btn-share-selected');
 const callIndicator = document.getElementById('call-indicator');
 const callModal = document.getElementById('call-modal');
@@ -238,6 +239,11 @@ const mediaViewerModal = document.getElementById('media-viewer-modal');
 const mediaViewerContent = document.getElementById('media-viewer-content');
 const btnMediaViewerSave = document.getElementById('btn-media-viewer-save');
 const btnMediaViewerClose = document.getElementById('btn-media-viewer-close');
+const replyPreview = document.getElementById('reply-preview');
+const replyPreviewLabel = document.getElementById('reply-preview-label');
+const replyPreviewText = document.getElementById('reply-preview-text');
+const replyPreviewThumb = document.getElementById('reply-preview-thumb');
+const btnReplyCancel = document.getElementById('btn-reply-cancel');
 
 const CALL_ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>';
 const CALL_ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
@@ -375,6 +381,7 @@ let autoDownloadingAttachmentKeys = new Set();
 let isMessageSelectionMode = false;
 let selectedMessageIds = new Set();
 let suppressMediaOpenUntil = 0;
+let replyToMessage = null;
 let deleteMessageModalResolver = null;
 let shareMessageModalResolver = null;
 let mediaViewerImageEl = null;
@@ -4902,6 +4909,7 @@ async function selectUser(user) {
     selectedUserId = user.uid;
     selectedFriendData = user;
     resetMessageSelectionState();
+    clearReplyTargetMessage();
     
     // Atualizar seleção na lista
     document.querySelectorAll('.user-item').forEach(item => {
@@ -5199,16 +5207,37 @@ function resetMessageSelectionState() {
     updateMessageSelectionUI();
 }
 
+function getMessageType(msg) {
+    return msg?.type || (msg?.imageUrl ? 'image' : 'text');
+}
+
+function getSelectedTextMessagesData() {
+    return getSelectedMessagesData()
+        .filter((msg) => getMessageType(msg) === 'text')
+        .sort((a, b) => getMessageTimestampMs(a) - getMessageTimestampMs(b));
+}
+
 function updateMessageSelectionUI() {
     const hasConversationSelected = !!selectedUserId;
     const selectedCount = selectedMessageIds.size;
     const hasSelection = hasConversationSelected && selectedCount > 0;
+    const selectedMessages = hasSelection ? getSelectedMessagesData() : [];
+    const canCopyText = hasSelection
+        && selectedMessages.length > 0
+        && selectedMessages.every((msg) => getMessageType(msg) === 'text');
     if (btnDeleteSelected) {
         btnDeleteSelected.classList.toggle('hidden', !hasSelection);
         btnDeleteSelected.disabled = !hasSelection;
         btnDeleteSelected.title = selectedCount > 0
             ? `Excluir selecionadas (${selectedCount})`
             : 'Excluir selecionadas';
+    }
+    if (btnCopySelected) {
+        btnCopySelected.classList.toggle('hidden', !canCopyText);
+        btnCopySelected.disabled = !canCopyText;
+        btnCopySelected.title = selectedCount > 0
+            ? `Copiar selecionadas (${selectedCount})`
+            : 'Copiar selecionadas';
     }
     if (btnShareSelected) {
         btnShareSelected.classList.toggle('hidden', !hasSelection);
@@ -5574,6 +5603,39 @@ async function shareSelectedMessages() {
     }
 }
 
+async function copySelectedTextMessages() {
+    if (!isMessageSelectionMode || selectedMessageIds.size === 0) return;
+    const selectedTextMessages = getSelectedTextMessagesData();
+    if (!selectedTextMessages.length) {
+        return;
+    }
+
+    const textPayload = selectedTextMessages
+        .map((msg) => String(msg?.text || '').trim())
+        .filter(Boolean)
+        .join('\n');
+
+    if (!textPayload) return;
+
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(textPayload);
+        } else {
+            const helper = document.createElement('textarea');
+            helper.value = textPayload;
+            helper.setAttribute('readonly', 'readonly');
+            helper.style.position = 'fixed';
+            helper.style.top = '-9999px';
+            document.body.appendChild(helper);
+            helper.select();
+            document.execCommand('copy');
+            helper.remove();
+        }
+    } catch (error) {
+        alert('Não foi possível copiar as mensagens selecionadas.');
+    }
+}
+
 function shouldBlockMessagePrimaryAction(event) {
     if (Date.now() < suppressMediaOpenUntil || isMessageSelectionMode) {
         if (event) {
@@ -5610,6 +5672,7 @@ function bindMessageSelectionInteractions(messageEl, messageId) {
 
     messageEl.addEventListener('mousedown', startLongPress);
     messageEl.addEventListener('touchstart', startLongPress, { passive: true });
+    messageEl.addEventListener('mousemove', clearTimer);
     messageEl.addEventListener('mouseup', clearTimer);
     messageEl.addEventListener('mouseleave', clearTimer);
     messageEl.addEventListener('touchend', clearTimer);
@@ -5664,6 +5727,26 @@ function normalizeExternalLink(rawUrl) {
     }
 }
 
+function extractMessageLinks(text) {
+    const source = String(text || '');
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+    const links = [];
+    let match = null;
+
+    while ((match = urlRegex.exec(source)) !== null) {
+        let candidate = match[0];
+        while (candidate && /[),.;!?]$/.test(candidate)) {
+            candidate = candidate.slice(0, -1);
+        }
+        const normalized = normalizeExternalLink(candidate);
+        if (normalized && !links.includes(normalized)) {
+            links.push(normalized);
+        }
+    }
+
+    return links;
+}
+
 function linkifyMessageText(text) {
     const source = String(text || '');
     const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/gi;
@@ -5697,6 +5780,311 @@ function linkifyMessageText(text) {
     return output;
 }
 
+function extractYouTubeId(url) {
+    try {
+        const parsed = new URL(url);
+        const host = (parsed.hostname || '').toLowerCase();
+        if (host.includes('youtu.be')) {
+            return parsed.pathname.split('/').filter(Boolean)[0] || '';
+        }
+        if (host.includes('youtube.com')) {
+            return parsed.searchParams.get('v') || '';
+        }
+    } catch (error) {
+        return '';
+    }
+    return '';
+}
+
+function buildLinkPreviewData(url) {
+    try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.replace(/^www\./i, '');
+        const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
+        const title = `${host}${path}`;
+        const youtubeId = extractYouTubeId(url);
+
+        if (youtubeId) {
+            return {
+                url,
+                host,
+                title,
+                description: 'Pré-visualização do link',
+                thumbnailUrl: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
+            };
+        }
+
+        const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(host)}`;
+        const screenshotUrl = `https://image.thum.io/get/width/700/crop/360/noanimate/${url}`;
+        return {
+            url,
+            host,
+            title,
+            description: 'Pré-visualização do link',
+            thumbnailUrl: screenshotUrl,
+            fallbackIconUrl: faviconUrl
+        };
+    } catch (error) {
+        return null;
+    }
+}
+
+function renderLinkPreviewHtml(text) {
+    const links = extractMessageLinks(text);
+    if (!links.length) return '';
+    const preview = buildLinkPreviewData(links[0]);
+    if (!preview) return '';
+
+    const safeUrl = escapeHtml(preview.url);
+    const safeTitle = escapeHtml(preview.title || preview.host || preview.url);
+    const safeHost = escapeHtml(preview.host || preview.url);
+    const safeDescription = escapeHtml(preview.description || '');
+    const thumb = preview.thumbnailUrl
+        ? `<img class="message-link-preview-thumb-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="Prévia do link" loading="lazy" referrerpolicy="no-referrer">`
+        : '';
+    const icon = preview.fallbackIconUrl
+        ? `<img class="message-link-preview-favicon" src="${escapeHtml(preview.fallbackIconUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+        : '<span class="message-link-preview-favicon message-link-preview-favicon-placeholder">&#128279;</span>';
+
+    return `
+        <a class="message-link-preview" href="${safeUrl}" target="_blank" rel="noopener noreferrer">
+            <div class="message-link-preview-thumb ${thumb ? '' : 'no-thumb'}">
+                ${thumb}
+            </div>
+            <div class="message-link-preview-info">
+                <strong>${safeTitle}</strong>
+                <span>${safeDescription}</span>
+                <small>${icon}<em>${safeHost}</em></small>
+            </div>
+        </a>
+    `;
+}
+
+function getReplySnippetTextFromMessage(message) {
+    const type = getMessageType(message);
+    if (type === 'text') return String(message?.text || '').trim() || 'Mensagem';
+    if (type === 'image') return message?.fileName ? `Foto: ${message.fileName}` : 'Foto';
+    if (type === 'video') return message?.fileName ? `Vídeo: ${message.fileName}` : 'Vídeo';
+    if (type === 'audio') return message?.fileName ? `Áudio: ${message.fileName}` : 'Áudio';
+    if (type === 'file') return message?.fileName ? `Arquivo: ${message.fileName}` : 'Arquivo';
+    return 'Mensagem';
+}
+
+function getReplyThumbnailUrl(message) {
+    const type = getMessageType(message);
+    if (type === 'image') {
+        return message?.imageUrl || message?.fileUrl || getAttachmentDownloadUrl(message);
+    }
+    return '';
+}
+
+function getDisplayNameByUid(uid) {
+    if (!uid || !currentUser) return 'Usuário';
+    if (uid === currentUser.uid) return 'Você';
+    return getCachedUserByUid(uid)?.name || selectedFriendData?.name || 'Usuário';
+}
+
+function normalizeReplyReferencePayload(sourceMessage) {
+    if (!sourceMessage?.id) return null;
+    const type = getMessageType(sourceMessage);
+    const fileUrl = sourceMessage?.fileUrl || sourceMessage?.imageUrl || getAttachmentDownloadUrl(sourceMessage) || '';
+
+    return {
+        id: sourceMessage.id,
+        senderId: sourceMessage.senderId || null,
+        type,
+        text: type === 'text' ? String(sourceMessage.text || '').slice(0, 1000) : '',
+        fileName: sourceMessage.fileName || '',
+        fileType: sourceMessage.fileType || '',
+        fileUrl: fileUrl || '',
+        imageUrl: sourceMessage.imageUrl || '',
+        previewText: getReplySnippetTextFromMessage(sourceMessage).slice(0, 180)
+    };
+}
+
+function clearReplyTargetMessage() {
+    replyToMessage = null;
+    if (replyPreview) replyPreview.classList.add('hidden');
+    if (replyPreviewText) replyPreviewText.textContent = '';
+    if (replyPreviewLabel) replyPreviewLabel.textContent = 'Respondendo';
+    if (replyPreviewThumb) {
+        replyPreviewThumb.classList.add('hidden');
+        replyPreviewThumb.innerHTML = '';
+    }
+}
+
+function setReplyTargetMessage(message) {
+    if (!message?.id || !selectedUserId) return;
+    replyToMessage = message;
+
+    if (!replyPreview || !replyPreviewLabel || !replyPreviewText || !replyPreviewThumb) {
+        return;
+    }
+
+    replyPreviewLabel.textContent = `Respondendo a ${getDisplayNameByUid(message.senderId)}`;
+    replyPreviewText.textContent = getReplySnippetTextFromMessage(message);
+
+    const thumbUrl = getReplyThumbnailUrl(message);
+    replyPreviewThumb.innerHTML = '';
+    if (thumbUrl) {
+        const img = document.createElement('img');
+        img.src = thumbUrl;
+        img.alt = 'Mídia respondida';
+        img.loading = 'lazy';
+        img.referrerPolicy = 'no-referrer';
+        img.addEventListener('error', () => {
+            replyPreviewThumb.classList.add('hidden');
+        });
+        replyPreviewThumb.appendChild(img);
+        replyPreviewThumb.classList.remove('hidden');
+    } else {
+        const icon = document.createElement('span');
+        icon.className = 'reply-preview-thumb-fallback';
+        icon.textContent = getMessageType(message) === 'text' ? '#' : '↪';
+        replyPreviewThumb.appendChild(icon);
+        replyPreviewThumb.classList.remove('hidden');
+    }
+
+    replyPreview.classList.remove('hidden');
+    messageInput?.focus();
+}
+
+function getPendingReplyPayload() {
+    return normalizeReplyReferencePayload(replyToMessage);
+}
+
+function getReplySummaryText(replyTo) {
+    if (!replyTo) return '';
+    const type = getMessageType(replyTo);
+    if (type === 'text') return String(replyTo.text || replyTo.previewText || 'Mensagem').trim() || 'Mensagem';
+    if (replyTo.previewText) return String(replyTo.previewText);
+    if (type === 'image') return replyTo.fileName ? `Foto: ${replyTo.fileName}` : 'Foto';
+    if (type === 'video') return replyTo.fileName ? `Vídeo: ${replyTo.fileName}` : 'Vídeo';
+    if (type === 'audio') return replyTo.fileName ? `Áudio: ${replyTo.fileName}` : 'Áudio';
+    if (type === 'file') return replyTo.fileName ? `Arquivo: ${replyTo.fileName}` : 'Arquivo';
+    return 'Mensagem';
+}
+
+function renderReplyReferenceHtml(replyTo) {
+    if (!replyTo || typeof replyTo !== 'object') return '';
+
+    const senderLabel = escapeHtml(getDisplayNameByUid(replyTo.senderId));
+    const summary = escapeHtml(getReplySummaryText(replyTo));
+    const thumbUrl = replyTo.imageUrl || (getMessageType(replyTo) === 'image' ? replyTo.fileUrl : '');
+    const thumbHtml = thumbUrl
+        ? `<img class="message-reply-thumb" src="${escapeHtml(thumbUrl)}" alt="Mídia respondida" loading="lazy" referrerpolicy="no-referrer">`
+        : '';
+
+    return `
+        <div class="message-reply-reference">
+            <div class="message-reply-accent"></div>
+            <div class="message-reply-body">
+                <strong>${senderLabel}</strong>
+                <span>${summary}</span>
+            </div>
+            ${thumbHtml}
+        </div>
+    `;
+}
+
+function bindMessageSwipeToReply(messageEl, msg) {
+    if (!messageEl || !msg?.id) return;
+
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    let canTrack = false;
+    let swipeTriggered = false;
+
+    const SWIPE_TRIGGER_PX = 68;
+    const SWIPE_MAX_SHIFT_PX = 64;
+
+    const resetVisual = () => {
+        messageEl.style.transform = '';
+        messageEl.style.transition = '';
+        messageEl.classList.remove('message-swipe-active');
+    };
+
+    const finish = () => {
+        if (!tracking) return;
+        tracking = false;
+        if (swipeTriggered && !isMessageSelectionMode) {
+            setReplyTargetMessage(msg);
+        }
+        swipeTriggered = false;
+        canTrack = false;
+        messageEl.style.transition = 'transform 0.18s ease';
+        resetVisual();
+    };
+
+    const onStart = (clientX, clientY, eventTarget) => {
+        if (isMessageSelectionMode) return;
+        if (eventTarget?.closest?.('a,video,audio,button,input,textarea,iframe')) return;
+        tracking = true;
+        canTrack = true;
+        swipeTriggered = false;
+        startX = clientX;
+        startY = clientY;
+        messageEl.style.transition = 'none';
+    };
+
+    const onMove = (clientX, clientY, event) => {
+        if (!tracking || !canTrack) return;
+        const deltaX = clientX - startX;
+        const deltaY = clientY - startY;
+
+        if (deltaX < -8) {
+            canTrack = false;
+            finish();
+            return;
+        }
+
+        if (Math.abs(deltaY) > 24 && Math.abs(deltaY) > deltaX) {
+            canTrack = false;
+            finish();
+            return;
+        }
+
+        if (deltaX <= 6) {
+            messageEl.classList.remove('message-swipe-active');
+            messageEl.style.transform = '';
+            return;
+        }
+
+        const visualShift = Math.min(SWIPE_MAX_SHIFT_PX, deltaX * 0.35);
+        messageEl.classList.add('message-swipe-active');
+        messageEl.style.transform = `translateX(${visualShift}px)`;
+        swipeTriggered = deltaX >= SWIPE_TRIGGER_PX;
+
+        if (event?.cancelable) {
+            event.preventDefault();
+        }
+    };
+
+    messageEl.addEventListener('mousedown', (event) => {
+        if (event.button !== 0) return;
+        onStart(event.clientX, event.clientY, event.target);
+    });
+    messageEl.addEventListener('mousemove', (event) => {
+        onMove(event.clientX, event.clientY, event);
+    });
+    messageEl.addEventListener('mouseup', finish);
+    messageEl.addEventListener('mouseleave', finish);
+
+    messageEl.addEventListener('touchstart', (event) => {
+        if (!event.touches || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        onStart(touch.clientX, touch.clientY, event.target);
+    }, { passive: true });
+    messageEl.addEventListener('touchmove', (event) => {
+        if (!event.touches || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        onMove(touch.clientX, touch.clientY, event);
+    }, { passive: false });
+    messageEl.addEventListener('touchend', finish);
+    messageEl.addEventListener('touchcancel', finish);
+}
+
 // Renderizar mensagens
 function renderMessages(messages) {
     const previousScrollTop = messagesContainer.scrollTop;
@@ -5728,12 +6116,14 @@ function renderMessages(messages) {
             div.classList.toggle('message-selected', selectedMessageIds.has(msg.id));
         }
         const meta = buildMessageMeta(msg, isSent);
+        const replyReference = renderReplyReferenceHtml(msg.replyTo);
         
-        const messageType = msg.type || (msg.imageUrl ? 'image' : 'text');
+        const messageType = getMessageType(msg);
         if (messageType === 'image') {
             const imageUrl = getAttachmentDownloadUrl(msg);
             if (imageUrl) {
                 div.innerHTML = `
+                    ${replyReference}
                     <img class="chat-media-image" src="${imageUrl}" alt="imagem" style="max-width: 200px;">
                     ${meta}
                 `;
@@ -5749,6 +6139,7 @@ function renderMessages(messages) {
                 }
             } else {
                 div.innerHTML = `
+                    ${replyReference}
                     <p>Imagem indisponível.</p>
                     ${meta}
                 `;
@@ -5757,6 +6148,7 @@ function renderMessages(messages) {
             const videoUrl = getAttachmentDownloadUrl(msg);
             if (videoUrl) {
                 div.innerHTML = `
+                    ${replyReference}
                     <video class="chat-media-video" src="${videoUrl}" controls playsinline preload="metadata" style="max-width: 240px; border-radius: 10px;"></video>
                     ${meta}
                 `;
@@ -5766,6 +6158,7 @@ function renderMessages(messages) {
                 }
             } else {
                 div.innerHTML = `
+                    ${replyReference}
                     <p>Vídeo indisponível.</p>
                     ${meta}
                 `;
@@ -5774,6 +6167,7 @@ function renderMessages(messages) {
             const audioUrl = getAttachmentDownloadUrl(msg);
             if (audioUrl) {
                 div.innerHTML = `
+                    ${replyReference}
                     <audio class="chat-media-audio" src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
                     ${meta}
                 `;
@@ -5783,6 +6177,7 @@ function renderMessages(messages) {
                 }
             } else {
                 div.innerHTML = `
+                    ${replyReference}
                     <p>Áudio indisponível.</p>
                     ${meta}
                 `;
@@ -5792,6 +6187,7 @@ function renderMessages(messages) {
             const fileName = escapeHtml(msg.fileName || 'Arquivo');
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
+                ${replyReference}
                 <div class="file-attachment">
                     <span class="file-icon">&#128206;</span>
                     <div class="file-info">
@@ -5812,8 +6208,11 @@ function renderMessages(messages) {
                 }
             }
         } else {
+            const linkPreviewHtml = renderLinkPreviewHtml(msg.text || '');
             div.innerHTML = `
+                ${replyReference}
                 <p>${linkifyMessageText(msg.text || '')}</p>
+                ${linkPreviewHtml}
                 ${meta}
             `;
             const textLinks = div.querySelectorAll('.chat-text-link');
@@ -5823,11 +6222,29 @@ function renderMessages(messages) {
                     event.stopPropagation();
                 });
             });
+            const previewLink = div.querySelector('.message-link-preview');
+            if (previewLink) {
+                previewLink.addEventListener('click', (event) => {
+                    if (shouldBlockMessagePrimaryAction(event)) return;
+                    event.stopPropagation();
+                });
+            }
+            const previewThumbImage = div.querySelector('.message-link-preview-thumb-image');
+            if (previewThumbImage) {
+                previewThumbImage.addEventListener('error', () => {
+                    const thumbWrap = previewThumbImage.closest('.message-link-preview-thumb');
+                    if (thumbWrap) {
+                        thumbWrap.classList.add('no-thumb');
+                        thumbWrap.innerHTML = '';
+                    }
+                });
+            }
         }
 
         if (canManageMessage) {
             bindMessageSelectionInteractions(div, msg.id);
         }
+        bindMessageSwipeToReply(div, msg);
         
         messagesContainer.appendChild(div);
     });
@@ -6546,6 +6963,7 @@ async function handleChatFile(file) {
     if (isVideo) messageType = 'video';
     if (isAudio) messageType = 'audio';
     const delivered = isUserEffectivelyOnline(selectedFriendData);
+    const replyPayload = getPendingReplyPayload();
 
     try {
         const fileUrl = await uploadChatFile(file, { uid: currentUser.uid });
@@ -6567,8 +6985,10 @@ async function handleChatFile(file) {
                 type: messageType,
                 read: false,
                 delivered: delivered,
-                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null
+                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                replyTo: replyPayload || null
             });
+        clearReplyTargetMessage();
     } catch (error) {
         alert('Erro ao enviar arquivo: ' + error.message);
     }
@@ -6596,6 +7016,7 @@ function resetChatUI() {
     ensureVoiceRecordingBanner();
     remoteUserActivityState = null;
     setChatPartnerActivity(null);
+    clearReplyTargetMessage();
     clearLocalTypingState();
     if (typingUnsubscribe) {
         typingUnsubscribe();
@@ -6742,6 +7163,7 @@ btnSend.addEventListener('click', async () => {
     
     const conversationId = getConversationId(currentUser.uid, selectedUserId);
     const delivered = isUserEffectivelyOnline(selectedFriendData);
+    const replyPayload = getPendingReplyPayload();
     
     try {
         await db.collection('conversations')
@@ -6755,10 +7177,12 @@ btnSend.addEventListener('click', async () => {
                 type: 'text',
                 read: false,
                 delivered: delivered,
-                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null
+                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                replyTo: replyPayload || null
             });
         
         messageInput.value = '';
+        clearReplyTargetMessage();
         updateTypingState(null, true);
         updateComposerPrimaryAction();
     } catch (error) {
@@ -7014,9 +7438,21 @@ if (btnDeleteSelected) {
     });
 }
 
+if (btnCopySelected) {
+    btnCopySelected.addEventListener('click', async () => {
+        await copySelectedTextMessages();
+    });
+}
+
 if (btnShareSelected) {
     btnShareSelected.addEventListener('click', async () => {
         await shareSelectedMessages();
+    });
+}
+
+if (btnReplyCancel) {
+    btnReplyCancel.addEventListener('click', () => {
+        clearReplyTargetMessage();
     });
 }
 
