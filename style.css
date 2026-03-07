@@ -170,6 +170,17 @@ body.media-viewer-open {
     max-width: 460px;
 }
 
+.profile-handle-row {
+    margin: 6px 0 12px;
+    font-size: 14px;
+    color: #334155;
+}
+
+.profile-handle-row span {
+    color: #002776;
+    font-weight: 700;
+}
+
 .profile-cropper {
     display: flex;
     justify-content: center;
@@ -256,6 +267,11 @@ body.media-viewer-open {
 
 .friend-details p {
     margin-bottom: 6px;
+}
+
+#friend-detail-handle {
+    color: #002776;
+    font-weight: 700;
 }
 
 .friend-actions {
@@ -1283,6 +1299,14 @@ body.media-viewer-open {
 .user-info-header small {
     font-size: 12px;
     opacity: 0.9;
+}
+
+.user-info-header .user-handle {
+    display: block;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.92);
+    letter-spacing: 0.02em;
+    opacity: 1;
 }
 
 .user-info-header #user-status.status-online-text,
@@ -2584,6 +2608,15 @@ body.theme-dark .message.sent small {
 
 body.theme-dark .message.received small {
     color: #94a3b8;
+}
+
+body.theme-dark .profile-handle-row {
+    color: #cbd5e1;
+}
+
+body.theme-dark .profile-handle-row span,
+body.theme-dark #friend-detail-handle {
+    color: #93c5fd;
 }
 
 body.theme-dark .message-reply-reference {
