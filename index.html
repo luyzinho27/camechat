@@ -170,6 +170,8 @@
                     <button id="btn-chat-font-toggle" class="settings-item" type="button" aria-pressed="false">Fonte do chat: normal</button>
                     <button id="btn-chat-background" class="settings-item" type="button">Plano de fundo do chat</button>
                     <input type="file" id="chat-background-upload" accept="image/*" class="hidden">
+                    <button id="btn-media-save-mode-toggle" class="settings-item" type="button" aria-pressed="true">Salvamento de mídia: automático</button>
+                    <button id="btn-media-folder-pc" class="settings-item hidden" type="button">Pasta de mídia (PC): configurar</button>
                     <button id="btn-call-block-toggle" class="settings-item" type="button" aria-pressed="false">Chamadas: permitidas</button>
                     <button id="btn-last-seen-toggle" class="settings-item" type="button" aria-pressed="true">Visto por último: visível</button>
                     <button id="btn-language-toggle" class="settings-item" type="button" aria-pressed="false">Idioma: português</button>
@@ -486,6 +488,7 @@
     </div>
 
     <div id="media-viewer-modal" class="media-viewer-modal hidden" role="dialog" aria-modal="true" aria-label="Visualizador de mídia">
+        <button id="btn-media-viewer-save" class="btn-icon btn-media-viewer-save hidden" type="button" title="Salvar mídia" aria-label="Salvar mídia">&#11015;</button>
         <button id="btn-media-viewer-close" class="btn-icon btn-media-viewer-close" type="button" title="Fechar" aria-label="Fechar visualização">&#10006;</button>
         <div id="media-viewer-content" class="media-viewer-content"></div>
     </div>
@@ -493,6 +496,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260304-37"></script>
+    <script src="script.js?v=20260305-39"></script>
 </body>
 </html>
