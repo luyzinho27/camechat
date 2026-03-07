@@ -6,7 +6,7 @@
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
-    <link rel="stylesheet" href="style.css?v=20260304-36">
+    <link rel="stylesheet" href="style.css?v=20260307-37">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -134,6 +134,7 @@
                 <div class="user-info-header">
                     <span id="user-name"></span>
                     <small id="user-status">Online</small>
+                    <small id="user-handle" class="user-handle"></small>
                     <span id="user-role-badge" class="role-badge hidden">Administrador</span>
                 </div>
                 <div class="sidebar-actions">
@@ -146,7 +147,7 @@
             </div>
 
             <div class="add-friend-box">
-                <input type="email" id="friend-email" placeholder="E-mail para adicionar">
+                <input type="text" id="friend-email" placeholder="E-mail ou @identificador">
                 <button id="btn-add-friend" class="btn-add-friend" type="button">Adicionar</button>
             </div>
             
@@ -359,6 +360,7 @@
         <div class="modal-content profile-modal-content">
             <span id="profile-close-modal" class="close-modal">&times;</span>
             <h3>Foto de perfil</h3>
+            <p class="profile-handle-row"><strong>Seu identificador:</strong> <span id="profile-handle"></span></p>
             <div class="profile-cropper">
                 <div id="profile-crop-frame" class="crop-frame">
                     <img id="profile-crop-image" src="" alt="Foto de perfil">
@@ -387,6 +389,7 @@
             </div>
             <div class="friend-details">
                 <p><strong>Nome:</strong> <span id="friend-detail-name"></span></p>
+                <p><strong>Identificador:</strong> <span id="friend-detail-handle"></span></p>
                 <p><strong>E-mail:</strong> <span id="friend-detail-email"></span></p>
                 <p><strong>Status:</strong> <span id="friend-detail-status"></span> <span id="friend-blocked-badge" class="blocked-badge hidden">Bloqueado</span></p>
             </div>
@@ -506,6 +509,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260306-40"></script>
+    <script src="script.js?v=20260307-41"></script>
 </body>
 </html>
