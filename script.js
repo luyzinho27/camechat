@@ -60,6 +60,7 @@ if (rememberMeContainer) {
 const userPhoto = document.getElementById('user-photo');
 const userName = document.getElementById('user-name');
 const userStatus = document.getElementById('user-status');
+const userHandle = document.getElementById('user-handle');
 const userRoleBadge = document.getElementById('user-role-badge');
 const usersList = document.getElementById('users-list');
 const totalUsers = document.getElementById('total-users');
@@ -176,6 +177,7 @@ const profileCropImage = document.getElementById('profile-crop-image');
 const profileZoom = document.getElementById('profile-zoom');
 const profileCenterBtn = document.getElementById('profile-center-btn');
 const profilePhotoInput = document.getElementById('profile-photo-input');
+const profileHandle = document.getElementById('profile-handle');
 const profileSaveBtn = document.getElementById('profile-save-btn');
 const profileCancelBtn = document.getElementById('profile-cancel-btn');
 
@@ -184,6 +186,7 @@ const friendModal = document.getElementById('friend-modal');
 const friendCloseModal = document.getElementById('friend-close-modal');
 const friendPreviewImage = document.getElementById('friend-preview-image');
 const friendDetailName = document.getElementById('friend-detail-name');
+const friendDetailHandle = document.getElementById('friend-detail-handle');
 const friendDetailEmail = document.getElementById('friend-detail-email');
 const friendDetailStatus = document.getElementById('friend-detail-status');
 const friendBlockedBadge = document.getElementById('friend-blocked-badge');
@@ -502,8 +505,65 @@ async function updateRegisterRoleAvailability() {
     }
 }
 
+function normalizeUserTagInput(value) {
+    return String(value || '')
+        .trim()
+        .replace(/^@+/, '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9_]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .replace(/_+/g, '_');
+}
+
+function buildGeneratedUserTag(name, uid) {
+    const base = normalizeUserTagInput(name).slice(0, 20) || 'usuario';
+    const suffixSource = String(uid || '')
+        .replace(/[^a-zA-Z0-9]+/g, '')
+        .toLowerCase();
+    const suffix = suffixSource.slice(0, 6) || Date.now().toString(36).slice(-6);
+    return `@${base}_${suffix}`;
+}
+
+function getUserTagValue(entity) {
+    if (!entity) return '';
+    const normalizedStoredTag = normalizeUserTagInput(entity.userTag || entity.userTagLower || '');
+    if (normalizedStoredTag) {
+        return `@${normalizedStoredTag}`;
+    }
+    const uid = entity.uid || entity.id || '';
+    if (!uid) return '';
+    const name = entity.name || entity.displayName || '';
+    return buildGeneratedUserTag(name, uid);
+}
+
+function buildUserTagFields(name, uid, existingTag = '') {
+    const userTag = getUserTagValue({
+        userTag: existingTag,
+        name,
+        uid
+    });
+    return {
+        userTag,
+        userTagLower: normalizeUserTagInput(userTag)
+    };
+}
+
+function renderCurrentUserIdentity(profile) {
+    const handleText = getUserTagValue(profile);
+    if (userHandle) {
+        userHandle.textContent = handleText;
+    }
+    if (profileHandle) {
+        profileHandle.textContent = handleText;
+    }
+}
+
 async function ensureUserDocument(user, options = {}) {
     const userRef = db.collection('users').doc(user.uid);
+    const resolvedName = options.name || user.displayName || '';
+    const tagFields = buildUserTagFields(resolvedName, user.uid, options.userTag || '');
     let snapshot = null;
     try {
         snapshot = await userRef.get();
@@ -511,8 +571,10 @@ async function ensureUserDocument(user, options = {}) {
         console.warn('Falha ao ler perfil do usuário. Usando dados básicos da sessão.', error);
         return {
             uid: user.uid,
-            name: options.name || user.displayName || '',
+            name: resolvedName,
             email: options.email || user.email || '',
+            userTag: tagFields.userTag,
+            userTagLower: tagFields.userTagLower,
             photoURL: options.photoURL ?? user.photoURL ?? null,
             photoData: options.photoData ?? null,
             role: options.role || 'user_chat',
@@ -526,9 +588,11 @@ async function ensureUserDocument(user, options = {}) {
     const emailLower = emailValue ? emailValue.toLowerCase() : '';
     const baseData = {
         uid: user.uid,
-        name: options.name || user.displayName || '',
+        name: resolvedName,
         email: emailValue,
         emailLower: emailLower,
+        userTag: tagFields.userTag,
+        userTagLower: tagFields.userTagLower,
         photoURL: options.photoURL ?? user.photoURL ?? null,
         photoData: options.photoData ?? null,
         role: options.role || 'user_chat',
@@ -553,6 +617,11 @@ async function ensureUserDocument(user, options = {}) {
 
     const data = snapshot.data() || {};
     const updates = {};
+    const existingTagFields = buildUserTagFields(
+        data.name || resolvedName,
+        user.uid,
+        data.userTag || tagFields.userTag
+    );
 
     const shouldUpdateName = options.name && data.name !== options.name;
     const shouldUpdateEmail = options.email && data.email !== options.email;
@@ -571,6 +640,8 @@ async function ensureUserDocument(user, options = {}) {
     if (!Array.isArray(data.friends)) updates.friends = [];
     if (!Array.isArray(data.blocked)) updates.blocked = [];
     if (typeof data.showOnlineStatus !== 'boolean') updates.showOnlineStatus = true;
+    if (!data.userTag || data.userTag !== existingTagFields.userTag) updates.userTag = existingTagFields.userTag;
+    if (!data.userTagLower || data.userTagLower !== existingTagFields.userTagLower) updates.userTagLower = existingTagFields.userTagLower;
 
     if (Object.keys(updates).length > 0) {
         updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -1901,6 +1972,8 @@ auth.onAuthStateChanged(async (user) => {
             uid: user.uid,
             name: user.displayName || '',
             email: user.email || '',
+            userTag: getUserTagValue({ uid: user.uid, name: user.displayName || '' }),
+            userTagLower: normalizeUserTagInput(getUserTagValue({ uid: user.uid, name: user.displayName || '' })),
             role: fallbackRole,
             photoURL: user.photoURL || null,
             photoData: null,
@@ -1924,6 +1997,7 @@ auth.onAuthStateChanged(async (user) => {
         );
         userName.textContent = currentUserProfile.name || user.displayName || 'Usuário';
         userStatus.textContent = 'Online';
+        renderCurrentUserIdentity(currentUserProfile);
         setOnlineStatusClass(userStatus, true);
         updateRoleBadge(currentUserRole);
         updateRegisterRoleAvailability();
@@ -1953,6 +2027,8 @@ auth.onAuthStateChanged(async (user) => {
         currentUser = null;
         currentUserProfile = null;
         currentUserRole = 'user_chat';
+        if (userHandle) userHandle.textContent = '';
+        if (profileHandle) profileHandle.textContent = '';
         setOnlineStatusClass(userStatus, false);
         authContainer.classList.remove('hidden');
         app.classList.add('hidden');
@@ -2052,6 +2128,7 @@ function subscribeToCurrentUserDoc() {
             }
 
             if (data.name) userName.textContent = data.name;
+            renderCurrentUserIdentity(currentUserProfile);
             applyProfilePhoto(
                 userPhoto,
                 data,
@@ -3468,34 +3545,65 @@ function listenForIncomingCalls() {
         });
 }
 
-async function findUserByEmail(email) {
-    const normalized = email.trim().toLowerCase();
-    if (!normalized) return null;
+function looksLikeEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+async function findUserByIdentifier(identifier) {
+    const rawValue = String(identifier || '').trim();
+    if (!rawValue) return null;
+
+    if (looksLikeEmail(rawValue)) {
+        const normalizedEmail = rawValue.toLowerCase();
+        let snapshot = await db.collection('users')
+            .where('emailLower', '==', normalizedEmail)
+            .limit(1)
+            .get();
+
+        if (snapshot.empty) {
+            snapshot = await db.collection('users')
+                .where('email', '==', rawValue)
+                .limit(1)
+                .get();
+        }
+
+        if (!snapshot.empty) {
+            const doc = snapshot.docs[0];
+            const data = { id: doc.id, ...doc.data() };
+            return data.disabled ? null : data;
+        }
+    }
+
+    const normalizedTag = normalizeUserTagInput(rawValue);
+    if (!normalizedTag) return null;
 
     let snapshot = await db.collection('users')
-        .where('emailLower', '==', normalized)
+        .where('userTagLower', '==', normalizedTag)
         .limit(1)
         .get();
 
-    if (snapshot.empty) {
-        snapshot = await db.collection('users')
-            .where('email', '==', email.trim())
-            .limit(1)
-            .get();
+    if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        const data = { id: doc.id, ...doc.data() };
+        return data.disabled ? null : data;
     }
 
-    if (snapshot.empty) return null;
-    const doc = snapshot.docs[0];
-    const data = { id: doc.id, ...doc.data() };
-    if (data.disabled) return null;
-    return data;
+    const availableUsers = Array.isArray(allUsersCache) && allUsersCache.length
+        ? allUsersCache
+        : (await db.collection('users').get()).docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const matchedUser = availableUsers.find((user) => {
+        if (!user || user.disabled) return false;
+        return normalizeUserTagInput(getUserTagValue(user)) === normalizedTag;
+    });
+
+    return matchedUser || null;
 }
 
 async function addFriendByEmail(email) {
     if (!currentUser) return;
-    const user = await findUserByEmail(email);
+    const user = await findUserByIdentifier(email);
     if (!user) {
-        alert('Usuário não encontrado.');
+        alert('Usuário não encontrado. Informe um e-mail ou @identificador válido.');
         return;
     }
     if (user.uid === currentUser.uid) {
@@ -4490,12 +4598,15 @@ async function createUserAsAdmin({ name, email, password, role }) {
         const secondaryAuth = secondary.auth();
         const userCredential = await secondaryAuth.createUserWithEmailAndPassword(email, password);
         await userCredential.user.updateProfile({ displayName: name });
+        const tagFields = buildUserTagFields(name, userCredential.user.uid);
 
         await db.collection('users').doc(userCredential.user.uid).set({
             uid: userCredential.user.uid,
             name: name,
             email: email,
             emailLower: email.toLowerCase(),
+            userTag: tagFields.userTag,
+            userTagLower: tagFields.userTagLower,
             photoURL: userCredential.user.photoURL || null,
             role: role,
             friends: [],
@@ -4810,7 +4921,7 @@ function renderUsers(users) {
         li.innerHTML = `
             <div class="user-item-info">
                 <h4>Nenhum contato</h4>
-                <p>Adicione um amigo pelo e-mail acima.</p>
+                <p>Adicione um amigo pelo e-mail ou @identificador acima.</p>
             </div>
         `;
         usersList.appendChild(li);
@@ -7090,6 +7201,7 @@ function resetProfileModal() {
 function openProfileModal() {
     if (!profileModal) return;
     const currentPhoto = currentUserProfile?.photoData || currentUserProfile?.photoURL || userPhoto?.src || '';
+    renderCurrentUserIdentity(currentUserProfile);
     if (currentPhoto) {
         loadCropImage(currentPhoto);
     }
@@ -7108,6 +7220,7 @@ function openFriendModal() {
         applyProfilePhoto(friendPreviewImage, selectedFriendData, 'https://via.placeholder.com/120/cccccc/666666?text=User');
     }
     if (friendDetailName) friendDetailName.textContent = selectedFriendData.name || 'Usuário';
+    if (friendDetailHandle) friendDetailHandle.textContent = getUserTagValue(selectedFriendData);
     if (friendDetailEmail) friendDetailEmail.textContent = selectedFriendData.email || '';
     renderFriendDetailStatus(selectedFriendData);
     updateFriendModalState();
@@ -7315,7 +7428,7 @@ if (btnAddFriend) {
     btnAddFriend.addEventListener('click', async () => {
         const email = friendEmailInput ? friendEmailInput.value.trim() : '';
         if (!email) {
-            alert('Digite o e-mail do usuário.');
+            alert('Digite o e-mail ou @identificador do usuário.');
             return;
         }
         try {
