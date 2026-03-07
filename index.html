@@ -196,6 +196,7 @@
                     <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de vídeo">&#128249;</button>
                     <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">&#128222;</button>
                     <button id="btn-delete-selected" class="btn-icon btn-delete-selected hidden" disabled title="Excluir selecionadas">&#128465;</button>
+                    <button id="btn-copy-selected" class="btn-icon btn-copy-selected hidden" disabled title="Copiar selecionadas">&#128203;</button>
                     <button id="btn-share-selected" class="btn-icon btn-share-selected hidden" disabled title="Compartilhar selecionadas">&#10150;</button>
                 </header>
                 
@@ -210,6 +211,15 @@
                         <span id="voice-recording-text">Gravando... 00:00</span>
                         <button id="btn-voice-cancel" class="btn-google btn-voice-cancel" type="button" disabled>Cancelar</button>
                     </div>
+                </div>
+
+                <div id="reply-preview" class="reply-preview hidden">
+                    <div class="reply-preview-main">
+                        <small id="reply-preview-label">Respondendo</small>
+                        <p id="reply-preview-text"></p>
+                    </div>
+                    <div id="reply-preview-thumb" class="reply-preview-thumb hidden"></div>
+                    <button id="btn-reply-cancel" class="btn-icon btn-reply-cancel" type="button" title="Cancelar resposta" aria-label="Cancelar resposta">&#10006;</button>
                 </div>
 
                 <div class="message-input-area">
@@ -496,6 +506,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260305-39"></script>
+    <script src="script.js?v=20260306-40"></script>
 </body>
 </html>
