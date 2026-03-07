@@ -110,6 +110,8 @@ const btnOnlineStatusToggle = document.getElementById('btn-online-status-toggle'
 const btnChatFontToggle = document.getElementById('btn-chat-font-toggle');
 const btnChatBackground = document.getElementById('btn-chat-background');
 const chatBackgroundUpload = document.getElementById('chat-background-upload');
+const btnMediaSaveModeToggle = document.getElementById('btn-media-save-mode-toggle');
+const btnMediaFolderPc = document.getElementById('btn-media-folder-pc');
 const btnCallBlockToggle = document.getElementById('btn-call-block-toggle');
 const btnLastSeenToggle = document.getElementById('btn-last-seen-toggle');
 const btnLanguageToggle = document.getElementById('btn-language-toggle');
@@ -125,6 +127,11 @@ const DESKTOP_NOTIFICATIONS_STORAGE_KEY = 'camechat_desktop_notifications';
 const ONLINE_STATUS_VISIBILITY_STORAGE_KEY = 'camechat_online_status_visibility';
 const CHAT_FONT_SIZE_STORAGE_KEY = 'camechat_chat_font_size';
 const CHAT_BACKGROUND_STORAGE_KEY = 'camechat_chat_background';
+const MEDIA_AUTO_SAVE_STORAGE_KEY = 'camechat_media_auto_save';
+const MEDIA_PC_FOLDER_READY_STORAGE_KEY = 'camechat_media_pc_folder_ready';
+const MEDIA_HANDLE_DB_NAME = 'camechat_local_media';
+const MEDIA_HANDLE_STORE_NAME = 'settings';
+const MEDIA_HANDLE_ROOT_KEY = 'pc_root_handle';
 const CALL_BLOCK_STORAGE_KEY = 'camechat_block_incoming_calls';
 const LAST_SEEN_VISIBILITY_STORAGE_KEY = 'camechat_last_seen_visible';
 const LANGUAGE_STORAGE_KEY = 'camechat_language';
@@ -135,6 +142,8 @@ let desktopNotificationsEnabled = false;
 let showOnlineStatusEnabled = true;
 let chatFontSizePreference = 'normal';
 let chatBackgroundDataUrl = '';
+let autoMediaSaveEnabled = true;
+let pcLocalMediaFolderReady = false;
 let blockIncomingCallsEnabled = false;
 let showLastSeenEnabled = true;
 let selectedLanguage = 'pt-BR';
@@ -227,6 +236,7 @@ const shareMessageFriendsList = document.getElementById('share-message-friends-l
 const btnShareMessageCancel = document.getElementById('btn-share-message-cancel');
 const mediaViewerModal = document.getElementById('media-viewer-modal');
 const mediaViewerContent = document.getElementById('media-viewer-content');
+const btnMediaViewerSave = document.getElementById('btn-media-viewer-save');
 const btnMediaViewerClose = document.getElementById('btn-media-viewer-close');
 
 const CALL_ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>';
@@ -374,6 +384,11 @@ let mediaViewerImageTranslateY = 0;
 let mediaViewerImagePointers = new Map();
 let mediaViewerImagePinchDistance = 0;
 let mediaViewerImageStartScale = 1;
+let mediaViewerActiveMessage = null;
+let mediaViewerActiveUrl = '';
+let isManualMediaSaveInProgress = false;
+let pcMediaRootHandle = null;
+let pcMediaRootHandleLoaded = false;
 
 // ========== FUNCOES DE AUTENTICACAO ==========
 
@@ -1064,6 +1079,13 @@ function resetMediaViewerImageState() {
     mediaViewerImageStartScale = MEDIA_VIEWER_MIN_SCALE;
 }
 
+function syncMediaViewerSaveButton() {
+    if (!btnMediaViewerSave) return;
+    const canSave = !!(mediaViewerActiveMessage && mediaViewerActiveUrl);
+    btnMediaViewerSave.classList.toggle('hidden', !canSave);
+    btnMediaViewerSave.disabled = !canSave || isManualMediaSaveInProgress;
+}
+
 function clampMediaViewerImageTranslate() {
     if (!mediaViewerImageEl || !mediaViewerContent) return;
     const baseWidth = mediaViewerImageEl.clientWidth || 0;
@@ -1226,6 +1248,10 @@ function clearMediaViewerContent() {
     mediaViewerContent.innerHTML = '';
     mediaViewerContent.classList.remove('media-viewer-image-mode');
     resetMediaViewerImageState();
+    mediaViewerActiveMessage = null;
+    mediaViewerActiveUrl = '';
+    isManualMediaSaveInProgress = false;
+    syncMediaViewerSaveButton();
 }
 
 function closeMediaViewer() {
@@ -1275,6 +1301,9 @@ function openMediaViewer(msg, resolvedUrl) {
     }
 
     clearMediaViewerContent();
+    mediaViewerActiveMessage = msg || null;
+    mediaViewerActiveUrl = resolvedUrl || '';
+    syncMediaViewerSaveButton();
 
     if (isAttachmentImage(msg)) {
         mediaViewerContent.classList.add('media-viewer-image-mode');
@@ -1321,19 +1350,130 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
     openMediaViewer(msg, resolvedUrl);
 }
 
+async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
+    const resolvedUrl = await resolveAttachmentUrl(msg, preferredUrl);
+    if (!resolvedUrl) {
+        throw new Error('Arquivo indisponível');
+    }
+
+    const allowInteractiveFolderSetup = !!options.allowInteractiveFolderSetup;
+    const mimeType = msg?.fileType || '';
+    const fileName = inferAttachmentFileName(msg, resolvedUrl, mimeType);
+    const isLargeFile = Number(msg?.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
+    const progressItem = isLargeFile ? createDownloadProgressItem(fileName || 'arquivo') : null;
+
+    try {
+        if (isAndroidWebViewRuntime()) {
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType);
+            if (progressItem) finalizeDownloadItem(progressItem);
+            return;
+        }
+
+        try {
+            const blob = await fetchBlobWithProgress(resolvedUrl, (loaded, total) => {
+                if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
+            });
+            if (blob && blob.size) {
+                if (await trySaveBlobToPcLocalFolder(msg, fileName, blob, blob.type || mimeType, allowInteractiveFolderSetup)) {
+                    if (progressItem) finalizeDownloadItem(progressItem);
+                    return;
+                }
+                triggerBlobDownload(blob, fileName, msg, blob.type || mimeType);
+                if (progressItem) finalizeDownloadItem(progressItem);
+                return;
+            }
+        } catch (blobError) {
+            // fallback para download direto
+        }
+
+        triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType);
+        if (progressItem) finalizeDownloadItem(progressItem);
+    } catch (error) {
+        if (progressItem) markDownloadError(progressItem, 'Falha no download');
+        throw error;
+    }
+}
+
+async function saveCurrentMediaViewerAttachment() {
+    if (!mediaViewerActiveMessage || !mediaViewerActiveUrl || isManualMediaSaveInProgress) return;
+    isManualMediaSaveInProgress = true;
+    syncMediaViewerSaveButton();
+
+    try {
+        await saveAttachmentToDevice(mediaViewerActiveMessage, mediaViewerActiveUrl, {
+            allowInteractiveFolderSetup: true
+        });
+    } catch (error) {
+        console.warn('Falha ao salvar mídia manualmente.', error);
+        alert('Não foi possível salvar esta mídia agora. Tente novamente.');
+    } finally {
+        isManualMediaSaveInProgress = false;
+        syncMediaViewerSaveButton();
+    }
+}
+
 function shouldAutoDownloadIncomingAttachment(msg) {
     if (!msg || !currentUser) return false;
+    if (!autoMediaSaveEnabled) return false;
     if (msg.senderId === currentUser.uid) return false;
     const type = msg.type || (msg.imageUrl ? 'image' : 'text');
     if (!['image', 'video', 'audio', 'file'].includes(type)) return false;
     return !!getAttachmentDownloadUrl(msg);
 }
 
-function triggerBlobDownload(blob, fileName) {
+function isAndroidWebViewRuntime() {
+    const ua = navigator.userAgent || '';
+    return /Android/i.test(ua) && /\bwv\b/i.test(ua);
+}
+
+function getDownloadCategory(msg, fileName = '', mimeType = '') {
+    const messageType = (msg?.type || '').toLowerCase();
+    const mime = String(mimeType || msg?.fileType || '').toLowerCase();
+    const extension = String(fileName || '').split('.').pop()?.toLowerCase() || '';
+
+    if (messageType === 'image' || mime.startsWith('image/')) return 'Images';
+    if (messageType === 'video' || mime.startsWith('video/')) return 'Video';
+    if (messageType === 'audio' || mime.startsWith('audio/')) return 'Audio';
+
+    const imageExt = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'heic', 'heif', 'avif']);
+    const videoExt = new Set(['mp4', 'webm', 'mov', 'mkv', 'avi', '3gp', 'm4v']);
+    const audioExt = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'opus', 'amr', 'weba']);
+    if (imageExt.has(extension)) return 'Images';
+    if (videoExt.has(extension)) return 'Video';
+    if (audioExt.has(extension)) return 'Audio';
+    return 'Documents';
+}
+
+function buildDeviceDownloadPath(msg, fileName, mimeType = '') {
+    const safeName = sanitizeDownloadFileName(fileName);
+    const category = getDownloadCategory(msg, safeName, mimeType);
+    return `CameChat/Media/${category}/${safeName}`;
+}
+
+async function trySaveBlobToPcLocalFolder(msg, fileName, blob, mimeType = '', interactive = false) {
+    if (!blob || !supportsPcLocalMediaFolder()) return false;
+
+    try {
+        const rootHandle = await getPcMediaRootHandle(interactive);
+        if (!rootHandle) return false;
+        const saved = await writeBlobToPcLocalMediaFolder(rootHandle, msg, fileName, blob, mimeType);
+        if (saved) {
+            setPcLocalMediaFolderReady(true);
+            return true;
+        }
+    } catch (error) {
+        console.warn('Falha ao salvar arquivo na pasta local do PC.', error);
+        setPcLocalMediaFolderReady(false);
+    }
+
+    return false;
+}
+
+function triggerBlobDownload(blob, fileName, msg = null, mimeType = '') {
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = objectUrl;
-    anchor.download = sanitizeDownloadFileName(fileName);
+    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType || blob?.type || '');
     anchor.rel = 'noopener';
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
@@ -1342,12 +1482,11 @@ function triggerBlobDownload(blob, fileName) {
     setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
 }
 
-function triggerDirectUrlDownload(url, fileName) {
+function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '') {
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = sanitizeDownloadFileName(fileName);
+    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType);
     anchor.rel = 'noopener';
-    anchor.target = '_blank';
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
     anchor.click();
@@ -1403,6 +1542,18 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
     const progressItem = isLargeFile ? createDownloadProgressItem(msg.fileName || 'arquivo') : null;
 
     try {
+        if (isAndroidWebViewRuntime()) {
+            const resolvedUrl = await resolveAttachmentUrl(msg);
+            if (!resolvedUrl) {
+                throw new Error('Arquivo indisponível');
+            }
+            const fileName = inferAttachmentFileName(msg, resolvedUrl, msg?.fileType || '');
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '');
+            autoDownloadedAttachmentKeys.add(key);
+            if (progressItem) finalizeDownloadItem(progressItem);
+            return;
+        }
+
         let resolvedBlob = null;
         let resolvedUrl = '';
 
@@ -1425,14 +1576,20 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
         }
 
         const fileName = inferAttachmentFileName(msg, resolvedUrl, resolvedBlob.type);
-        triggerBlobDownload(resolvedBlob, fileName);
+        const savedToPcLocalFolder = await trySaveBlobToPcLocalFolder(msg, fileName, resolvedBlob, resolvedBlob.type, false);
+        if (savedToPcLocalFolder) {
+            autoDownloadedAttachmentKeys.add(key);
+            if (progressItem) finalizeDownloadItem(progressItem);
+            return;
+        }
+        triggerBlobDownload(resolvedBlob, fileName, msg, resolvedBlob.type);
         autoDownloadedAttachmentKeys.add(key);
         if (progressItem) finalizeDownloadItem(progressItem);
     } catch (error) {
         const fallbackUrl = candidates[0];
         const fallbackName = inferAttachmentFileName(msg, fallbackUrl, '');
         try {
-            triggerDirectUrlDownload(fallbackUrl, fallbackName);
+            triggerDirectUrlDownload(fallbackUrl, fallbackName, msg, msg?.fileType || '');
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
         } catch (fallbackError) {
@@ -3490,6 +3647,211 @@ function getStoredChatBackground() {
     }
 }
 
+function isWindowsDesktopRuntime() {
+    if (isAndroidWebViewRuntime()) return false;
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+    const isWindows = /Windows/i.test(ua) || /Win/i.test(platform);
+    const isMobileLike = /Mobi|Android|iPhone|iPad|Tablet/i.test(ua);
+    return isWindows && !isMobileLike;
+}
+
+function supportsPcLocalMediaFolder() {
+    return isWindowsDesktopRuntime()
+        && typeof window.showDirectoryPicker === 'function'
+        && typeof window.indexedDB !== 'undefined';
+}
+
+function openMediaHandleDb() {
+    return new Promise((resolve, reject) => {
+        if (typeof window.indexedDB === 'undefined') {
+            reject(new Error('IndexedDB indisponível'));
+            return;
+        }
+
+        const request = window.indexedDB.open(MEDIA_HANDLE_DB_NAME, 1);
+        request.onupgradeneeded = () => {
+            const dbRef = request.result;
+            if (!dbRef.objectStoreNames.contains(MEDIA_HANDLE_STORE_NAME)) {
+                dbRef.createObjectStore(MEDIA_HANDLE_STORE_NAME);
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('Falha ao abrir banco local'));
+    });
+}
+
+async function savePcMediaRootHandle(handle) {
+    try {
+        const dbRef = await openMediaHandleDb();
+        await new Promise((resolve, reject) => {
+            const tx = dbRef.transaction(MEDIA_HANDLE_STORE_NAME, 'readwrite');
+            tx.objectStore(MEDIA_HANDLE_STORE_NAME).put(handle, MEDIA_HANDLE_ROOT_KEY);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error || new Error('Falha ao salvar pasta local'));
+        });
+        dbRef.close();
+    } catch (error) {
+        console.warn('Não foi possível salvar referência da pasta local.', error);
+    }
+}
+
+async function loadPcMediaRootHandle() {
+    if (pcMediaRootHandleLoaded) return pcMediaRootHandle;
+    pcMediaRootHandleLoaded = true;
+
+    try {
+        const dbRef = await openMediaHandleDb();
+        const handle = await new Promise((resolve, reject) => {
+            const tx = dbRef.transaction(MEDIA_HANDLE_STORE_NAME, 'readonly');
+            const req = tx.objectStore(MEDIA_HANDLE_STORE_NAME).get(MEDIA_HANDLE_ROOT_KEY);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error || new Error('Falha ao carregar pasta local'));
+        });
+        dbRef.close();
+        pcMediaRootHandle = handle || null;
+        return pcMediaRootHandle;
+    } catch (error) {
+        console.warn('Não foi possível carregar referência da pasta local.', error);
+        pcMediaRootHandle = null;
+        return null;
+    }
+}
+
+async function ensureHandleWritePermission(handle, interactive = false) {
+    if (!handle) return false;
+
+    try {
+        const mode = { mode: 'readwrite' };
+        let permission = typeof handle.queryPermission === 'function'
+            ? await handle.queryPermission(mode)
+            : 'prompt';
+
+        if (permission === 'granted') return true;
+        if (permission === 'prompt' && interactive && typeof handle.requestPermission === 'function') {
+            permission = await handle.requestPermission(mode);
+            return permission === 'granted';
+        }
+    } catch (error) {
+        console.warn('Falha ao verificar permissão da pasta local.', error);
+    }
+
+    return false;
+}
+
+async function ensurePcMediaDirectoryHandle(rootHandle, msg, fileName, mimeType = '') {
+    const mediaDir = await ensurePcMediaFolderStructure(rootHandle);
+    const category = getDownloadCategory(msg, fileName, mimeType);
+    const categoryDir = await mediaDir.getDirectoryHandle(category, { create: true });
+    return { categoryDir };
+}
+
+async function ensurePcMediaFolderStructure(rootHandle) {
+    const camechatDir = await rootHandle.getDirectoryHandle('CameChat', { create: true });
+    const mediaDir = await camechatDir.getDirectoryHandle('Media', { create: true });
+    const categories = ['Images', 'Video', 'Documents', 'Audio'];
+    for (const category of categories) {
+        await mediaDir.getDirectoryHandle(category, { create: true });
+    }
+    return mediaDir;
+}
+
+async function writeBlobToPcLocalMediaFolder(rootHandle, msg, fileName, blob, mimeType = '') {
+    if (!rootHandle || !blob) return false;
+    const safeName = sanitizeDownloadFileName(fileName);
+    const { categoryDir } = await ensurePcMediaDirectoryHandle(rootHandle, msg, safeName, mimeType || blob.type || '');
+    const fileHandle = await categoryDir.getFileHandle(safeName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    return true;
+}
+
+async function getPcMediaRootHandle(interactive = false) {
+    if (!supportsPcLocalMediaFolder()) return null;
+
+    let handle = pcMediaRootHandle;
+    if (!handle) {
+        handle = await loadPcMediaRootHandle();
+    }
+
+    if (!handle && interactive) {
+        try {
+            handle = await window.showDirectoryPicker({ id: 'camechat-media-root', mode: 'readwrite' });
+            pcMediaRootHandle = handle;
+            await savePcMediaRootHandle(handle);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    if (!handle) return null;
+
+    const hasPermission = await ensureHandleWritePermission(handle, interactive);
+    if (!hasPermission) return null;
+
+    pcMediaRootHandle = handle;
+    return handle;
+}
+
+function setPcLocalMediaFolderReady(ready, persist = true) {
+    pcLocalMediaFolderReady = !!ready;
+    if (btnMediaFolderPc) {
+        btnMediaFolderPc.classList.toggle('hidden', !supportsPcLocalMediaFolder());
+    }
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+    try {
+        localStorage.setItem(MEDIA_PC_FOLDER_READY_STORAGE_KEY, pcLocalMediaFolderReady ? 'true' : 'false');
+    } catch (error) {
+        // ignore
+    }
+}
+
+async function initializePcLocalMediaFolderState() {
+    if (!btnMediaFolderPc) return;
+    if (!supportsPcLocalMediaFolder()) {
+        setPcLocalMediaFolderReady(false, false);
+        return;
+    }
+
+    const remembered = getStoredBooleanSetting(MEDIA_PC_FOLDER_READY_STORAGE_KEY, false);
+    if (!remembered) {
+        setPcLocalMediaFolderReady(false, false);
+        return;
+    }
+
+    try {
+        const handle = await getPcMediaRootHandle(false);
+        setPcLocalMediaFolderReady(!!handle, false);
+    } catch (error) {
+        setPcLocalMediaFolderReady(false, false);
+    }
+}
+
+async function configurePcLocalMediaFolder() {
+    if (!supportsPcLocalMediaFolder()) {
+        setPcLocalMediaFolderReady(false);
+        return false;
+    }
+
+    const rootHandle = await getPcMediaRootHandle(true);
+    if (!rootHandle) {
+        return false;
+    }
+
+    try {
+        await ensurePcMediaFolderStructure(rootHandle);
+        setPcLocalMediaFolderReady(true);
+        return true;
+    } catch (error) {
+        console.warn('Falha ao preparar pasta local de mídia no PC.', error);
+        setPcLocalMediaFolderReady(false);
+        return false;
+    }
+}
+
 const UI_TEXT = {
     'pt-BR': {
         themeDark: 'Tema escuro',
@@ -3509,6 +3871,14 @@ const UI_TEXT = {
         chatFontLarge: 'Fonte do chat: grande',
         chatBackgroundDefault: 'Plano de fundo do chat',
         chatBackgroundCustom: 'Plano de fundo: personalizado',
+        mediaSaveAuto: 'Salvamento de mídia: automático',
+        mediaSaveManual: 'Salvamento de mídia: manual',
+        mediaSaveAction: 'Salvar mídia',
+        mediaPcFolderConfigure: 'Pasta de mídia (PC): configurar',
+        mediaPcFolderReady: 'Pasta de mídia (PC): pronta',
+        mediaPcFolderUnavailable: 'Pasta de mídia (PC): indisponível',
+        mediaPcFolderSaved: 'Pasta local de mídia configurada com sucesso no PC.',
+        mediaPcFolderSaveFailed: 'Não foi possível configurar a pasta local de mídia no PC.',
         callsAllowed: 'Chamadas: permitidas',
         callsBlocked: 'Chamadas: bloqueadas',
         lastSeenVisible: 'Visto por último: visível',
@@ -3543,6 +3913,14 @@ const UI_TEXT = {
         chatFontLarge: 'Chat font: large',
         chatBackgroundDefault: 'Chat wallpaper',
         chatBackgroundCustom: 'Wallpaper: custom',
+        mediaSaveAuto: 'Media saving: automatic',
+        mediaSaveManual: 'Media saving: manual',
+        mediaSaveAction: 'Save media',
+        mediaPcFolderConfigure: 'Media folder (PC): configure',
+        mediaPcFolderReady: 'Media folder (PC): ready',
+        mediaPcFolderUnavailable: 'Media folder (PC): unavailable',
+        mediaPcFolderSaved: 'Local media folder configured successfully on PC.',
+        mediaPcFolderSaveFailed: 'Could not configure local media folder on PC.',
         callsAllowed: 'Calls: allowed',
         callsBlocked: 'Calls: blocked',
         lastSeenVisible: 'Last seen: visible',
@@ -3614,6 +3992,23 @@ function refreshSettingsMenuLabels() {
         btnChatBackground.textContent = chatBackgroundDataUrl ? getUiText('chatBackgroundCustom') : getUiText('chatBackgroundDefault');
     }
 
+    if (btnMediaSaveModeToggle) {
+        btnMediaSaveModeToggle.textContent = autoMediaSaveEnabled ? getUiText('mediaSaveAuto') : getUiText('mediaSaveManual');
+    }
+
+    if (btnMediaFolderPc) {
+        const supported = supportsPcLocalMediaFolder();
+        btnMediaFolderPc.classList.toggle('hidden', !supported);
+        btnMediaFolderPc.disabled = !supported;
+        if (!supported) {
+            btnMediaFolderPc.textContent = getUiText('mediaPcFolderUnavailable');
+        } else if (pcLocalMediaFolderReady) {
+            btnMediaFolderPc.textContent = getUiText('mediaPcFolderReady');
+        } else {
+            btnMediaFolderPc.textContent = getUiText('mediaPcFolderConfigure');
+        }
+    }
+
     if (btnCallBlockToggle) {
         btnCallBlockToggle.textContent = blockIncomingCallsEnabled ? getUiText('callsBlocked') : getUiText('callsAllowed');
     }
@@ -3635,6 +4030,12 @@ function refreshSettingsMenuLabels() {
         btnSettings.title = title;
         btnSettings.setAttribute('aria-label', title);
     }
+
+    if (btnMediaViewerSave) {
+        const saveLabel = getUiText('mediaSaveAction');
+        btnMediaViewerSave.title = saveLabel;
+        btnMediaViewerSave.setAttribute('aria-label', saveLabel);
+    }
 }
 
 function refreshPresenceDisplay() {
@@ -3650,6 +4051,10 @@ try {
 } catch (error) {
     console.warn('Falha ao inicializar preferências locais:', error);
 }
+
+initializePcLocalMediaFolderState().catch((error) => {
+    console.warn('Falha ao inicializar pasta local de mídia no PC.', error);
+});
 
 function isDesktopNotificationsSupported() {
     return typeof Notification !== 'undefined';
@@ -3795,6 +4200,23 @@ function applyChatFontSizeSetting(size, persist = false) {
     }
 }
 
+function applyMediaAutoSaveSetting(isEnabled, persist = false) {
+    autoMediaSaveEnabled = !!isEnabled;
+
+    if (btnMediaSaveModeToggle) {
+        btnMediaSaveModeToggle.setAttribute('aria-pressed', autoMediaSaveEnabled ? 'true' : 'false');
+    }
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+
+    try {
+        localStorage.setItem(MEDIA_AUTO_SAVE_STORAGE_KEY, autoMediaSaveEnabled ? 'true' : 'false');
+    } catch (error) {
+        // ignore
+    }
+}
+
 function applyCallBlockingSetting(isEnabled, persist = false) {
     blockIncomingCallsEnabled = !!isEnabled;
 
@@ -3861,6 +4283,8 @@ function initializeUserPreferences() {
     applyOnlineStatusVisibilitySetting(getStoredBooleanSetting(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, true), false, false);
     applyChatFontSizeSetting(getStoredChatFontSize('normal'), false);
     applyChatBackground(getStoredChatBackground(), false);
+    applyMediaAutoSaveSetting(getStoredBooleanSetting(MEDIA_AUTO_SAVE_STORAGE_KEY, true), false);
+    setPcLocalMediaFolderReady(getStoredBooleanSetting(MEDIA_PC_FOLDER_READY_STORAGE_KEY, false), false);
     applyCallBlockingSetting(getStoredBooleanSetting(CALL_BLOCK_STORAGE_KEY, false), false);
     applyLastSeenVisibilitySetting(getStoredBooleanSetting(LAST_SEEN_VISIBILITY_STORAGE_KEY, true), false);
     refreshSettingsMenuLabels();
@@ -6652,6 +7076,13 @@ if (btnMediaViewerClose) {
     });
 }
 
+if (btnMediaViewerSave) {
+    btnMediaViewerSave.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await saveCurrentMediaViewerAttachment();
+    });
+}
+
 if (mediaViewerModal) {
     mediaViewerModal.addEventListener('click', (event) => {
         if (event.target === mediaViewerModal) {
@@ -7060,6 +7491,25 @@ if (chatBackgroundUpload) {
             applyChatBackground(dataUrl, true);
         } catch (error) {
             alert('Não foi possível aplicar este plano de fundo.');
+        }
+    });
+}
+
+if (btnMediaSaveModeToggle) {
+    btnMediaSaveModeToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        applyMediaAutoSaveSetting(!autoMediaSaveEnabled, true);
+    });
+}
+
+if (btnMediaFolderPc) {
+    btnMediaFolderPc.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const configured = await configurePcLocalMediaFolder();
+        if (configured) {
+            alert(getUiText('mediaPcFolderSaved'));
+        } else {
+            alert(getUiText('mediaPcFolderSaveFailed'));
         }
     });
 }
