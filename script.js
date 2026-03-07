@@ -31,6 +31,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((error) => {
 // Auth
 const authContainer = document.getElementById('auth-container');
 const app = document.getElementById('app');
+const appLaunchSplash = document.getElementById('app-launch-splash');
 const tabLogin = document.getElementById('tab-login');
 const tabRegister = document.getElementById('tab-register');
 const loginForm = document.getElementById('login-form');
@@ -268,6 +269,7 @@ const MAX_CHAT_FILE_SIZE_MB = Math.round(MAX_CHAT_FILE_SIZE_BYTES / (1024 * 1024
 const MESSAGE_LONG_PRESS_MS = 450;
 const MEDIA_VIEWER_MIN_SCALE = 1;
 const MEDIA_VIEWER_MAX_SCALE = 4;
+const APP_BOOTSTRAP_FALLBACK_MS = 18000;
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -399,6 +401,8 @@ let mediaViewerActiveUrl = '';
 let isManualMediaSaveInProgress = false;
 let pcMediaRootHandle = null;
 let pcMediaRootHandleLoaded = false;
+let hasCompletedInitialBootstrap = false;
+let appBootstrapFallbackTimer = null;
 
 // ========== FUNCOES DE AUTENTICACAO ==========
 
@@ -558,6 +562,45 @@ function renderCurrentUserIdentity(profile) {
     if (profileHandle) {
         profileHandle.textContent = handleText;
     }
+}
+
+function notifyAndroidAppReady(screen = 'auth') {
+    try {
+        if (window.CameChatAndroid && typeof window.CameChatAndroid.notifyAppReady === 'function') {
+            window.CameChatAndroid.notifyAppReady(String(screen || 'auth'));
+        }
+    } catch (error) {
+        console.warn('Falha ao avisar a camada Android que o app ficou pronto.', error);
+    }
+}
+
+function finishInitialBootstrap(screen = 'auth') {
+    if (hasCompletedInitialBootstrap) return;
+    hasCompletedInitialBootstrap = true;
+
+    if (appBootstrapFallbackTimer) {
+        clearTimeout(appBootstrapFallbackTimer);
+        appBootstrapFallbackTimer = null;
+    }
+
+    if (appLaunchSplash) {
+        appLaunchSplash.classList.add('is-hiding');
+        window.setTimeout(() => {
+            appLaunchSplash.classList.add('hidden');
+        }, 420);
+    }
+
+    notifyAndroidAppReady(screen);
+}
+
+function startInitialBootstrapFallback() {
+    if (appBootstrapFallbackTimer) {
+        clearTimeout(appBootstrapFallbackTimer);
+    }
+
+    appBootstrapFallbackTimer = window.setTimeout(() => {
+        finishInitialBootstrap(currentUser ? 'app' : 'auth');
+    }, APP_BOOTSTRAP_FALLBACK_MS);
 }
 
 async function ensureUserDocument(user, options = {}) {
@@ -2015,6 +2058,7 @@ auth.onAuthStateChanged(async (user) => {
         loadUsers();
 
         listenForIncomingCalls();
+        finishInitialBootstrap('app');
         
         // Atualizar lastSeen ao fechar a página
         window.addEventListener('beforeunload', () => {
@@ -2070,6 +2114,7 @@ auth.onAuthStateChanged(async (user) => {
         if (btnVideoCall) btnVideoCall.disabled = true;
         setSidebarOpen(false);
         resetCallState();
+        finishInitialBootstrap('auth');
     }
 });
 
@@ -4170,6 +4215,8 @@ try {
 initializePcLocalMediaFolderState().catch((error) => {
     console.warn('Falha ao inicializar pasta local de mídia no PC.', error);
 });
+
+startInitialBootstrapFallback();
 
 function isDesktopNotificationsSupported() {
     return typeof Notification !== 'undefined';
