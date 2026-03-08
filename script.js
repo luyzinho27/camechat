@@ -140,8 +140,11 @@ const CHAT_BACKGROUND_STORAGE_KEY = 'camechat_chat_background';
 const MEDIA_AUTO_SAVE_STORAGE_KEY = 'camechat_media_auto_save';
 const MEDIA_PC_FOLDER_READY_STORAGE_KEY = 'camechat_media_pc_folder_ready';
 const MEDIA_HANDLE_DB_NAME = 'camechat_local_media';
+const MEDIA_HANDLE_DB_VERSION = 2;
 const MEDIA_HANDLE_STORE_NAME = 'settings';
+const MEDIA_CACHE_STORE_NAME = 'attachments';
 const MEDIA_HANDLE_ROOT_KEY = 'pc_root_handle';
+const MEDIA_DOWNLOAD_SCOPE_QUERY_PARAM = 'camechat_scope';
 const CALL_BLOCK_STORAGE_KEY = 'camechat_block_incoming_calls';
 const LAST_SEEN_VISIBILITY_STORAGE_KEY = 'camechat_last_seen_visible';
 const LANGUAGE_STORAGE_KEY = 'camechat_language';
@@ -432,6 +435,7 @@ let mediaViewerActiveUrl = '';
 let isManualMediaSaveInProgress = false;
 let pcMediaRootHandle = null;
 let pcMediaRootHandleLoaded = false;
+let attachmentCacheObjectUrls = new Map();
 let hasCompletedInitialBootstrap = false;
 let appBootstrapFallbackTimer = null;
 
@@ -1425,13 +1429,15 @@ async function resolveAttachmentUrl(msg, preferredUrl = '') {
     if (preferredUrl) {
         addUniqueUrl(candidates, preferredUrl);
     }
-    if (!candidates.length) return '';
+    if (!candidates.length) {
+        return await getCachedAttachmentObjectUrl(msg);
+    }
 
     for (const url of candidates) {
         const ok = await canAccessAttachmentUrl(url);
         if (ok) return url;
     }
-    return '';
+    return await getCachedAttachmentObjectUrl(msg);
 }
 
 function attachMediaFallbackHandlers(mediaEl, msg) {
@@ -1444,7 +1450,7 @@ function attachMediaFallbackHandlers(mediaEl, msg) {
     const tried = new Set([normalizeUrlForCompare(candidates[currentIndex])]);
     let switching = false;
 
-    mediaEl.addEventListener('error', () => {
+    mediaEl.addEventListener('error', async () => {
         if (switching) return;
         switching = true;
         try {
@@ -1460,6 +1466,12 @@ function attachMediaFallbackHandlers(mediaEl, msg) {
             }
             if (nextUrl) {
                 mediaEl.src = nextUrl;
+                if (typeof mediaEl.load === 'function') mediaEl.load();
+                return;
+            }
+            const cachedUrl = await getCachedAttachmentObjectUrl(msg);
+            if (cachedUrl) {
+                mediaEl.src = cachedUrl;
                 if (typeof mediaEl.load === 'function') mediaEl.load();
             }
         } finally {
@@ -1766,14 +1778,15 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
     }
 
     const allowInteractiveFolderSetup = !!options.allowInteractiveFolderSetup;
+    const scope = resolveLocalMediaScope(msg, options.scope);
     const mimeType = msg?.fileType || '';
     const fileName = inferAttachmentFileName(msg, resolvedUrl, mimeType);
     const isLargeFile = Number(msg?.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
     const progressItem = isLargeFile ? createDownloadProgressItem(fileName || 'arquivo') : null;
 
     try {
-        if (isAndroidWebViewRuntime()) {
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType);
+        if (isAndroidWebViewRuntime() && !String(resolvedUrl).startsWith('blob:')) {
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope });
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
         }
@@ -1783,11 +1796,12 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
                 if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
             });
             if (blob && blob.size) {
-                if (await trySaveBlobToPcLocalFolder(msg, fileName, blob, blob.type || mimeType, allowInteractiveFolderSetup)) {
+                await saveAttachmentBlobToCache(msg, blob);
+                if (await trySaveBlobToPcLocalFolder(msg, fileName, blob, blob.type || mimeType, allowInteractiveFolderSetup, { scope })) {
                     if (progressItem) finalizeDownloadItem(progressItem);
                     return;
                 }
-                triggerBlobDownload(blob, fileName, msg, blob.type || mimeType);
+                triggerBlobDownload(blob, fileName, msg, blob.type || mimeType, { scope });
                 if (progressItem) finalizeDownloadItem(progressItem);
                 return;
             }
@@ -1795,7 +1809,7 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
             // fallback para download direto
         }
 
-        triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType);
+        triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope });
         if (progressItem) finalizeDownloadItem(progressItem);
     } catch (error) {
         if (progressItem) markDownloadError(progressItem, 'Falha no download');
@@ -1853,19 +1867,39 @@ function getDownloadCategory(msg, fileName = '', mimeType = '') {
     return 'Documents';
 }
 
-function buildDeviceDownloadPath(msg, fileName, mimeType = '') {
-    const safeName = sanitizeDownloadFileName(fileName);
-    const category = getDownloadCategory(msg, safeName, mimeType);
-    return `CameChat/Media/${category}/${safeName}`;
+function resolveLocalMediaScope(msg, explicitScope = '') {
+    if (explicitScope === 'sent') return 'sent';
+    if (explicitScope === 'received') return 'received';
+    if (currentUser && msg?.senderId === currentUser.uid) return 'sent';
+    return 'received';
 }
 
-async function trySaveBlobToPcLocalFolder(msg, fileName, blob, mimeType = '', interactive = false) {
+function appendDownloadScopeParam(url, scope = '') {
+    if (!url || scope !== 'sent') return url;
+    try {
+        const parsed = new URL(url, window.location.href);
+        parsed.searchParams.set(MEDIA_DOWNLOAD_SCOPE_QUERY_PARAM, 'sent');
+        return parsed.toString();
+    } catch (error) {
+        return url;
+    }
+}
+
+function buildDeviceDownloadPath(msg, fileName, mimeType = '', options = {}) {
+    const safeName = sanitizeDownloadFileName(fileName);
+    const category = getDownloadCategory(msg, safeName, mimeType);
+    const scope = resolveLocalMediaScope(msg, options.scope);
+    const scopePrefix = scope === 'sent' ? 'Enviados/' : '';
+    return `CameChat/Media/${scopePrefix}${category}/${safeName}`;
+}
+
+async function trySaveBlobToPcLocalFolder(msg, fileName, blob, mimeType = '', interactive = false, options = {}) {
     if (!blob || !supportsPcLocalMediaFolder()) return false;
 
     try {
         const rootHandle = await getPcMediaRootHandle(interactive);
         if (!rootHandle) return false;
-        const saved = await writeBlobToPcLocalMediaFolder(rootHandle, msg, fileName, blob, mimeType);
+        const saved = await writeBlobToPcLocalMediaFolder(rootHandle, msg, fileName, blob, mimeType, options);
         if (saved) {
             setPcLocalMediaFolderReady(true);
             return true;
@@ -1878,11 +1912,11 @@ async function trySaveBlobToPcLocalFolder(msg, fileName, blob, mimeType = '', in
     return false;
 }
 
-function triggerBlobDownload(blob, fileName, msg = null, mimeType = '') {
+function triggerBlobDownload(blob, fileName, msg = null, mimeType = '', options = {}) {
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = objectUrl;
-    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType || blob?.type || '');
+    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType || blob?.type || '', options);
     anchor.rel = 'noopener';
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
@@ -1891,10 +1925,11 @@ function triggerBlobDownload(blob, fileName, msg = null, mimeType = '') {
     setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
 }
 
-function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '') {
+function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '', options = {}) {
     const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType);
+    const scope = resolveLocalMediaScope(msg, options.scope);
+    anchor.href = appendDownloadScopeParam(url, scope);
+    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType, { scope });
     anchor.rel = 'noopener';
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
@@ -1957,7 +1992,7 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
                 throw new Error('Arquivo indisponível');
             }
             const fileName = inferAttachmentFileName(msg, resolvedUrl, msg?.fileType || '');
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '');
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '', { scope: 'received' });
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
@@ -1985,20 +2020,21 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
         }
 
         const fileName = inferAttachmentFileName(msg, resolvedUrl, resolvedBlob.type);
-        const savedToPcLocalFolder = await trySaveBlobToPcLocalFolder(msg, fileName, resolvedBlob, resolvedBlob.type, false);
+        await saveAttachmentBlobToCache(msg, resolvedBlob);
+        const savedToPcLocalFolder = await trySaveBlobToPcLocalFolder(msg, fileName, resolvedBlob, resolvedBlob.type, false, { scope: 'received' });
         if (savedToPcLocalFolder) {
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
         }
-        triggerBlobDownload(resolvedBlob, fileName, msg, resolvedBlob.type);
+        triggerBlobDownload(resolvedBlob, fileName, msg, resolvedBlob.type, { scope: 'received' });
         autoDownloadedAttachmentKeys.add(key);
         if (progressItem) finalizeDownloadItem(progressItem);
     } catch (error) {
         const fallbackUrl = candidates[0];
         const fallbackName = inferAttachmentFileName(msg, fallbackUrl, '');
         try {
-            triggerDirectUrlDownload(fallbackUrl, fallbackName, msg, msg?.fileType || '');
+            triggerDirectUrlDownload(fallbackUrl, fallbackName, msg, msg?.fileType || '', { scope: 'received' });
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
         } catch (fallbackError) {
@@ -2007,6 +2043,34 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
         }
     } finally {
         autoDownloadingAttachmentKeys.delete(key);
+    }
+}
+
+async function autoSaveOutgoingAttachment(msg, file) {
+    if (!msg?.id || !file || !autoMediaSaveEnabled) return false;
+
+    const mimeType = String(file.type || msg.fileType || 'application/octet-stream');
+    const fileName = sanitizeDownloadFileName(file.name || msg.fileName || inferAttachmentFileName(msg, msg.fileUrl || msg.imageUrl || '', mimeType));
+
+    try {
+        await saveAttachmentBlobToCache(msg, file);
+
+        if (await trySaveBlobToPcLocalFolder(msg, fileName, file, mimeType, false, { scope: 'sent' })) {
+            return true;
+        }
+
+        if (isAndroidWebViewRuntime()) {
+            const resolvedUrl = await resolveAttachmentUrl(msg, msg.fileUrl || msg.imageUrl || '');
+            if (!resolvedUrl) return false;
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope: 'sent' });
+            return true;
+        }
+
+        triggerBlobDownload(file, fileName, msg, mimeType, { scope: 'sent' });
+        return true;
+    } catch (error) {
+        console.warn('Falha ao salvar mídia enviada localmente.', error);
+        return false;
     }
 }
 
@@ -4212,16 +4276,89 @@ function openMediaHandleDb() {
             return;
         }
 
-        const request = window.indexedDB.open(MEDIA_HANDLE_DB_NAME, 1);
+        const request = window.indexedDB.open(MEDIA_HANDLE_DB_NAME, MEDIA_HANDLE_DB_VERSION);
         request.onupgradeneeded = () => {
             const dbRef = request.result;
             if (!dbRef.objectStoreNames.contains(MEDIA_HANDLE_STORE_NAME)) {
                 dbRef.createObjectStore(MEDIA_HANDLE_STORE_NAME);
             }
+            if (!dbRef.objectStoreNames.contains(MEDIA_CACHE_STORE_NAME)) {
+                dbRef.createObjectStore(MEDIA_CACHE_STORE_NAME);
+            }
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error || new Error('Falha ao abrir banco local'));
     });
+}
+
+function getAttachmentCacheKey(msg) {
+    if (!msg?.id) return '';
+    const senderId = String(msg.senderId || '').trim();
+    const receiverId = String(msg.receiverId || '').trim();
+    if (senderId && receiverId) {
+        return `${getConversationId(senderId, receiverId)}:${msg.id}`;
+    }
+    return String(msg.id);
+}
+
+async function saveAttachmentBlobToCache(msg, blob) {
+    const cacheKey = getAttachmentCacheKey(msg);
+    if (!cacheKey || !blob) return false;
+
+    try {
+        const dbRef = await openMediaHandleDb();
+        await new Promise((resolve, reject) => {
+            const tx = dbRef.transaction(MEDIA_CACHE_STORE_NAME, 'readwrite');
+            tx.objectStore(MEDIA_CACHE_STORE_NAME).put({
+                blob,
+                fileName: String(msg?.fileName || '').trim(),
+                fileType: String(blob.type || msg?.fileType || '').trim(),
+                updatedAt: Date.now()
+            }, cacheKey);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error || new Error('Falha ao salvar cache local da mídia'));
+        });
+        dbRef.close();
+        return true;
+    } catch (error) {
+        console.warn('Falha ao salvar blob da mídia em cache local.', error);
+        return false;
+    }
+}
+
+async function loadAttachmentBlobFromCache(msg) {
+    const cacheKey = getAttachmentCacheKey(msg);
+    if (!cacheKey) return null;
+
+    try {
+        const dbRef = await openMediaHandleDb();
+        const cachedEntry = await new Promise((resolve, reject) => {
+            const tx = dbRef.transaction(MEDIA_CACHE_STORE_NAME, 'readonly');
+            const req = tx.objectStore(MEDIA_CACHE_STORE_NAME).get(cacheKey);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error || new Error('Falha ao carregar cache local da mídia'));
+        });
+        dbRef.close();
+        return cachedEntry?.blob || null;
+    } catch (error) {
+        console.warn('Falha ao carregar blob da mídia do cache local.', error);
+        return null;
+    }
+}
+
+async function getCachedAttachmentObjectUrl(msg) {
+    const cacheKey = getAttachmentCacheKey(msg);
+    if (!cacheKey) return '';
+
+    const existingUrl = attachmentCacheObjectUrls.get(cacheKey);
+    if (existingUrl) return existingUrl;
+
+    const blob = await loadAttachmentBlobFromCache(msg);
+    if (!blob) return '';
+
+    const objectUrl = URL.createObjectURL(blob);
+    attachmentCacheObjectUrls.set(cacheKey, objectUrl);
+    return objectUrl;
 }
 
 async function savePcMediaRootHandle(handle) {
@@ -4282,10 +4419,14 @@ async function ensureHandleWritePermission(handle, interactive = false) {
     return false;
 }
 
-async function ensurePcMediaDirectoryHandle(rootHandle, msg, fileName, mimeType = '') {
+async function ensurePcMediaDirectoryHandle(rootHandle, msg, fileName, mimeType = '', options = {}) {
     const mediaDir = await ensurePcMediaFolderStructure(rootHandle);
     const category = getDownloadCategory(msg, fileName, mimeType);
-    const categoryDir = await mediaDir.getDirectoryHandle(category, { create: true });
+    const scope = resolveLocalMediaScope(msg, options.scope);
+    const targetDir = scope === 'sent'
+        ? await mediaDir.getDirectoryHandle('Enviados', { create: true })
+        : mediaDir;
+    const categoryDir = await targetDir.getDirectoryHandle(category, { create: true });
     return { categoryDir };
 }
 
@@ -4296,13 +4437,17 @@ async function ensurePcMediaFolderStructure(rootHandle) {
     for (const category of categories) {
         await mediaDir.getDirectoryHandle(category, { create: true });
     }
+    const sentDir = await mediaDir.getDirectoryHandle('Enviados', { create: true });
+    for (const category of categories) {
+        await sentDir.getDirectoryHandle(category, { create: true });
+    }
     return mediaDir;
 }
 
-async function writeBlobToPcLocalMediaFolder(rootHandle, msg, fileName, blob, mimeType = '') {
+async function writeBlobToPcLocalMediaFolder(rootHandle, msg, fileName, blob, mimeType = '', options = {}) {
     if (!rootHandle || !blob) return false;
     const safeName = sanitizeDownloadFileName(fileName);
-    const { categoryDir } = await ensurePcMediaDirectoryHandle(rootHandle, msg, safeName, mimeType || blob.type || '');
+    const { categoryDir } = await ensurePcMediaDirectoryHandle(rootHandle, msg, safeName, mimeType || blob.type || '', options);
     const fileHandle = await categoryDir.getFileHandle(safeName, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(blob);
@@ -8029,25 +8174,28 @@ async function handleChatFile(file) {
         const fileUrl = await uploadChatFile(file, { uid: currentUser.uid });
 
         const conversationId = getConversationId(currentUser.uid, selectedUserId);
-
-        await db.collection('conversations')
+        const messageRef = db.collection('conversations')
             .doc(conversationId)
             .collection('messages')
-            .add({
-                fileUrl: fileUrl,
-                fileName: file.name,
-                fileType: file.type || 'application/octet-stream',
-                fileSize: file.size,
-                imageUrl: isImage ? fileUrl : null,
-                senderId: currentUser.uid,
-                receiverId: selectedUserId,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                type: messageType,
-                read: false,
-                delivered: delivered,
-                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
-                replyTo: replyPayload || null
-            });
+            .doc();
+        const messagePayload = {
+            fileUrl: fileUrl,
+            fileName: file.name,
+            fileType: file.type || 'application/octet-stream',
+            fileSize: file.size,
+            imageUrl: isImage ? fileUrl : null,
+            senderId: currentUser.uid,
+            receiverId: selectedUserId,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            type: messageType,
+            read: false,
+            delivered: delivered,
+            deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+            replyTo: replyPayload || null
+        };
+
+        await messageRef.set(messagePayload);
+        await autoSaveOutgoingAttachment({ id: messageRef.id, ...messagePayload }, file);
         clearReplyTargetMessage();
     } catch (error) {
         alert('Erro ao enviar arquivo: ' + error.message);
@@ -8830,6 +8978,17 @@ window.addEventListener('resize', () => {
     if (!mediaViewerModal || mediaViewerModal.classList.contains('hidden')) return;
     clampMediaViewerImageTranslate();
     applyMediaViewerImageTransform();
+});
+
+window.addEventListener('beforeunload', () => {
+    attachmentCacheObjectUrls.forEach((url) => {
+        try {
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            // ignore
+        }
+    });
+    attachmentCacheObjectUrls = new Map();
 });
 
 if (btnCallMute) {
