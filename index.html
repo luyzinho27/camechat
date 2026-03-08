@@ -164,7 +164,7 @@
             </div>
 
             <div class="add-friend-box">
-                <input type="text" id="friend-email" placeholder="E-mail ou @identificador">
+                <input type="text" id="friend-email" placeholder="E-mail ou @primeironome">
                 <button id="btn-add-friend" class="btn-add-friend" type="button">Adicionar</button>
             </div>
             
@@ -415,6 +415,15 @@
                 <button id="friend-block-btn" class="btn-primary" type="button">Bloquear amigo</button>
                 <button id="friend-unblock-btn" class="btn-google hidden" type="button">Desbloquear amigo</button>
             </div>
+        </div>
+    </div>
+
+    <div id="user-tag-match-modal" class="modal">
+        <div class="modal-content user-tag-match-modal-content">
+            <span id="user-tag-match-close" class="close-modal">&times;</span>
+            <h3>Escolher usuário</h3>
+            <p id="user-tag-match-text">Mais de um usuário foi encontrado com esse identificador.</p>
+            <ul id="user-tag-match-list" class="share-message-friends-list user-tag-match-list"></ul>
         </div>
     </div>
 
