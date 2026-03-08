@@ -6,7 +6,7 @@
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
-    <link rel="stylesheet" href="style.css?v=20260307-38">
+    <link rel="stylesheet" href="style.css?v=20260307-40">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -154,6 +154,12 @@
                     <small id="user-handle" class="user-handle"></small>
                     <span id="user-role-badge" class="role-badge hidden">Administrador</span>
                 </div>
+                <div id="friend-selection-toolbar" class="friend-selection-toolbar hidden">
+                    <span id="friend-selection-count" class="friend-selection-count">0</span>
+                    <button id="btn-friend-mute-selected" class="btn-icon friend-selection-btn" type="button" title="Silenciar" aria-label="Silenciar" aria-pressed="false">&#128263;</button>
+                    <button id="btn-friend-block-selected" class="btn-icon friend-selection-btn" type="button" title="Bloquear" aria-label="Bloquear">&#128683;</button>
+                    <button id="btn-friend-remove-selected" class="btn-icon friend-selection-btn" type="button" title="Excluir amigo" aria-label="Excluir amigo">&#128465;</button>
+                </div>
                 <div class="sidebar-actions">
                     <button id="btn-admin-panel" class="admin-btn hidden">Admin</button>
                 </div>
@@ -204,6 +210,9 @@
             <main id="chat-panel" class="chat-area">
                 <header class="chat-header" id="chat-header">
                     <button id="btn-toggle-sidebar" class="btn-icon btn-toggle-sidebar" title="Contatos">&#9776;</button>
+                    <div id="chat-selection-summary" class="chat-selection-summary hidden">
+                        <span id="chat-selection-count">0</span>
+                    </div>
                     <img id="chat-partner-photo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" data-default-src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" alt="foto" class="partner-avatar clickable">
                     <div class="chat-partner-info clickable">
                         <span id="chat-partner-name">Selecione um usuário</span>
@@ -213,6 +222,7 @@
                     </div>
                     <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de vídeo">&#128249;</button>
                     <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">&#128222;</button>
+                    <button id="btn-edit-selected" class="btn-icon btn-edit-selected hidden" disabled title="Editar mensagem selecionada">&#9998;</button>
                     <button id="btn-delete-selected" class="btn-icon btn-delete-selected hidden" disabled title="Excluir selecionadas">&#128465;</button>
                     <button id="btn-copy-selected" class="btn-icon btn-copy-selected hidden" disabled title="Copiar selecionadas">&#128203;</button>
                     <button id="btn-share-selected" class="btn-icon btn-share-selected hidden" disabled title="Compartilhar selecionadas">&#10150;</button>
@@ -238,6 +248,14 @@
                     </div>
                     <div id="reply-preview-thumb" class="reply-preview-thumb hidden"></div>
                     <button id="btn-reply-cancel" class="btn-icon btn-reply-cancel" type="button" title="Cancelar resposta" aria-label="Cancelar resposta">&#10006;</button>
+                </div>
+
+                <div id="edit-preview" class="reply-preview edit-preview hidden">
+                    <div class="reply-preview-main">
+                        <small id="edit-preview-label">Editando mensagem</small>
+                        <p id="edit-preview-text"></p>
+                    </div>
+                    <button id="btn-edit-cancel" class="btn-icon btn-reply-cancel" type="button" title="Cancelar edição" aria-label="Cancelar edição">&#10006;</button>
                 </div>
 
                 <div class="message-input-area">
@@ -532,9 +550,16 @@
         <div id="media-viewer-content" class="media-viewer-content"></div>
     </div>
 
+    <div id="message-action-menu" class="message-action-menu hidden" role="menu" aria-label="Ações da mensagem">
+        <button id="message-action-reply" class="message-action-btn" type="button" role="menuitem">&#8617; Responder</button>
+        <button id="message-action-copy" class="message-action-btn" type="button" role="menuitem">&#128203; Copiar</button>
+        <button id="message-action-edit" class="message-action-btn" type="button" role="menuitem">&#9998; Editar</button>
+        <button id="message-action-delete" class="message-action-btn danger" type="button" role="menuitem">&#128465; Excluir</button>
+    </div>
+
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260307-42"></script>
+    <script src="script.js?v=20260308-45"></script>
 </body>
 </html>
