@@ -63,8 +63,16 @@ const userName = document.getElementById('user-name');
 const userStatus = document.getElementById('user-status');
 const userHandle = document.getElementById('user-handle');
 const userRoleBadge = document.getElementById('user-role-badge');
+const friendSelectionToolbar = document.getElementById('friend-selection-toolbar');
+const friendSelectionCount = document.getElementById('friend-selection-count');
+const btnFriendMuteSelected = document.getElementById('btn-friend-mute-selected');
+const btnFriendBlockSelected = document.getElementById('btn-friend-block-selected');
+const btnFriendRemoveSelected = document.getElementById('btn-friend-remove-selected');
 const usersList = document.getElementById('users-list');
 const totalUsers = document.getElementById('total-users');
+const chatHeader = document.getElementById('chat-header');
+const chatSelectionSummary = document.getElementById('chat-selection-summary');
+const chatSelectionCount = document.getElementById('chat-selection-count');
 const chatPartnerName = document.getElementById('chat-partner-name');
 const chatPartnerPhoto = document.getElementById('chat-partner-photo');
 const chatPartnerStatus = document.getElementById('chat-partner-status');
@@ -137,6 +145,7 @@ const MEDIA_HANDLE_ROOT_KEY = 'pc_root_handle';
 const CALL_BLOCK_STORAGE_KEY = 'camechat_block_incoming_calls';
 const LAST_SEEN_VISIBILITY_STORAGE_KEY = 'camechat_last_seen_visible';
 const LANGUAGE_STORAGE_KEY = 'camechat_language';
+const MUTED_FRIENDS_STORAGE_KEY_PREFIX = 'camechat_muted_friends_';
 
 let soundNotificationsEnabled = true;
 let readReceiptsEnabled = true;
@@ -202,6 +211,7 @@ const userTagMatchList = document.getElementById('user-tag-match-list');
 // Call modal
 const btnCall = document.getElementById('btn-call');
 const btnVideoCall = document.getElementById('btn-video-call');
+const btnEditSelected = document.getElementById('btn-edit-selected');
 const btnDeleteSelected = document.getElementById('btn-delete-selected');
 const btnCopySelected = document.getElementById('btn-copy-selected');
 const btnShareSelected = document.getElementById('btn-share-selected');
@@ -247,11 +257,21 @@ const mediaViewerModal = document.getElementById('media-viewer-modal');
 const mediaViewerContent = document.getElementById('media-viewer-content');
 const btnMediaViewerSave = document.getElementById('btn-media-viewer-save');
 const btnMediaViewerClose = document.getElementById('btn-media-viewer-close');
+const messageActionMenu = document.getElementById('message-action-menu');
+const messageActionReply = document.getElementById('message-action-reply');
+const messageActionCopy = document.getElementById('message-action-copy');
+const messageActionEdit = document.getElementById('message-action-edit');
+const messageActionDelete = document.getElementById('message-action-delete');
 const replyPreview = document.getElementById('reply-preview');
 const replyPreviewLabel = document.getElementById('reply-preview-label');
 const replyPreviewText = document.getElementById('reply-preview-text');
 const replyPreviewThumb = document.getElementById('reply-preview-thumb');
 const btnReplyCancel = document.getElementById('btn-reply-cancel');
+const editPreview = document.getElementById('edit-preview');
+const editPreviewLabel = document.getElementById('edit-preview-label');
+const editPreviewText = document.getElementById('edit-preview-text');
+const btnEditCancel = document.getElementById('btn-edit-cancel');
+const DEFAULT_MESSAGE_INPUT_PLACEHOLDER = messageInput?.getAttribute('placeholder') || 'Digite sua mensagem...';
 
 const CALL_ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>';
 const CALL_ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
@@ -271,6 +291,7 @@ const LARGE_AUTO_DOWNLOAD_BYTES = 4 * 1024 * 1024;
 const MAX_CHAT_FILE_SIZE_BYTES = 60 * 1024 * 1024;
 const MAX_CHAT_FILE_SIZE_MB = Math.round(MAX_CHAT_FILE_SIZE_BYTES / (1024 * 1024));
 const MESSAGE_LONG_PRESS_MS = 450;
+const MESSAGE_EDIT_WINDOW_MS = 30 * 60 * 1000;
 const MEDIA_VIEWER_MIN_SCALE = 1;
 const MEDIA_VIEWER_MAX_SCALE = 4;
 const APP_BOOTSTRAP_FALLBACK_MS = 18000;
@@ -389,8 +410,13 @@ let autoDownloadedAttachmentKeys = new Set();
 let autoDownloadingAttachmentKeys = new Set();
 let isMessageSelectionMode = false;
 let selectedMessageIds = new Set();
+let isFriendSelectionMode = false;
+let selectedFriendIds = new Set();
+let mutedFriendIds = new Set();
 let suppressMediaOpenUntil = 0;
 let replyToMessage = null;
+let editingMessage = null;
+let activeMessageActionTarget = null;
 let deleteMessageModalResolver = null;
 let shareMessageModalResolver = null;
 let userTagMatchModalResolver = null;
@@ -700,6 +726,130 @@ function renderCurrentUserIdentity(profile) {
     if (profileHandle) {
         profileHandle.textContent = handleText;
     }
+}
+
+function getMutedFriendsStorageKey(uid = currentUser?.uid) {
+    return uid ? `${MUTED_FRIENDS_STORAGE_KEY_PREFIX}${uid}` : '';
+}
+
+function loadMutedFriendsForCurrentUser() {
+    const key = getMutedFriendsStorageKey();
+    if (!key) {
+        mutedFriendIds = new Set();
+        return;
+    }
+
+    try {
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : [];
+        mutedFriendIds = new Set(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
+    } catch (error) {
+        mutedFriendIds = new Set();
+    }
+}
+
+function persistMutedFriendsForCurrentUser() {
+    const key = getMutedFriendsStorageKey();
+    if (!key) return;
+
+    try {
+        localStorage.setItem(key, JSON.stringify(Array.from(mutedFriendIds)));
+    } catch (error) {
+        // ignore
+    }
+}
+
+function isFriendMuted(friendId) {
+    return !!friendId && mutedFriendIds.has(friendId);
+}
+
+function updateChatSelectionSummary() {
+    const selectedCount = selectedMessageIds.size;
+    const hasSelection = isMessageSelectionMode && selectedCount > 0;
+    if (chatSelectionCount) {
+        chatSelectionCount.textContent = String(selectedCount || 0);
+    }
+    if (chatSelectionSummary) {
+        chatSelectionSummary.classList.toggle('hidden', !hasSelection);
+    }
+    if (chatHeader) {
+        chatHeader.classList.toggle('message-selection-active', hasSelection);
+    }
+}
+
+function getSelectedFriendsData() {
+    if (!Array.isArray(allUsersCache) || !selectedFriendIds.size) return [];
+    return allUsersCache.filter((user) => selectedFriendIds.has(user.uid));
+}
+
+function updateFriendSelectionUI() {
+    const selectedCount = selectedFriendIds.size;
+    const hasSelection = isFriendSelectionMode && selectedCount > 0;
+    const selectedFriends = hasSelection ? getSelectedFriendsData() : [];
+    const allMuted = selectedFriends.length > 0 && selectedFriends.every((friend) => isFriendMuted(friend.uid));
+
+    if (friendSelectionCount) {
+        friendSelectionCount.textContent = String(selectedCount || 0);
+    }
+    if (friendSelectionToolbar) {
+        friendSelectionToolbar.classList.toggle('hidden', !hasSelection);
+    }
+    const sidebarHeader = userPhoto?.closest('.sidebar-header');
+    if (sidebarHeader) {
+        sidebarHeader.classList.toggle('friend-selection-active', hasSelection);
+    }
+    if (btnFriendMuteSelected) {
+        btnFriendMuteSelected.title = allMuted ? 'Remover silêncio' : 'Silenciar';
+        btnFriendMuteSelected.setAttribute('aria-label', allMuted ? 'Remover silêncio' : 'Silenciar');
+        btnFriendMuteSelected.setAttribute('aria-pressed', allMuted ? 'true' : 'false');
+    }
+}
+
+function resetFriendSelectionState() {
+    isFriendSelectionMode = false;
+    selectedFriendIds = new Set();
+    updateFriendSelectionUI();
+    renderFriendUsers();
+}
+
+function setFriendSelectionMode(enabled) {
+    const shouldEnable = !!enabled;
+    isFriendSelectionMode = shouldEnable;
+    if (!shouldEnable) {
+        selectedFriendIds = new Set();
+    }
+    updateFriendSelectionUI();
+    renderFriendUsers();
+}
+
+function toggleFriendSelection(friendId) {
+    if (!friendId) return;
+    if (!isFriendSelectionMode) {
+        isFriendSelectionMode = true;
+    }
+    if (selectedFriendIds.has(friendId)) {
+        selectedFriendIds.delete(friendId);
+    } else {
+        selectedFriendIds.add(friendId);
+    }
+    if (selectedFriendIds.size === 0) {
+        setFriendSelectionMode(false);
+        return;
+    }
+    updateFriendSelectionUI();
+    renderFriendUsers();
+}
+
+function activateFriendSelectionByLongPress(friendId) {
+    if (!friendId) return;
+    if (!isFriendSelectionMode) {
+        isFriendSelectionMode = true;
+        selectedFriendIds = new Set([friendId]);
+    } else {
+        selectedFriendIds.add(friendId);
+    }
+    updateFriendSelectionUI();
+    renderFriendUsers();
 }
 
 function notifyAndroidAppReady(screen = 'auth') {
@@ -2163,6 +2313,7 @@ auth.onAuthStateChanged(async (user) => {
             showOnlineStatus: showOnlineStatusEnabled
         };
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
+        loadMutedFriendsForCurrentUser();
         if (typeof currentUserProfile.showOnlineStatus === 'boolean') {
             applyOnlineStatusVisibilitySetting(currentUserProfile.showOnlineStatus, true, false);
         } else {
@@ -2240,6 +2391,10 @@ auth.onAuthStateChanged(async (user) => {
         currentConversationMessages = [];
         currentFriends = [];
         allUsersCache = [];
+        mutedFriendIds = new Set();
+        selectedFriendIds = new Set();
+        isFriendSelectionMode = false;
+        updateFriendSelectionUI();
         if (btnEmoji) btnEmoji.disabled = true;
         if (btnVoice) btnVoice.disabled = true;
         if (btnCameraQuick) btnCameraQuick.disabled = true;
@@ -3842,6 +3997,79 @@ async function unblockFriend(friendId) {
     }, { merge: true });
 }
 
+function toggleMuteSelectedFriends() {
+    const selectedIds = Array.from(selectedFriendIds).filter(Boolean);
+    if (!selectedIds.length) return;
+
+    const allMuted = selectedIds.every((id) => isFriendMuted(id));
+    selectedIds.forEach((id) => {
+        if (allMuted) {
+            mutedFriendIds.delete(id);
+        } else {
+            mutedFriendIds.add(id);
+        }
+    });
+    persistMutedFriendsForCurrentUser();
+    updateFriendSelectionUI();
+    renderFriendUsers();
+}
+
+async function blockSelectedFriends() {
+    const selectedIds = Array.from(selectedFriendIds).filter(Boolean);
+    if (!selectedIds.length) return;
+
+    const confirmed = confirm(selectedIds.length === 1
+        ? 'Deseja bloquear este amigo?'
+        : `Deseja bloquear ${selectedIds.length} amigos selecionados?`);
+    if (!confirmed) return;
+
+    for (const friendId of selectedIds) {
+        await blockFriend(friendId);
+    }
+
+    if (!Array.isArray(currentUserProfile?.blocked)) {
+        currentUserProfile = { ...(currentUserProfile || {}), blocked: [] };
+    }
+    selectedIds.forEach((id) => {
+        if (!currentUserProfile.blocked.includes(id)) {
+            currentUserProfile.blocked.push(id);
+        }
+    });
+
+    if (selectedUserId && selectedIds.includes(selectedUserId)) {
+        renderChatPartnerStatus();
+        if (messageInput) messageInput.disabled = true;
+        if (btnAttach) btnAttach.disabled = true;
+        if (btnSend) btnSend.disabled = true;
+        if (btnEmoji) btnEmoji.disabled = true;
+        if (btnVoice) btnVoice.disabled = true;
+        if (btnCameraQuick) btnCameraQuick.disabled = true;
+        if (btnCall) btnCall.disabled = true;
+        if (btnVideoCall) btnVideoCall.disabled = true;
+        updateComposerPrimaryAction();
+    }
+
+    resetFriendSelectionState();
+}
+
+async function removeSelectedFriends() {
+    const selectedIds = Array.from(selectedFriendIds).filter(Boolean);
+    if (!selectedIds.length) return;
+
+    const confirmed = confirm(selectedIds.length === 1
+        ? 'Deseja remover este amigo da sua lista?'
+        : `Deseja remover ${selectedIds.length} amigos da sua lista?`);
+    if (!confirmed) return;
+
+    for (const friendId of selectedIds) {
+        await removeFriend(friendId);
+    }
+
+    currentFriends = (currentFriends || []).filter((id) => !selectedIds.includes(id));
+
+    resetFriendSelectionState();
+}
+
 function updateRoleBadge(role) {
     if (!userRoleBadge) return;
     if (role === 'administrador') {
@@ -4607,8 +4835,9 @@ function initializeUserPreferences() {
     refreshSettingsMenuLabels();
 }
 
-function playIncomingMessageTone() {
+function playIncomingMessageTone(senderUid = '') {
     if (!soundNotificationsEnabled) return;
+    if (senderUid && isFriendMuted(senderUid)) return;
 
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
@@ -4664,6 +4893,7 @@ function showIncomingDesktopNotification(senderUid, messageData) {
     if (!isDesktopNotificationsSupported()) return;
     if (getDesktopNotificationPermission() !== 'granted') return;
     if (document.visibilityState === 'visible' && document.hasFocus()) return;
+    if (isFriendMuted(senderUid)) return;
 
     const sender = (selectedFriendData && selectedFriendData.uid === senderUid)
         ? selectedFriendData
@@ -5111,10 +5341,97 @@ function renderFriendUsers() {
         if (btnVideoCall) btnVideoCall.disabled = true;
         updateComposerPrimaryAction();
     }
+
+    if (isFriendSelectionMode) {
+        const validFriendIds = new Set(friends.map((user) => user.uid));
+        selectedFriendIds.forEach((id) => {
+            if (!validFriendIds.has(id)) selectedFriendIds.delete(id);
+        });
+        if (selectedFriendIds.size === 0) {
+            isFriendSelectionMode = false;
+        }
+    }
+    updateFriendSelectionUI();
+}
+
+function bindFriendSelectionInteractions(friendEl, user) {
+    if (!friendEl || !user?.uid) return;
+
+    let longPressTimer = null;
+    let longPressTriggered = false;
+    let pressClientX = 0;
+    let pressClientY = 0;
+
+    const clearTimer = () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    };
+
+    const startLongPress = (event) => {
+        if (event && typeof event.button === 'number' && event.button !== 0) return;
+        clearTimer();
+        longPressTriggered = false;
+
+        if (event?.touches?.[0]) {
+            pressClientX = event.touches[0].clientX;
+            pressClientY = event.touches[0].clientY;
+        } else {
+            pressClientX = event?.clientX ?? 0;
+            pressClientY = event?.clientY ?? 0;
+        }
+
+        longPressTimer = setTimeout(() => {
+            longPressTriggered = true;
+            activateFriendSelectionByLongPress(user.uid);
+            suppressMediaOpenUntil = Date.now() + 900;
+        }, MESSAGE_LONG_PRESS_MS);
+    };
+
+    const cancelLongPressOnMove = (event) => {
+        if (event?.touches?.[0]) {
+            const deltaX = Math.abs(event.touches[0].clientX - pressClientX);
+            const deltaY = Math.abs(event.touches[0].clientY - pressClientY);
+            if (deltaX > 12 || deltaY > 12) {
+                clearTimer();
+            }
+            return;
+        }
+        clearTimer();
+    };
+
+    friendEl.addEventListener('mousedown', startLongPress);
+    friendEl.addEventListener('touchstart', startLongPress, { passive: true });
+    friendEl.addEventListener('mousemove', cancelLongPressOnMove);
+    friendEl.addEventListener('mouseup', clearTimer);
+    friendEl.addEventListener('mouseleave', clearTimer);
+    friendEl.addEventListener('touchend', clearTimer);
+    friendEl.addEventListener('touchmove', cancelLongPressOnMove, { passive: true });
+    friendEl.addEventListener('touchcancel', clearTimer);
+
+    friendEl.addEventListener('click', (event) => {
+        if (longPressTriggered) {
+            event.preventDefault();
+            event.stopPropagation();
+            longPressTriggered = false;
+            return;
+        }
+
+        if (isFriendSelectionMode) {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleFriendSelection(user.uid);
+            return;
+        }
+
+        selectUser(user);
+    });
 }
 
 // Renderizar lista de usuários
 function renderUsers(users) {
+    const previousScrollTop = usersList ? usersList.scrollTop : 0;
     usersList.innerHTML = '';
 
     if (!users || users.length === 0) {
@@ -5123,7 +5440,7 @@ function renderUsers(users) {
         li.innerHTML = `
             <div class="user-item-info">
                 <h4>Nenhum contato</h4>
-                <p>Adicione um amigo pelo e-mail ou @identificador acima.</p>
+                <p>Adicione um amigo pelo e-mail ou @primeironome acima.</p>
             </div>
         `;
         usersList.appendChild(li);
@@ -5133,6 +5450,10 @@ function renderUsers(users) {
     users.forEach(user => {
         const li = document.createElement('li');
         li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
+        if (isFriendSelectionMode) {
+            li.classList.add('user-item-select-mode');
+            li.classList.toggle('user-item-selected', selectedFriendIds.has(user.uid));
+        }
         li.dataset.uid = user.uid;
         
         const status = getUserPresenceStatusText(user);
@@ -5154,10 +5475,14 @@ function renderUsers(users) {
         if (photoUrl) {
             hydratePhotoFromUrl(avatar, photoUrl, fallbackPhoto);
         }
-        
-        li.addEventListener('click', () => selectUser(user));
+
+        bindFriendSelectionInteractions(li, user);
         usersList.appendChild(li);
     });
+
+    if (usersList) {
+        usersList.scrollTop = previousScrollTop;
+    }
 }
 
 // Formatar última visualização
@@ -5216,6 +5541,10 @@ searchUser.addEventListener('input', (e) => {
 // Selecionar usuário para conversar
 async function selectUser(user) {
     clearLocalTypingState();
+    clearEditingMessage();
+    if (isFriendSelectionMode) {
+        resetFriendSelectionState();
+    }
     if (isMobileLayout() && document.activeElement && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
     }
@@ -5288,7 +5617,7 @@ async function loadMessages(otherUid) {
                 });
 
                 if (incomingChanges.length > 0) {
-                    playIncomingMessageTone();
+                    playIncomingMessageTone(otherUid);
                     const latestIncoming = incomingChanges[incomingChanges.length - 1].doc.data();
                     showIncomingDesktopNotification(otherUid, latestIncoming);
 
@@ -5307,6 +5636,15 @@ async function loadMessages(otherUid) {
                 messages.push(data);
             });
             currentConversationMessages = messages;
+            if (editingMessage?.id) {
+                const latestEditingMessage = messages.find((msg) => msg.id === editingMessage.id);
+                if (!latestEditingMessage || !canEditMessage(latestEditingMessage)) {
+                    clearEditingMessage();
+                } else {
+                    editingMessage = latestEditingMessage;
+                    syncComposerEditModeUI();
+                }
+            }
             if (isMessageSelectionMode) {
                 const validIds = new Set(messages.map((msg) => msg.id));
                 selectedMessageIds.forEach((id) => {
@@ -5517,6 +5855,7 @@ async function buildChatBackgroundDataUrl(file) {
 function resetMessageSelectionState() {
     isMessageSelectionMode = false;
     selectedMessageIds = new Set();
+    closeMessageActionMenu();
     updateMessageSelectionUI();
 }
 
@@ -5530,6 +5869,199 @@ function getSelectedTextMessagesData() {
         .sort((a, b) => getMessageTimestampMs(a) - getMessageTimestampMs(b));
 }
 
+function isMessageEdited(message) {
+    return !!(message?.edited || message?.editedAt);
+}
+
+function canEditMessage(message) {
+    if (!message || !currentUser) return false;
+    if (!message.id) return false;
+    if (message.senderId !== currentUser.uid) return false;
+    if (getMessageType(message) !== 'text') return false;
+    if (isMessageHiddenForCurrentUser(message)) return false;
+
+    const timestampMs = getMessageTimestampMs(message);
+    if (!timestampMs) return false;
+
+    return (Date.now() - timestampMs) <= MESSAGE_EDIT_WINDOW_MS;
+}
+
+function getSelectedEditableMessageData() {
+    const selectedMessages = getSelectedMessagesData();
+    if (selectedMessages.length !== 1) return null;
+    return canEditMessage(selectedMessages[0]) ? selectedMessages[0] : null;
+}
+
+function canManageMessageAction(message) {
+    if (!message || !currentUser) return false;
+    return message.senderId === currentUser.uid || message.receiverId === currentUser.uid;
+}
+
+function canCopyMessageText(message) {
+    return getMessageType(message) === 'text' && !!String(message?.text || '').trim();
+}
+
+function setSingleSelectedMessage(messageId) {
+    if (!messageId || !selectedUserId) return;
+    isMessageSelectionMode = true;
+    selectedMessageIds = new Set([messageId]);
+    updateMessageSelectionUI();
+    renderMessages(currentConversationMessages || []);
+}
+
+async function copyTextToClipboard(textPayload) {
+    const text = String(textPayload || '').trim();
+    if (!text) return false;
+
+    if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+    }
+
+    const helper = document.createElement('textarea');
+    helper.value = text;
+    helper.setAttribute('readonly', 'readonly');
+    helper.style.position = 'fixed';
+    helper.style.top = '-9999px';
+    document.body.appendChild(helper);
+    helper.select();
+    document.execCommand('copy');
+    helper.remove();
+    return true;
+}
+
+function closeMessageActionMenu() {
+    activeMessageActionTarget = null;
+    if (messageActionMenu) {
+        messageActionMenu.classList.add('hidden');
+        messageActionMenu.style.left = '';
+        messageActionMenu.style.top = '';
+    }
+}
+
+function openMessageActionMenu(message, options = {}) {
+    if (!messageActionMenu || !message?.id) return;
+
+    const canReply = !!selectedUserId;
+    const canCopy = canCopyMessageText(message);
+    const canEdit = canEditMessage(message);
+    const canDelete = canManageMessageAction(message);
+
+    if (!canReply && !canCopy && !canEdit && !canDelete) {
+        closeMessageActionMenu();
+        return;
+    }
+
+    activeMessageActionTarget = message;
+
+    if (messageActionReply) messageActionReply.classList.toggle('hidden', !canReply);
+    if (messageActionCopy) messageActionCopy.classList.toggle('hidden', !canCopy);
+    if (messageActionEdit) messageActionEdit.classList.toggle('hidden', !canEdit);
+    if (messageActionDelete) messageActionDelete.classList.toggle('hidden', !canDelete);
+
+    messageActionMenu.classList.remove('hidden');
+
+    const margin = 12;
+    const rect = options.anchorEl?.getBoundingClientRect?.() || null;
+    const menuWidth = messageActionMenu.offsetWidth || 190;
+    const menuHeight = messageActionMenu.offsetHeight || 196;
+
+    let left = typeof options.clientX === 'number'
+        ? options.clientX
+        : (rect ? rect.left + (rect.width / 2) - (menuWidth / 2) : window.innerWidth / 2 - menuWidth / 2);
+    let top = typeof options.clientY === 'number'
+        ? options.clientY
+        : (rect ? rect.bottom + 8 : window.innerHeight / 2 - menuHeight / 2);
+
+    left = Math.max(margin, Math.min(window.innerWidth - menuWidth - margin, left));
+    top = Math.max(margin, Math.min(window.innerHeight - menuHeight - margin, top));
+
+    messageActionMenu.style.left = `${left}px`;
+    messageActionMenu.style.top = `${top}px`;
+}
+
+async function deleteMessagesByRecords(messagesToDelete) {
+    if (!Array.isArray(messagesToDelete) || messagesToDelete.length === 0) return false;
+
+    const deleteScope = await askDeleteScope(messagesToDelete);
+    if (!deleteScope) return false;
+
+    const ids = messagesToDelete.map((msg) => msg.id).filter(Boolean);
+    if (!ids.length) return false;
+
+    if (deleteScope === 'all') {
+        await deleteMessagesForEveryone(ids);
+    } else {
+        await deleteMessagesOnlyForCurrentUser(ids);
+    }
+
+    return true;
+}
+
+function syncComposerEditModeUI() {
+    const isEditing = !!editingMessage;
+    const disableComposerTools = !!messageInput?.disabled || isEditing;
+
+    if (btnAttach) btnAttach.disabled = disableComposerTools;
+    if (btnVoice) btnVoice.disabled = disableComposerTools;
+    if (btnCameraQuick) btnCameraQuick.disabled = disableComposerTools;
+    if (messageInput) {
+        messageInput.placeholder = isEditing ? 'Corrija sua mensagem...' : DEFAULT_MESSAGE_INPUT_PLACEHOLDER;
+    }
+    if (editPreview) {
+        editPreview.classList.toggle('hidden', !isEditing);
+    }
+    if (editPreviewLabel) {
+        editPreviewLabel.textContent = 'Editando mensagem';
+    }
+    if (editPreviewText) {
+        editPreviewText.textContent = isEditing ? String(editingMessage?.text || '') : '';
+    }
+}
+
+function clearEditingMessage(options = {}) {
+    const shouldClearInput = options.clearInput !== false;
+    editingMessage = null;
+
+    if (editPreview) editPreview.classList.add('hidden');
+    if (editPreviewText) editPreviewText.textContent = '';
+    if (messageInput) {
+        messageInput.placeholder = DEFAULT_MESSAGE_INPUT_PLACEHOLDER;
+        if (shouldClearInput) {
+            messageInput.value = '';
+        }
+    }
+    if (shouldClearInput) {
+        updateTypingState(null, true);
+    }
+
+    syncComposerEditModeUI();
+    updateComposerPrimaryAction();
+}
+
+function setEditingMessage(message) {
+    if (!canEditMessage(message)) {
+        alert('Esta mensagem não pode mais ser editada.');
+        return false;
+    }
+
+    clearReplyTargetMessage();
+    editingMessage = { ...message };
+
+    if (messageInput) {
+        messageInput.value = String(message.text || '');
+        messageInput.focus();
+        const textLength = messageInput.value.length;
+        if (typeof messageInput.setSelectionRange === 'function') {
+            messageInput.setSelectionRange(textLength, textLength);
+        }
+    }
+
+    syncComposerEditModeUI();
+    updateComposerPrimaryAction();
+    return true;
+}
+
 function updateMessageSelectionUI() {
     const hasConversationSelected = !!selectedUserId;
     const selectedCount = selectedMessageIds.size;
@@ -5538,6 +6070,15 @@ function updateMessageSelectionUI() {
     const canCopyText = hasSelection
         && selectedMessages.length > 0
         && selectedMessages.every((msg) => getMessageType(msg) === 'text');
+    const editableMessage = hasSelection ? getSelectedEditableMessageData() : null;
+    const canEditSelection = !!editableMessage;
+    if (btnEditSelected) {
+        btnEditSelected.classList.toggle('hidden', !canEditSelection);
+        btnEditSelected.disabled = !canEditSelection;
+        btnEditSelected.title = canEditSelection
+            ? 'Editar mensagem selecionada'
+            : 'Editar mensagem selecionada';
+    }
     if (btnDeleteSelected) {
         btnDeleteSelected.classList.toggle('hidden', !hasSelection);
         btnDeleteSelected.disabled = !hasSelection;
@@ -5559,17 +6100,22 @@ function updateMessageSelectionUI() {
             ? `Compartilhar selecionadas (${selectedCount})`
             : 'Compartilhar selecionadas';
     }
+    updateChatSelectionSummary();
 }
 
 function setMessageSelectionMode(enabled) {
     const shouldEnable = !!enabled && !!selectedUserId;
+    if (shouldEnable && editingMessage) {
+        clearEditingMessage();
+    }
     isMessageSelectionMode = shouldEnable;
     if (!shouldEnable) {
         selectedMessageIds = new Set();
         closeShareMessageModal();
+        closeMessageActionMenu();
     }
     updateMessageSelectionUI();
-    renderMessages(currentConversationMessages || []);
+    renderMessages(currentConversationMessages || [], { preserveScroll: true });
 }
 
 function toggleMessageSelection(messageId) {
@@ -5577,6 +6123,7 @@ function toggleMessageSelection(messageId) {
     if (!isMessageSelectionMode) {
         setMessageSelectionMode(true);
     }
+    closeMessageActionMenu();
     if (selectedMessageIds.has(messageId)) {
         selectedMessageIds.delete(messageId);
     } else {
@@ -5587,18 +6134,32 @@ function toggleMessageSelection(messageId) {
         return;
     }
     updateMessageSelectionUI();
-    renderMessages(currentConversationMessages || []);
+    renderMessages(currentConversationMessages || [], { preserveScroll: true });
 }
 
-function activateMessageSelectionByLongPress(messageId) {
+function activateMessageSelectionByLongPress(messageId, options = {}) {
     if (!messageId) return;
+    const shouldShowQuickMenu = !!options.showQuickMenu && !isMessageSelectionMode && options.message;
     if (!isMessageSelectionMode) {
         isMessageSelectionMode = true;
+        selectedMessageIds = new Set([messageId]);
+    } else {
+        selectedMessageIds.add(messageId);
     }
-    selectedMessageIds.add(messageId);
+    closeMessageActionMenu();
     suppressMediaOpenUntil = Date.now() + 900;
     updateMessageSelectionUI();
-    renderMessages(currentConversationMessages || []);
+    renderMessages(currentConversationMessages || [], { preserveScroll: true });
+    if (shouldShowQuickMenu) {
+        window.setTimeout(() => {
+            if (selectedMessageIds.size === 1 && selectedMessageIds.has(messageId)) {
+                openMessageActionMenu(options.message, {
+                    clientX: options.clientX,
+                    clientY: options.clientY
+                });
+            }
+        }, 0);
+    }
 }
 
 function isMessageHiddenForCurrentUser(msg) {
@@ -5811,16 +6372,9 @@ async function deleteSelectedMessages() {
         return;
     }
 
-    const deleteScope = await askDeleteScope(selectedMessages);
-    if (!deleteScope) return;
-
     try {
-        const ids = selectedMessages.map((msg) => msg.id).filter(Boolean);
-        if (deleteScope === 'all') {
-            await deleteMessagesForEveryone(ids);
-        } else {
-            await deleteMessagesOnlyForCurrentUser(ids);
-        }
+        const deleted = await deleteMessagesByRecords(selectedMessages);
+        if (!deleted) return;
         resetMessageSelectionState();
         renderMessages(currentConversationMessages || []);
     } catch (error) {
@@ -5931,21 +6485,61 @@ async function copySelectedTextMessages() {
     if (!textPayload) return;
 
     try {
-        if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(textPayload);
-        } else {
-            const helper = document.createElement('textarea');
-            helper.value = textPayload;
-            helper.setAttribute('readonly', 'readonly');
-            helper.style.position = 'fixed';
-            helper.style.top = '-9999px';
-            document.body.appendChild(helper);
-            helper.select();
-            document.execCommand('copy');
-            helper.remove();
-        }
+        await copyTextToClipboard(textPayload);
     } catch (error) {
         alert('Não foi possível copiar as mensagens selecionadas.');
+    }
+}
+
+async function editSelectedMessage() {
+    const editableMessage = getSelectedEditableMessageData();
+    if (!editableMessage) {
+        alert('Selecione apenas uma mensagem de texto enviada por você nos últimos 30 minutos.');
+        return;
+    }
+
+    closeMessageActionMenu();
+    setMessageSelectionMode(false);
+    setEditingMessage(editableMessage);
+}
+
+async function handleMessageActionReply() {
+    if (!activeMessageActionTarget) return;
+    const targetMessage = activeMessageActionTarget;
+    closeMessageActionMenu();
+    setMessageSelectionMode(false);
+    setReplyTargetMessage(targetMessage);
+}
+
+async function handleMessageActionCopy() {
+    if (!activeMessageActionTarget || !canCopyMessageText(activeMessageActionTarget)) return;
+    try {
+        await copyTextToClipboard(String(activeMessageActionTarget.text || ''));
+        closeMessageActionMenu();
+    } catch (error) {
+        alert('Não foi possível copiar esta mensagem.');
+    }
+}
+
+async function handleMessageActionEdit() {
+    if (!activeMessageActionTarget || !canEditMessage(activeMessageActionTarget)) return;
+    const targetMessage = activeMessageActionTarget;
+    closeMessageActionMenu();
+    setSingleSelectedMessage(targetMessage.id);
+    await editSelectedMessage();
+}
+
+async function handleMessageActionDelete() {
+    if (!activeMessageActionTarget || !canManageMessageAction(activeMessageActionTarget)) return;
+    const targetMessage = activeMessageActionTarget;
+    closeMessageActionMenu();
+    try {
+        const deleted = await deleteMessagesByRecords([targetMessage]);
+        if (!deleted) return;
+        resetMessageSelectionState();
+        renderMessages(currentConversationMessages || []);
+    } catch (error) {
+        alert('Não foi possível excluir esta mensagem.');
     }
 }
 
@@ -5960,11 +6554,16 @@ function shouldBlockMessagePrimaryAction(event) {
     return false;
 }
 
-function bindMessageSelectionInteractions(messageEl, messageId) {
-    if (!messageEl || !messageId) return;
+function bindMessageSelectionInteractions(rowEl, messageId, options = {}) {
+    if (!rowEl || !messageId) return;
 
+    const bubbleEl = options.bubbleEl || rowEl;
+    const message = options.message || null;
     let longPressTimer = null;
     let longPressTriggered = false;
+    let pressClientX = 0;
+    let pressClientY = 0;
+    let startedFromTouch = false;
 
     const clearTimer = () => {
         if (longPressTimer) {
@@ -5973,32 +6572,72 @@ function bindMessageSelectionInteractions(messageEl, messageId) {
         }
     };
 
+    const shouldIgnoreStart = (target) => {
+        return !!target?.closest?.('a,video,audio,button,input,textarea,iframe');
+    };
+
     const startLongPress = (event) => {
         if (event && typeof event.button === 'number' && event.button !== 0) return;
+        if (shouldIgnoreStart(event?.target)) return;
         clearTimer();
         longPressTriggered = false;
+        startedFromTouch = event?.type?.startsWith('touch') || false;
+
+        if (event?.touches?.[0]) {
+            pressClientX = event.touches[0].clientX;
+            pressClientY = event.touches[0].clientY;
+        } else {
+            pressClientX = event?.clientX ?? 0;
+            pressClientY = event?.clientY ?? 0;
+        }
+
         longPressTimer = setTimeout(() => {
             longPressTriggered = true;
-            activateMessageSelectionByLongPress(messageId);
+            activateMessageSelectionByLongPress(messageId, {
+                showQuickMenu: startedFromTouch,
+                message,
+                clientX: pressClientX,
+                clientY: pressClientY
+            });
         }, MESSAGE_LONG_PRESS_MS);
     };
 
-    messageEl.addEventListener('mousedown', startLongPress);
-    messageEl.addEventListener('touchstart', startLongPress, { passive: true });
-    messageEl.addEventListener('mousemove', clearTimer);
-    messageEl.addEventListener('mouseup', clearTimer);
-    messageEl.addEventListener('mouseleave', clearTimer);
-    messageEl.addEventListener('touchend', clearTimer);
-    messageEl.addEventListener('touchmove', clearTimer, { passive: true });
-    messageEl.addEventListener('touchcancel', clearTimer);
-
-    messageEl.addEventListener('contextmenu', (event) => {
-        if (isMessageSelectionMode || Date.now() < suppressMediaOpenUntil) {
-            event.preventDefault();
+    const cancelLongPressOnMove = (event) => {
+        if (event?.touches?.[0]) {
+            const deltaX = Math.abs(event.touches[0].clientX - pressClientX);
+            const deltaY = Math.abs(event.touches[0].clientY - pressClientY);
+            if (deltaX > 12 || deltaY > 12) {
+                clearTimer();
+            }
+            return;
         }
+        clearTimer();
+    };
+
+    rowEl.addEventListener('mousedown', startLongPress);
+    rowEl.addEventListener('touchstart', startLongPress, { passive: true });
+    rowEl.addEventListener('mousemove', cancelLongPressOnMove);
+    rowEl.addEventListener('mouseup', clearTimer);
+    rowEl.addEventListener('mouseleave', clearTimer);
+    rowEl.addEventListener('touchend', clearTimer);
+    rowEl.addEventListener('touchmove', cancelLongPressOnMove, { passive: true });
+    rowEl.addEventListener('touchcancel', clearTimer);
+
+    rowEl.addEventListener('contextmenu', (event) => {
+        if (Date.now() < suppressMediaOpenUntil || !message) {
+            event.preventDefault();
+            return;
+        }
+        if (shouldIgnoreStart(event.target)) return;
+        event.preventDefault();
+        setSingleSelectedMessage(messageId);
+        openMessageActionMenu(message, {
+            clientX: event.clientX,
+            clientY: event.clientY
+        });
     });
 
-    messageEl.addEventListener('click', (event) => {
+    rowEl.addEventListener('click', (event) => {
         if (longPressTriggered) {
             event.preventDefault();
             event.stopPropagation();
@@ -6006,11 +6645,12 @@ function bindMessageSelectionInteractions(messageEl, messageId) {
             return;
         }
         if (!isMessageSelectionMode) return;
-        if (event.target.closest('a')) {
-            event.preventDefault();
-        }
+        if (event.target.closest('.message-action-menu')) return;
         if (event.target.closest('audio') || event.target.closest('video')) {
             return;
+        }
+        if (event.target.closest('a')) {
+            event.preventDefault();
         }
         toggleMessageSelection(messageId);
     });
@@ -6228,6 +6868,9 @@ function clearReplyTargetMessage() {
 
 function setReplyTargetMessage(message) {
     if (!message?.id || !selectedUserId) return;
+    if (editingMessage) {
+        clearEditingMessage();
+    }
     replyToMessage = message;
 
     if (!replyPreview || !replyPreviewLabel || !replyPreviewText || !replyPreviewThumb) {
@@ -6399,9 +7042,10 @@ function bindMessageSwipeToReply(messageEl, msg) {
 }
 
 // Renderizar mensagens
-function renderMessages(messages) {
+function renderMessages(messages, options = {}) {
     const previousScrollTop = messagesContainer.scrollTop;
     const previousScrollHeight = messagesContainer.scrollHeight;
+    const preserveScroll = !!options.preserveScroll;
     messagesContainer.innerHTML = '';
     
     if (messages.length === 0) {
@@ -6419,12 +7063,17 @@ function renderMessages(messages) {
 
     messages.forEach(msg => {
         const isSent = msg.senderId === currentUser.uid;
+        const row = document.createElement('div');
+        row.className = `message-row ${isSent ? 'sent' : 'received'}`;
+        row.dataset.messageId = msg.id || '';
         const div = document.createElement('div');
         div.className = `message ${isSent ? 'sent' : 'received'}`;
+        div.dataset.messageId = msg.id || '';
         const canManageMessage = !!msg.id
             && !!currentUser
             && (msg.senderId === currentUser.uid || msg.receiverId === currentUser.uid);
         if (isSelectionMode && canManageMessage) {
+            row.classList.toggle('message-row-selected', selectedMessageIds.has(msg.id));
             div.classList.add('message-select-mode');
             div.classList.toggle('message-selected', selectedMessageIds.has(msg.id));
         }
@@ -6555,17 +7204,18 @@ function renderMessages(messages) {
         }
 
         if (canManageMessage) {
-            bindMessageSelectionInteractions(div, msg.id);
+            bindMessageSelectionInteractions(row, msg.id, { message: msg, bubbleEl: div });
         }
         bindMessageSwipeToReply(div, msg);
-        
-        messagesContainer.appendChild(div);
+
+        row.appendChild(div);
+        messagesContainer.appendChild(row);
     });
     
     ensureVoiceRecordingBanner();
 
     // Scroll para o final
-    if (isMessageSelectionMode) {
+    if (preserveScroll || isMessageSelectionMode) {
         const scrollDelta = messagesContainer.scrollHeight - previousScrollHeight;
         messagesContainer.scrollTop = Math.max(0, previousScrollTop + scrollDelta);
     } else {
@@ -6591,6 +7241,87 @@ function formatFileSize(bytes) {
 function setOnlineStatusClass(element, isOnline) {
     if (!element) return;
     element.classList.toggle('status-online-text', !!isOnline);
+}
+
+async function saveEditedMessage(text) {
+    if (!editingMessage?.id || !currentUser || !selectedUserId) return;
+
+    const latestMessage = currentConversationMessages.find((msg) => msg.id === editingMessage.id) || editingMessage;
+    if (!canEditMessage(latestMessage)) {
+        clearEditingMessage();
+        alert('O prazo de 30 minutos para editar essa mensagem já expirou.');
+        return;
+    }
+
+    const normalizedText = String(text || '').trim();
+    const originalText = String(latestMessage.text || '').trim();
+    if (!normalizedText) return;
+
+    if (normalizedText === originalText) {
+        clearEditingMessage();
+        return;
+    }
+
+    const conversationId = currentConversationId || getConversationId(currentUser.uid, selectedUserId);
+
+    await db.collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(latestMessage.id)
+        .update({
+            text: normalizedText,
+            edited: true,
+            editedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+    clearEditingMessage();
+}
+
+async function submitTextComposerMessage() {
+    const text = messageInput.value.trim();
+    if (!text || !selectedUserId) return;
+    if (isFriendBlocked(selectedUserId)) {
+        alert('Você bloqueou este usuário.');
+        return;
+    }
+
+    if (editingMessage) {
+        try {
+            await saveEditedMessage(text);
+        } catch (error) {
+            alert('Erro ao editar mensagem: ' + error.message);
+        }
+        return;
+    }
+
+    const conversationId = getConversationId(currentUser.uid, selectedUserId);
+    const delivered = isUserEffectivelyOnline(selectedFriendData);
+    const replyPayload = getPendingReplyPayload();
+
+    try {
+        await db.collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .add({
+                text: text,
+                senderId: currentUser.uid,
+                receiverId: selectedUserId,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                type: 'text',
+                read: false,
+                delivered: delivered,
+                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                replyTo: replyPayload || null
+            });
+
+        messageInput.value = '';
+        clearReplyTargetMessage();
+        updateTypingState(null, true);
+        updateComposerPrimaryAction();
+    } catch (error) {
+        alert('Erro ao enviar mensagem: ' + error.message);
+    }
 }
 
 function getDefaultChatPartnerStatus() {
@@ -6821,8 +7552,16 @@ function clearLocalTypingState() {
 
 function buildMessageMeta(msg, isSent) {
     const time = formatTime(msg.timestamp);
+    const editedLabel = isMessageEdited(msg)
+        ? '<span class="message-edited">editada</span>'
+        : '';
     if (!isSent) {
-        return `<small>${time}</small>`;
+        return `
+            <small class="message-meta">
+                ${editedLabel}
+                <span class="message-time">${time}</span>
+            </small>
+        `;
     }
     let statusClass = 'status-sent';
     let ticks = '✓';
@@ -6838,6 +7577,7 @@ function buildMessageMeta(msg, isSent) {
     }
     return `
         <small class="message-meta">
+            ${editedLabel}
             <span class="message-time">${time}</span>
             <span class="message-status ${statusClass}" title="${title}">${ticks}</span>
         </small>
@@ -7086,10 +7826,17 @@ function updateComposerPrimaryAction() {
     if (!btnSend || !btnVoice || !messageInput) return;
 
     const hasText = messageInput.value.trim().length > 0;
+    const isEditing = !!editingMessage;
+    const canUseSendButton = !messageInput.disabled && !!selectedUserId && !isRecordingAudio && (hasText || isEditing);
     const canSendText = !messageInput.disabled && !!selectedUserId && hasText && !isRecordingAudio;
 
-    btnSend.classList.toggle('hidden', !canSendText);
-    btnVoice.classList.toggle('hidden', canSendText);
+    btnSend.classList.toggle('hidden', !canUseSendButton);
+    btnSend.disabled = !canSendText;
+    btnVoice.classList.toggle('hidden', canUseSendButton);
+    btnVoice.disabled = !!messageInput.disabled || isEditing;
+    if (btnAttach) btnAttach.disabled = !!messageInput.disabled || isEditing;
+    if (btnCameraQuick) btnCameraQuick.disabled = !!messageInput.disabled || isEditing;
+    if (btnEmoji) btnEmoji.disabled = !!messageInput.disabled;
 }
 
 function updateVoiceButtonUI() {
@@ -7314,6 +8061,137 @@ async function handleFileInputChange(input) {
     await Promise.allSettled(files.map(file => handleChatFile(file)));
 }
 
+function clearActiveConversation() {
+    clearLocalTypingState();
+    clearEditingMessage();
+    clearReplyTargetMessage();
+    closeMessageActionMenu();
+
+    if (messagesUnsubscribe) {
+        messagesUnsubscribe();
+        messagesUnsubscribe = null;
+    }
+    if (typingUnsubscribe) {
+        typingUnsubscribe();
+        typingUnsubscribe = null;
+    }
+    if (friendDocUnsubscribe) {
+        friendDocUnsubscribe();
+        friendDocUnsubscribe = null;
+    }
+
+    clearRemoteTypingTimer();
+    remoteUserActivityState = null;
+    setChatPartnerActivity(null);
+
+    if (isRecordingAudio) {
+        stopAudioRecording(false);
+    }
+    stopVoiceTimer();
+    stopRecordingHeartbeat();
+
+    selectedUserId = null;
+    selectedFriendData = null;
+    currentConversationId = null;
+    currentConversationMessages = [];
+
+    document.querySelectorAll('.user-item').forEach((item) => {
+        item.classList.remove('active');
+    });
+
+    if (messagesContainer) {
+        messagesContainer.innerHTML = `
+            <div class="welcome-message">
+                <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
+                <h3>Bem-vindo ao CameChat! 👋</h3>
+                <p>Selecione um usuário para começar a conversar.</p>
+            </div>
+        `;
+    }
+
+    ensureVoiceRecordingBanner();
+    resetMessageSelectionState();
+
+    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usuário';
+    if (chatPartnerStatus) {
+        chatPartnerStatus.textContent = '';
+        chatPartnerStatus.classList.remove('chat-partner-status-activity');
+        setOnlineStatusClass(chatPartnerStatus, false);
+    }
+    if (callIndicator) callIndicator.classList.add('hidden');
+    if (defaultChatPartnerPhoto && chatPartnerPhoto) {
+        chatPartnerPhoto.src = defaultChatPartnerPhoto;
+    }
+
+    if (messageInput) {
+        messageInput.value = '';
+        messageInput.disabled = true;
+    }
+    if (btnSend) btnSend.disabled = true;
+    if (btnAttach) btnAttach.disabled = true;
+    if (btnEmoji) btnEmoji.disabled = true;
+    if (btnVoice) btnVoice.disabled = true;
+    if (btnCameraQuick) btnCameraQuick.disabled = true;
+    if (btnCall) btnCall.disabled = true;
+    if (btnVideoCall) btnVideoCall.disabled = true;
+
+    if (emojiPicker) emojiPicker.classList.add('hidden');
+    closeAttachMenu();
+    closeCameraModal();
+    closeDeleteMessageModal();
+    closeShareMessageModal();
+    closeUserTagMatchModal();
+    closeMediaViewer();
+    updateComposerPrimaryAction();
+}
+
+function handleAndroidBackPress() {
+    if (mediaViewerModal && !mediaViewerModal.classList.contains('hidden')) {
+        closeMediaViewer();
+        return true;
+    }
+    if (cameraModal && cameraModal.classList.contains('show')) {
+        closeCameraModal();
+        return true;
+    }
+    if (deleteMessageModal && deleteMessageModal.classList.contains('show')) {
+        closeDeleteMessageModal();
+        return true;
+    }
+    if (shareMessageModal && shareMessageModal.classList.contains('show')) {
+        closeShareMessageModal();
+        return true;
+    }
+    if (userTagMatchModal && userTagMatchModal.classList.contains('show')) {
+        closeUserTagMatchModal();
+        return true;
+    }
+    if (messageActionMenu && !messageActionMenu.classList.contains('hidden')) {
+        closeMessageActionMenu();
+        return true;
+    }
+    if (settingsMenu && !settingsMenu.classList.contains('hidden')) {
+        setLogoutButtonVisible(false);
+        return true;
+    }
+    if (selectedUserId || selectedFriendData || currentConversationId) {
+        clearActiveConversation();
+        return true;
+    }
+    if (isFriendSelectionMode) {
+        resetFriendSelectionState();
+        return true;
+    }
+    if (app?.classList.contains('sidebar-open')) {
+        setSidebarOpen(false);
+        return true;
+    }
+    return false;
+}
+
+window.CameChatApp = window.CameChatApp || {};
+window.CameChatApp.handleAndroidBackPress = handleAndroidBackPress;
+
 function resetChatUI() {
     selectedUserId = null;
     selectedFriendData = null;
@@ -7331,6 +8209,7 @@ function resetChatUI() {
     setChatPartnerActivity(null);
     clearReplyTargetMessage();
     clearLocalTypingState();
+    clearEditingMessage();
     if (typingUnsubscribe) {
         typingUnsubscribe();
         typingUnsubscribe = null;
@@ -7470,40 +8349,7 @@ function isFriendBlocked(friendId) {
 
 // Enviar mensagem de texto
 btnSend.addEventListener('click', async () => {
-    const text = messageInput.value.trim();
-    if (!text || !selectedUserId) return;
-    if (isFriendBlocked(selectedUserId)) {
-        alert('Você bloqueou este usuário.');
-        return;
-    }
-    
-    const conversationId = getConversationId(currentUser.uid, selectedUserId);
-    const delivered = isUserEffectivelyOnline(selectedFriendData);
-    const replyPayload = getPendingReplyPayload();
-    
-    try {
-        await db.collection('conversations')
-            .doc(conversationId)
-            .collection('messages')
-            .add({
-                text: text,
-                senderId: currentUser.uid,
-                receiverId: selectedUserId,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                type: 'text',
-                read: false,
-                delivered: delivered,
-                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
-                replyTo: replyPayload || null
-            });
-        
-        messageInput.value = '';
-        clearReplyTargetMessage();
-        updateTypingState(null, true);
-        updateComposerPrimaryAction();
-    } catch (error) {
-        alert('Erro ao enviar mensagem: ' + error.message);
-    }
+    await submitTextComposerMessage();
 });
 
 if (messageInput) {
@@ -7590,6 +8436,103 @@ if (btnVoiceCancel) {
 
 updateVoiceButtonUI();
 updateMessageSelectionUI();
+
+if (messageActionReply) {
+    messageActionReply.addEventListener('click', async () => {
+        await handleMessageActionReply();
+    });
+}
+
+if (messageActionCopy) {
+    messageActionCopy.addEventListener('click', async () => {
+        await handleMessageActionCopy();
+    });
+}
+
+if (messageActionEdit) {
+    messageActionEdit.addEventListener('click', async () => {
+        await handleMessageActionEdit();
+    });
+}
+
+if (messageActionDelete) {
+    messageActionDelete.addEventListener('click', async () => {
+        await handleMessageActionDelete();
+    });
+}
+
+if (btnFriendMuteSelected) {
+    btnFriendMuteSelected.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleMuteSelectedFriends();
+    });
+}
+
+if (btnFriendBlockSelected) {
+    btnFriendBlockSelected.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await blockSelectedFriends();
+    });
+}
+
+if (btnFriendRemoveSelected) {
+    btnFriendRemoveSelected.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await removeSelectedFriends();
+    });
+}
+
+if (messagesContainer) {
+    messagesContainer.addEventListener('click', (event) => {
+        const clickedMessageRow = event.target.closest('.message-row');
+        const clickedMenu = event.target.closest('#message-action-menu');
+        if (clickedMessageRow || clickedMenu) return;
+
+        if (isMessageSelectionMode) {
+            setMessageSelectionMode(false);
+        } else if (messageActionMenu && !messageActionMenu.classList.contains('hidden')) {
+            closeMessageActionMenu();
+        }
+    });
+    messagesContainer.addEventListener('scroll', () => {
+        closeMessageActionMenu();
+    });
+}
+
+if (usersList) {
+    usersList.addEventListener('click', (event) => {
+        const clickedFriend = event.target.closest('.user-item');
+        if (clickedFriend || event.target.closest('#friend-selection-toolbar')) return;
+        if (isFriendSelectionMode) {
+            setFriendSelectionMode(false);
+        }
+    });
+}
+
+document.addEventListener('click', (event) => {
+    if (!messageActionMenu || messageActionMenu.classList.contains('hidden')) return;
+    if (event.target.closest('#message-action-menu')) return;
+    if (event.target.closest('.message-row')) return;
+    closeMessageActionMenu();
+});
+
+document.addEventListener('click', (event) => {
+    if (!isFriendSelectionMode) return;
+    if (event.target.closest('.user-item')) return;
+    if (event.target.closest('#friend-selection-toolbar')) return;
+    if (event.target.closest('#user-photo')) return;
+    if (!event.target.closest('.sidebar')) {
+        setFriendSelectionMode(false);
+        return;
+    }
+    if (event.target.closest('.search-box') || event.target.closest('.add-friend-box') || event.target.closest('.users-header')) {
+        setFriendSelectionMode(false);
+    }
+});
+
+window.addEventListener('resize', () => {
+    closeMessageActionMenu();
+});
 
 if (btnCameraCapture) {
     btnCameraCapture.addEventListener('click', () => {
@@ -7760,6 +8703,12 @@ if (btnDeleteSelected) {
     });
 }
 
+if (btnEditSelected) {
+    btnEditSelected.addEventListener('click', async () => {
+        await editSelectedMessage();
+    });
+}
+
 if (btnCopySelected) {
     btnCopySelected.addEventListener('click', async () => {
         await copySelectedTextMessages();
@@ -7775,6 +8724,12 @@ if (btnShareSelected) {
 if (btnReplyCancel) {
     btnReplyCancel.addEventListener('click', () => {
         clearReplyTargetMessage();
+    });
+}
+
+if (btnEditCancel) {
+    btnEditCancel.addEventListener('click', () => {
+        clearEditingMessage();
     });
 }
 
@@ -8305,7 +9260,8 @@ if (btnLanguageToggle) {
 document.addEventListener('click', (event) => {
     if (!settingsMenu || settingsMenu.classList.contains('hidden')) return;
     const target = event.target;
-    if (sidebarSettings && sidebarSettings.contains(target)) return;
+    if (settingsMenu.contains(target)) return;
+    if (btnSettings && btnSettings.contains(target)) return;
     setLogoutButtonVisible(false);
 });
 
