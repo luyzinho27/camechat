@@ -194,6 +194,10 @@ const friendBlockedBadge = document.getElementById('friend-blocked-badge');
 const friendRemoveBtn = document.getElementById('friend-remove-btn');
 const friendBlockBtn = document.getElementById('friend-block-btn');
 const friendUnblockBtn = document.getElementById('friend-unblock-btn');
+const userTagMatchModal = document.getElementById('user-tag-match-modal');
+const userTagMatchClose = document.getElementById('user-tag-match-close');
+const userTagMatchText = document.getElementById('user-tag-match-text');
+const userTagMatchList = document.getElementById('user-tag-match-list');
 
 // Call modal
 const btnCall = document.getElementById('btn-call');
@@ -389,6 +393,7 @@ let suppressMediaOpenUntil = 0;
 let replyToMessage = null;
 let deleteMessageModalResolver = null;
 let shareMessageModalResolver = null;
+let userTagMatchModalResolver = null;
 let mediaViewerImageEl = null;
 let mediaViewerImageScale = 1;
 let mediaViewerImageTranslateX = 0;
@@ -521,29 +526,45 @@ function normalizeUserTagInput(value) {
         .replace(/_+/g, '_');
 }
 
+function extractFirstName(value) {
+    return String(value || '')
+        .trim()
+        .split(/\s+/)
+        .find(Boolean) || '';
+}
+
+function normalizeUserTagBase(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '');
+}
+
 function buildGeneratedUserTag(name, uid) {
-    const base = normalizeUserTagInput(name).slice(0, 20) || 'usuario';
-    const suffixSource = String(uid || '')
-        .replace(/[^a-zA-Z0-9]+/g, '')
-        .toLowerCase();
-    const suffix = suffixSource.slice(0, 6) || Date.now().toString(36).slice(-6);
-    return `@${base}_${suffix}`;
+    const firstName = extractFirstName(name);
+    const base = normalizeUserTagBase(firstName).slice(0, 20) || 'usuario';
+    return `@${base}`;
 }
 
 function getUserTagValue(entity) {
     if (!entity) return '';
+    const name = entity.name || entity.displayName || '';
+    if (name) {
+        return buildGeneratedUserTag(name, entity.uid || entity.id || '');
+    }
     const normalizedStoredTag = normalizeUserTagInput(entity.userTag || entity.userTagLower || '');
     if (normalizedStoredTag) {
         return `@${normalizedStoredTag}`;
     }
     const uid = entity.uid || entity.id || '';
     if (!uid) return '';
-    const name = entity.name || entity.displayName || '';
     return buildGeneratedUserTag(name, uid);
 }
 
 function buildUserTagFields(name, uid, existingTag = '') {
-    const userTag = getUserTagValue({
+    const userTag = buildGeneratedUserTag(name, uid) || getUserTagValue({
         userTag: existingTag,
         name,
         uid
@@ -552,6 +573,123 @@ function buildUserTagFields(name, uid, existingTag = '') {
         userTag,
         userTagLower: normalizeUserTagInput(userTag)
     };
+}
+
+function getSearchableUserTag(entity) {
+    if (!entity) return '';
+    const sourceName = entity.name || entity.displayName || '';
+    const canonicalTag = sourceName
+        ? normalizeUserTagInput(buildGeneratedUserTag(sourceName, entity.uid || entity.id || ''))
+        : '';
+    if (canonicalTag) {
+        return canonicalTag;
+    }
+    return normalizeUserTagInput(entity.userTag || entity.userTagLower || '');
+}
+
+function sortUsersByNameAndEmail(users) {
+    return [...users].sort((a, b) => {
+        const nameA = String(a?.name || '').toLowerCase();
+        const nameB = String(b?.name || '').toLowerCase();
+        if (nameA !== nameB) return nameA.localeCompare(nameB, 'pt-BR');
+        const emailA = String(a?.email || '').toLowerCase();
+        const emailB = String(b?.email || '').toLowerCase();
+        return emailA.localeCompare(emailB, 'pt-BR');
+    });
+}
+
+function getUserTagMatchOptionMeta(user) {
+    if (!user?.uid || !currentUser) {
+        return { selectable: true, buttonLabel: 'Escolher' };
+    }
+    if (user.uid === currentUser.uid) {
+        return { selectable: false, buttonLabel: 'Você' };
+    }
+    if (currentFriends.includes(user.uid)) {
+        return { selectable: false, buttonLabel: 'Adicionado' };
+    }
+    return { selectable: true, buttonLabel: 'Escolher' };
+}
+
+function buildUserTagMatchItem(user) {
+    const item = document.createElement('li');
+    item.className = 'share-message-friend-item';
+    item.dataset.uid = user.uid;
+    const optionMeta = getUserTagMatchOptionMeta(user);
+
+    const safeName = escapeHtml(user.name || 'Usuário');
+    const safeEmail = escapeHtml(user.email || 'E-mail não informado');
+
+    item.innerHTML = `
+        <img src="https://via.placeholder.com/40/cccccc/666666?text=User" alt="avatar">
+        <div class="share-message-friend-info">
+            <strong>${safeName}</strong>
+            <small>${safeEmail}</small>
+        </div>
+        <button type="button" class="btn-primary share-message-pick-btn"${optionMeta.selectable ? '' : ' disabled'}>${optionMeta.buttonLabel}</button>
+    `;
+
+    const avatar = item.querySelector('img');
+    if (avatar) {
+        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666?text=User');
+    }
+
+    return item;
+}
+
+function closeUserTagMatchModal() {
+    if (userTagMatchModal) {
+        userTagMatchModal.classList.remove('show');
+    }
+    if (userTagMatchList) {
+        userTagMatchList.innerHTML = '';
+    }
+    if (userTagMatchModalResolver) {
+        const resolve = userTagMatchModalResolver;
+        userTagMatchModalResolver = null;
+        resolve(null);
+    }
+}
+
+async function askUserTagMatchSelection(identifier, users) {
+    if (!Array.isArray(users) || users.length === 0) return null;
+    if (!userTagMatchModal || !userTagMatchList) {
+        return users.find((user) => getUserTagMatchOptionMeta(user).selectable) || null;
+    }
+
+    const normalizedIdentifier = normalizeUserTagInput(identifier);
+    if (userTagMatchText) {
+        userTagMatchText.textContent = `Mais de um usuário foi encontrado com @${normalizedIdentifier}. Escolha o usuário correto abaixo.`;
+    }
+
+    userTagMatchList.innerHTML = '';
+    users.forEach((user) => {
+        const item = buildUserTagMatchItem(user);
+        const optionMeta = getUserTagMatchOptionMeta(user);
+        const choose = () => {
+            if (!optionMeta.selectable) return;
+            if (userTagMatchModalResolver) {
+                const resolve = userTagMatchModalResolver;
+                userTagMatchModalResolver = null;
+                userTagMatchModal.classList.remove('show');
+                userTagMatchList.innerHTML = '';
+                resolve(user);
+            }
+        };
+
+        item.addEventListener('click', (event) => {
+            if (event.target.closest('.share-message-pick-btn') || event.target === item || event.target.closest('.share-message-friend-info') || event.target.tagName === 'IMG') {
+                choose();
+            }
+        });
+
+        userTagMatchList.appendChild(item);
+    });
+
+    userTagMatchModal.classList.add('show');
+    return await new Promise((resolve) => {
+        userTagMatchModalResolver = resolve;
+    });
 }
 
 function renderCurrentUserIdentity(profile) {
@@ -3594,9 +3732,9 @@ function looksLikeEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 }
 
-async function findUserByIdentifier(identifier) {
+async function findUsersByIdentifier(identifier) {
     const rawValue = String(identifier || '').trim();
-    if (!rawValue) return null;
+    if (!rawValue) return [];
 
     if (looksLikeEmail(rawValue)) {
         const normalizedEmail = rawValue.toLowerCase();
@@ -3615,52 +3753,69 @@ async function findUserByIdentifier(identifier) {
         if (!snapshot.empty) {
             const doc = snapshot.docs[0];
             const data = { id: doc.id, ...doc.data() };
-            return data.disabled ? null : data;
+            return data.disabled ? [] : [data];
         }
+
+        return [];
     }
 
     const normalizedTag = normalizeUserTagInput(rawValue);
-    if (!normalizedTag) return null;
+    if (!normalizedTag) return [];
+
+    const matchedUsersMap = new Map();
+    const appendMatch = (user) => {
+        if (!user || user.disabled || !user.uid) return;
+        const storedTag = normalizeUserTagInput(user.userTag || user.userTagLower || '');
+        const canonicalTag = getSearchableUserTag(user);
+        if (storedTag !== normalizedTag && canonicalTag !== normalizedTag) return;
+        matchedUsersMap.set(user.uid, user);
+    };
 
     let snapshot = await db.collection('users')
         .where('userTagLower', '==', normalizedTag)
-        .limit(1)
         .get();
 
-    if (!snapshot.empty) {
-        const doc = snapshot.docs[0];
-        const data = { id: doc.id, ...doc.data() };
-        return data.disabled ? null : data;
-    }
+    snapshot.forEach((doc) => appendMatch({ id: doc.id, ...doc.data() }));
 
     const availableUsers = Array.isArray(allUsersCache) && allUsersCache.length
         ? allUsersCache
         : (await db.collection('users').get()).docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const matchedUser = availableUsers.find((user) => {
-        if (!user || user.disabled) return false;
-        return normalizeUserTagInput(getUserTagValue(user)) === normalizedTag;
-    });
+    availableUsers.forEach((user) => appendMatch(user));
 
-    return matchedUser || null;
+    return sortUsersByNameAndEmail(Array.from(matchedUsersMap.values()));
 }
 
 async function addFriendByEmail(email) {
     if (!currentUser) return;
-    const user = await findUserByIdentifier(email);
-    if (!user) {
-        alert('Usuário não encontrado. Informe um e-mail ou @identificador válido.');
+    const matchedUsers = await findUsersByIdentifier(email);
+    if (!matchedUsers.length) {
+        alert('Usuário não encontrado. Informe um e-mail ou @primeironome válido.');
         return;
     }
-    if (user.uid === currentUser.uid) {
-        alert('Você já é este usuário.');
+
+    const addableUsers = matchedUsers.filter((user) => getUserTagMatchOptionMeta(user).selectable);
+    if (!addableUsers.length) {
+        if (matchedUsers.some((user) => user.uid === currentUser.uid)) {
+            alert('Você já é este usuário.');
+            return;
+        }
+        alert('Os usuários encontrados já estão na sua lista de amigos.');
         return;
     }
-    if (currentFriends.includes(user.uid)) {
-        alert('Este usuário já está na sua lista de amigos.');
-        return;
+
+    let selectedUser = null;
+    if (looksLikeEmail(email)) {
+        selectedUser = addableUsers[0];
+    } else if (matchedUsers.length > 1) {
+        selectedUser = await askUserTagMatchSelection(email, matchedUsers);
+    } else {
+        selectedUser = addableUsers[0];
     }
+
+    if (!selectedUser || !getUserTagMatchOptionMeta(selectedUser).selectable) return;
+
     await db.collection('users').doc(currentUser.uid).set({
-        friends: firebase.firestore.FieldValue.arrayUnion(user.uid)
+        friends: firebase.firestore.FieldValue.arrayUnion(selectedUser.uid)
     }, { merge: true });
     alert('Usuário adicionado à sua lista de amigos.');
 }
@@ -7215,6 +7370,7 @@ function resetChatUI() {
     updateComposerPrimaryAction();
     closeDeleteMessageModal();
     closeShareMessageModal();
+    closeUserTagMatchModal();
     closeMediaViewer();
     currentConversationId = null;
     currentConversationMessages = [];
@@ -7475,7 +7631,7 @@ if (btnAddFriend) {
     btnAddFriend.addEventListener('click', async () => {
         const email = friendEmailInput ? friendEmailInput.value.trim() : '';
         if (!email) {
-            alert('Digite o e-mail ou @identificador do usuário.');
+            alert('Digite o e-mail ou @primeironome do usuário.');
             return;
         }
         try {
@@ -7512,6 +7668,12 @@ if (chatPartnerName) {
 
 if (friendCloseModal) {
     friendCloseModal.addEventListener('click', closeFriendModal);
+}
+
+if (userTagMatchClose) {
+    userTagMatchClose.addEventListener('click', () => {
+        closeUserTagMatchModal();
+    });
 }
 
 if (friendRemoveBtn) {
@@ -7662,6 +7824,14 @@ if (shareMessageModal) {
     shareMessageModal.addEventListener('click', (event) => {
         if (event.target === shareMessageModal) {
             closeShareMessageModal();
+        }
+    });
+}
+
+if (userTagMatchModal) {
+    userTagMatchModal.addEventListener('click', (event) => {
+        if (event.target === userTagMatchModal) {
+            closeUserTagMatchModal();
         }
     });
 }
