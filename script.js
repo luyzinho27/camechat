@@ -2263,6 +2263,7 @@ registerForm.addEventListener('submit', async (e) => {
 // Login com Google
 async function handleGoogleLogin(requestedRole) {
     const provider = new firebase.auth.GoogleAuthProvider();
+    const isAndroidRuntime = isAndroidWebViewRuntime();
     
     try {
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -2276,7 +2277,7 @@ async function handleGoogleLogin(requestedRole) {
             photoURL: result.user.photoURL || null
         });
     } catch (error) {
-        if (error.code === 'auth/popup-blocked') {
+        if (!isAndroidRuntime && error.code === 'auth/popup-blocked') {
             await auth.signInWithRedirect(provider);
             return;
         }
