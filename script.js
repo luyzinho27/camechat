@@ -438,6 +438,8 @@ let pcMediaRootHandleLoaded = false;
 let attachmentCacheObjectUrls = new Map();
 let hasCompletedInitialBootstrap = false;
 let appBootstrapFallbackTimer = null;
+let nativeGoogleSignInPending = false;
+let nativeGoogleSignInRequestedRole = '';
 
 // ========== FUNCOES DE AUTENTICACAO ==========
 
@@ -1898,16 +1900,18 @@ function appendDownloadScopeParam(url, scope = '') {
     }
 }
 
-function callAndroidBridgeMethod(methodName, enabled) {
+function callAndroidBridgeMethod(methodName, ...args) {
     try {
         if (!window.CameChatAndroid) return;
         const method = window.CameChatAndroid[methodName];
         if (typeof method === 'function') {
-            method.call(window.CameChatAndroid, !!enabled);
+            method.call(window.CameChatAndroid, ...args);
+            return true;
         }
     } catch (error) {
         console.warn(`Falha ao chamar o bridge Android: ${methodName}`, error);
     }
+    return false;
 }
 
 function setAndroidVoiceCallProximityEnabled(enabled) {
@@ -1923,6 +1927,71 @@ function setAndroidAudioMessageProximityEnabled(enabled) {
 function setAndroidSpeakerphoneEnabled(enabled) {
     if (!isAndroidWebViewRuntime()) return;
     callAndroidBridgeMethod('setSpeakerphoneEnabled', enabled);
+}
+
+function startAndroidGoogleSignIn(requestedRole = '') {
+    if (!isAndroidWebViewRuntime()) return false;
+    if (nativeGoogleSignInPending) return true;
+    nativeGoogleSignInPending = true;
+    nativeGoogleSignInRequestedRole = String(requestedRole || '');
+    const started = callAndroidBridgeMethod('startGoogleSignIn', nativeGoogleSignInRequestedRole);
+    if (!started) {
+        nativeGoogleSignInPending = false;
+        nativeGoogleSignInRequestedRole = '';
+    }
+    return started;
+}
+
+async function handleNativeGoogleSignInResult(payload = {}) {
+    nativeGoogleSignInPending = false;
+
+    let data = payload;
+    if (typeof payload === 'string') {
+        try {
+            data = JSON.parse(payload);
+        } catch (error) {
+            handleAuthError({
+                code: 'auth/native-google-invalid-response',
+                message: 'Resposta inválida do login Google nativo.'
+            });
+            nativeGoogleSignInRequestedRole = '';
+            return;
+        }
+    }
+
+    const requestedRole = data?.requestedRole || nativeGoogleSignInRequestedRole || '';
+    nativeGoogleSignInRequestedRole = '';
+
+    if (!data?.ok) {
+        handleAuthError({
+            code: data?.code || 'auth/native-google-failed',
+            message: data?.message || 'Não foi possível concluir o login com Google no Android.'
+        });
+        return;
+    }
+
+    if (!data?.idToken) {
+        handleAuthError({
+            code: 'auth/native-google-token-missing',
+            message: 'O Google não retornou um token de autenticação válido.'
+        });
+        return;
+    }
+
+    try {
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        const credential = firebase.auth.GoogleAuthProvider.credential(data.idToken);
+        const userCredential = await auth.signInWithCredential(credential);
+        const resolvedRole = await resolveRoleForSignup(requestedRole);
+        await ensureUserDocument(userCredential.user, {
+            name: userCredential.user.displayName || data.displayName || data.email?.split('@')[0] || 'Usuário',
+            email: userCredential.user.email || data.email || '',
+            role: resolvedRole,
+            photoURL: userCredential.user.photoURL || data.photoURL || null
+        });
+    } catch (error) {
+        handleAuthError(error);
+    }
 }
 
 function buildDeviceDownloadPath(msg, fileName, mimeType = '', options = {}) {
@@ -2262,8 +2331,20 @@ registerForm.addEventListener('submit', async (e) => {
 
 // Login com Google
 async function handleGoogleLogin(requestedRole) {
-    const provider = new firebase.auth.GoogleAuthProvider();
     const isAndroidRuntime = isAndroidWebViewRuntime();
+
+    if (isAndroidRuntime) {
+        const started = startAndroidGoogleSignIn(requestedRole);
+        if (!started) {
+            handleAuthError({
+                code: 'auth/native-google-unavailable',
+                message: 'O login Google nativo não está disponível nesta versão do aplicativo Android.'
+            });
+        }
+        return;
+    }
+
+    const provider = new firebase.auth.GoogleAuthProvider();
     
     try {
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -2374,6 +2455,24 @@ function handleAuthError(error) {
             break;
         case 'auth/operation-not-allowed':
             message += 'Operação não permitida. Verifique se o provedor está habilitado no Firebase.';
+            break;
+        case 'auth/native-google-unavailable':
+            message += 'O login Google nativo não está disponível no aplicativo Android.';
+            break;
+        case 'auth/native-google-unconfigured':
+            message += 'O login Google do Android ainda não foi configurado. Adicione o Web Client ID do Firebase para o app Android.';
+            break;
+        case 'auth/native-google-cancelled':
+            message += 'Login com Google cancelado.';
+            break;
+        case 'auth/native-google-token-missing':
+            message += 'O Google não retornou um token de autenticação válido.';
+            break;
+        case 'auth/native-google-invalid-response':
+            message += 'O app Android retornou uma resposta inválida no login Google.';
+            break;
+        case 'auth/native-google-failed':
+            message += 'Falha ao concluir o login com Google no Android.';
             break;
         default:
             message += error.message;
@@ -8388,6 +8487,7 @@ function handleAndroidBackPress() {
 
 window.CameChatApp = window.CameChatApp || {};
 window.CameChatApp.handleAndroidBackPress = handleAndroidBackPress;
+window.CameChatApp.handleNativeGoogleSignInResult = handleNativeGoogleSignInResult;
 
 function resetChatUI() {
     selectedUserId = null;
