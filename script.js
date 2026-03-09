@@ -1849,6 +1849,19 @@ function isAndroidWebViewRuntime() {
     return /Android/i.test(ua) && /\bwv\b/i.test(ua);
 }
 
+function isCallAudioElement(element) {
+    return !!element && (element === localAudio || element === remoteAudio);
+}
+
+function syncAndroidAudioMessageProximityFromPlayback() {
+    if (!isAndroidWebViewRuntime()) return;
+    const activeAudioPlayback = Array.from(document.querySelectorAll('audio')).some((audioEl) => {
+        if (isCallAudioElement(audioEl)) return false;
+        return !audioEl.paused && !audioEl.ended && audioEl.readyState > 0;
+    });
+    setAndroidAudioMessageProximityEnabled(activeAudioPlayback);
+}
+
 function getDownloadCategory(msg, fileName = '', mimeType = '') {
     const messageType = (msg?.type || '').toLowerCase();
     const mime = String(mimeType || msg?.fileType || '').toLowerCase();
@@ -1883,6 +1896,33 @@ function appendDownloadScopeParam(url, scope = '') {
     } catch (error) {
         return url;
     }
+}
+
+function callAndroidBridgeMethod(methodName, enabled) {
+    try {
+        if (!window.CameChatAndroid) return;
+        const method = window.CameChatAndroid[methodName];
+        if (typeof method === 'function') {
+            method.call(window.CameChatAndroid, !!enabled);
+        }
+    } catch (error) {
+        console.warn(`Falha ao chamar o bridge Android: ${methodName}`, error);
+    }
+}
+
+function setAndroidVoiceCallProximityEnabled(enabled) {
+    if (!isAndroidWebViewRuntime()) return;
+    callAndroidBridgeMethod('setVoiceCallProximityEnabled', enabled);
+}
+
+function setAndroidAudioMessageProximityEnabled(enabled) {
+    if (!isAndroidWebViewRuntime()) return;
+    callAndroidBridgeMethod('setAudioMessageProximityEnabled', enabled);
+}
+
+function setAndroidSpeakerphoneEnabled(enabled) {
+    if (!isAndroidWebViewRuntime()) return;
+    callAndroidBridgeMethod('setSpeakerphoneEnabled', enabled);
 }
 
 function buildDeviceDownloadPath(msg, fileName, mimeType = '', options = {}) {
@@ -2828,9 +2868,16 @@ function stopProximitySensor() {
 }
 
 function updateProximityHandling() {
-    const isAudioCall = callPhase === 'active' && (currentCallType === 'audio' || currentCallType === null);
+    const isAudioCall = (callPhase === 'outgoing' || callPhase === 'active')
+        && (currentCallType === 'audio' || currentCallType === null);
     const shouldEnable = isAudioCall && isMobileDevice();
+    setAndroidVoiceCallProximityEnabled(shouldEnable);
+    setAndroidSpeakerphoneEnabled(shouldEnable ? isSpeakerOn : false);
     if (!shouldEnable) {
+        stopProximitySensor();
+        return;
+    }
+    if (isAndroidWebViewRuntime()) {
         stopProximitySensor();
         return;
     }
@@ -2878,6 +2925,7 @@ async function applySpeakerOutput(enable) {
 
 async function toggleSpeakerphone() {
     isSpeakerOn = !isSpeakerOn;
+    setAndroidSpeakerphoneEnabled((callPhase === 'outgoing' || callPhase === 'active') ? isSpeakerOn : false);
     await applySpeakerOutput(isSpeakerOn);
     updateCallControls();
 }
@@ -8990,6 +9038,26 @@ window.addEventListener('beforeunload', () => {
     });
     attachmentCacheObjectUrls = new Map();
 });
+
+document.addEventListener('play', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLAudioElement) || isCallAudioElement(target)) return;
+    syncAndroidAudioMessageProximityFromPlayback();
+}, true);
+
+document.addEventListener('pause', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLAudioElement) || isCallAudioElement(target)) return;
+    window.setTimeout(() => {
+        syncAndroidAudioMessageProximityFromPlayback();
+    }, 0);
+}, true);
+
+document.addEventListener('ended', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLAudioElement) || isCallAudioElement(target)) return;
+    syncAndroidAudioMessageProximityFromPlayback();
+}, true);
 
 if (btnCallMute) {
     btnCallMute.addEventListener('click', () => {
