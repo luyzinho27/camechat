@@ -439,6 +439,9 @@ let editingMessage = null;
 let activeMessageActionTarget = null;
 let deleteMessageModalResolver = null;
 let shareMessageModalResolver = null;
+let pendingAndroidSharePayload = null;
+let isAndroidShareProcessing = false;
+const pendingAndroidShareUploads = new Map();
 let userTagMatchModalResolver = null;
 let mediaViewerImageEl = null;
 let mediaViewerImageScale = 1;
@@ -2682,6 +2685,9 @@ auth.onAuthStateChanged(async (user) => {
         loadUsers();
 
         listenForIncomingCalls();
+        setTimeout(() => {
+            processPendingAndroidSharePayload();
+        }, 300);
         finishInitialBootstrap('app');
         
         // Atualizar lastSeen ao fechar a página
@@ -6716,6 +6722,179 @@ async function askShareTargetUser() {
     });
 }
 
+function normalizeAndroidSharePayload(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    const text = String(payload.text || '').trim();
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    const normalizedItems = items.map((item) => ({
+        uri: String(item?.uri || '').trim(),
+        name: String(item?.name || item?.fileName || '').trim(),
+        mimeType: String(item?.mimeType || item?.type || '').trim(),
+        size: Number(item?.size || 0) || 0
+    })).filter((item) => item.uri);
+    return {
+        text,
+        items: normalizedItems
+    };
+}
+
+async function ensureShareableFriendsLoaded(timeoutMs = 8000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        if (getShareableFriends().length > 0) return true;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    return getShareableFriends().length > 0;
+}
+
+async function sendChatFileFromUrl(fileUrl, meta = {}) {
+    if (!fileUrl || !selectedUserId || !currentUser) return;
+    const fileName = sanitizeDownloadFileName(meta.name || meta.fileName || inferAttachmentFileName({ type: 'file', fileName: '' }, fileUrl, meta.mimeType || ''));
+    const fileType = String(meta.mimeType || meta.fileType || 'application/octet-stream');
+    const fileSize = Number(meta.size || meta.fileSize || 0) || 0;
+
+    let messageType = 'file';
+    if (fileType.startsWith('image/')) messageType = 'image';
+    if (fileType.startsWith('video/')) messageType = 'video';
+    if (fileType.startsWith('audio/')) messageType = 'audio';
+
+    const conversationId = getConversationId(currentUser.uid, selectedUserId);
+    const delivered = isUserEffectivelyOnline(selectedFriendData);
+    const replyPayload = getPendingReplyPayload();
+
+    await db.collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .add({
+            fileUrl: fileUrl,
+            fileName: fileName,
+            fileType: fileType,
+            fileSize: fileSize || null,
+            imageUrl: messageType === 'image' ? fileUrl : null,
+            senderId: currentUser.uid,
+            receiverId: selectedUserId,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            type: messageType,
+            read: false,
+            delivered: delivered,
+            deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+            replyTo: replyPayload || null
+        });
+    clearReplyTargetMessage();
+}
+
+async function shareAndroidFileItem(item) {
+    if (!item?.uri || !selectedUserId) return;
+    if (item.size && item.size > MAX_CHAT_FILE_SIZE_BYTES) {
+        alert(`O arquivo deve ter no máximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
+        return;
+    }
+
+    if (isAndroidWebViewRuntime()) {
+        try {
+            const response = await fetch(item.uri);
+            if (response.ok) {
+                const blob = await response.blob();
+                if (blob && blob.size) {
+                    const name = sanitizeDownloadFileName(item.name || inferAttachmentFileName({ type: 'file', fileName: '' }, item.uri, item.mimeType || blob.type || ''));
+                    const type = item.mimeType || blob.type || 'application/octet-stream';
+                    const file = new File([blob], name, { type });
+                    await handleChatFile(file);
+                    return;
+                }
+            }
+        } catch (error) {
+            // fallback para upload nativo
+        }
+
+        const requestId = `share_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+        pendingAndroidShareUploads.set(requestId, item);
+        const invoked = callAndroidBridgeMethod('uploadSharedFile', requestId, item.uri, item.name || '', item.mimeType || '');
+        if (!invoked) {
+            pendingAndroidShareUploads.delete(requestId);
+            alert('Não foi possível importar este arquivo agora.');
+        }
+        return;
+    }
+}
+
+async function processPendingAndroidSharePayload() {
+    if (!pendingAndroidSharePayload || isAndroidShareProcessing || !currentUser) return;
+    const payload = pendingAndroidSharePayload;
+    pendingAndroidSharePayload = null;
+    isAndroidShareProcessing = true;
+
+    try {
+        await ensureShareableFriendsLoaded();
+        const targetUid = await askShareTargetUser();
+        if (!targetUid) return;
+        const friend = allUsersCache.find((user) => user.uid === targetUid);
+        if (friend) {
+            await selectUser(friend);
+        }
+
+        if (payload.text) {
+            if (messageInput) {
+                messageInput.value = payload.text;
+            }
+            await submitTextComposerMessage();
+        }
+
+        if (Array.isArray(payload.items)) {
+            for (const item of payload.items) {
+                await shareAndroidFileItem(item);
+            }
+        }
+    } finally {
+        isAndroidShareProcessing = false;
+    }
+}
+
+function handleAndroidSharePayload(rawPayload) {
+    let payload = rawPayload;
+    if (typeof rawPayload === 'string') {
+        try {
+            payload = JSON.parse(rawPayload);
+        } catch (error) {
+            return;
+        }
+    }
+    const normalized = normalizeAndroidSharePayload(payload);
+    if (!normalized) return;
+    pendingAndroidSharePayload = normalized;
+    if (currentUser) {
+        processPendingAndroidSharePayload();
+    } else {
+        alert('Faça login para compartilhar no CameChat.');
+    }
+}
+
+async function handleAndroidShareUploadResult(rawPayload) {
+    let payload = rawPayload;
+    if (typeof rawPayload === 'string') {
+        try {
+            payload = JSON.parse(rawPayload);
+        } catch (error) {
+            return;
+        }
+    }
+    const requestId = payload?.requestId;
+    if (!requestId || !pendingAndroidShareUploads.has(requestId)) return;
+    const meta = pendingAndroidShareUploads.get(requestId);
+    pendingAndroidShareUploads.delete(requestId);
+
+    if (!payload.ok || !payload.url) {
+        alert(payload.error || 'Falha ao compartilhar arquivo.');
+        return;
+    }
+
+    await sendChatFileFromUrl(payload.url, {
+        name: meta?.name || payload.fileName || '',
+        mimeType: meta?.mimeType || payload.mimeType || '',
+        size: meta?.size || payload.size || 0
+    });
+}
+
 async function askDeleteScope(messagesToDelete) {
     if (!Array.isArray(messagesToDelete) || messagesToDelete.length === 0) return null;
     const allowDeleteForAll = messagesToDelete.every((msg) => canDeleteMessageForAll(msg));
@@ -8673,6 +8852,8 @@ function handleAndroidBackPress() {
 window.CameChatApp = window.CameChatApp || {};
 window.CameChatApp.handleAndroidBackPress = handleAndroidBackPress;
 window.CameChatApp.handleNativeGoogleSignInResult = handleNativeGoogleSignInResult;
+window.CameChatApp.handleAndroidSharePayload = handleAndroidSharePayload;
+window.CameChatApp.handleAndroidShareUploadResult = handleAndroidShareUploadResult;
 
 function resetChatUI() {
     selectedUserId = null;
