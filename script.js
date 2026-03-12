@@ -149,6 +149,7 @@ const CALL_BLOCK_STORAGE_KEY = 'camechat_block_incoming_calls';
 const LAST_SEEN_VISIBILITY_STORAGE_KEY = 'camechat_last_seen_visible';
 const LANGUAGE_STORAGE_KEY = 'camechat_language';
 const MUTED_FRIENDS_STORAGE_KEY_PREFIX = 'camechat_muted_friends_';
+const ANDROID_FCM_TOKEN_STORAGE_KEY = 'camechat_android_fcm_token';
 
 let soundNotificationsEnabled = true;
 let readReceiptsEnabled = true;
@@ -161,6 +162,8 @@ let pcLocalMediaFolderReady = false;
 let blockIncomingCallsEnabled = false;
 let showLastSeenEnabled = true;
 let selectedLanguage = 'pt-BR';
+let pendingAndroidCallAction = null;
+let lastAndroidFcmToken = '';
 
 // Admin panel
 const chatPanel = document.getElementById('chat-panel');
@@ -968,6 +971,7 @@ async function ensureUserDocument(user, options = {}) {
         role: options.role || 'user_chat',
         friends: Array.isArray(options.friends) ? options.friends : [],
         blocked: Array.isArray(options.blocked) ? options.blocked : [],
+        fcmTokens: Array.isArray(options.fcmTokens) ? options.fcmTokens : [],
         showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
         online: true,
         lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1009,6 +1013,7 @@ async function ensureUserDocument(user, options = {}) {
     if (shouldUpdatePhotoData) updates.photoData = options.photoData ?? null;
     if (!Array.isArray(data.friends)) updates.friends = [];
     if (!Array.isArray(data.blocked)) updates.blocked = [];
+    if (!Array.isArray(data.fcmTokens)) updates.fcmTokens = [];
     if (typeof data.showOnlineStatus !== 'boolean') updates.showOnlineStatus = true;
     if (!data.userTag || data.userTag !== existingTagFields.userTag) updates.userTag = existingTagFields.userTag;
     if (!data.userTagLower || data.userTagLower !== existingTagFields.userTagLower) updates.userTagLower = existingTagFields.userTagLower;
@@ -2057,6 +2062,66 @@ function setAndroidSpeakerphoneEnabled(enabled) {
     callAndroidBridgeMethod('setSpeakerphoneEnabled', enabled);
 }
 
+function requestAndroidFcmToken() {
+    if (!isAndroidWebViewRuntime()) return;
+    callAndroidBridgeMethod('requestFcmToken');
+}
+
+async function registerAndroidFcmToken(token) {
+    if (!currentUser) return;
+    const safeToken = String(token || '').trim();
+    if (!safeToken) return;
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            fcmTokens: firebase.firestore.FieldValue.arrayUnion(safeToken),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    } catch (error) {
+        console.warn('Falha ao salvar token FCM.', error);
+    }
+}
+
+async function unregisterAndroidFcmToken(token) {
+    if (!currentUser) return;
+    const safeToken = String(token || '').trim();
+    if (!safeToken) return;
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            fcmTokens: firebase.firestore.FieldValue.arrayRemove(safeToken),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    } catch (error) {
+        console.warn('Falha ao remover token FCM.', error);
+    }
+}
+
+function handleAndroidFcmToken(payload = {}) {
+    let data = payload;
+    if (typeof payload === 'string') {
+        try {
+            data = JSON.parse(payload);
+        } catch (error) {
+            data = payload;
+        }
+    }
+
+    let token = '';
+    if (typeof data === 'string') {
+        token = data;
+    } else if (data && typeof data === 'object') {
+        token = data.token || data.fcmToken || '';
+    }
+    token = String(token || '').trim();
+    if (!token) return;
+
+    lastAndroidFcmToken = token;
+    localStorage.setItem(ANDROID_FCM_TOKEN_STORAGE_KEY, token);
+
+    if (currentUser) {
+        registerAndroidFcmToken(token);
+    }
+}
+
 function startAndroidGoogleSignIn(requestedRole = '') {
     if (!isAndroidWebViewRuntime()) return false;
     if (nativeGoogleSignInPending) return true;
@@ -2674,6 +2739,14 @@ auth.onAuthStateChanged(async (user) => {
         setAdminAccess(currentUserRole === 'administrador');
 
         subscribeToCurrentUserDoc();
+
+        if (isAndroidWebViewRuntime()) {
+            const cachedToken = localStorage.getItem(ANDROID_FCM_TOKEN_STORAGE_KEY) || '';
+            if (cachedToken.trim()) {
+                registerAndroidFcmToken(cachedToken);
+            }
+            requestAndroidFcmToken();
+        }
         
         // Atualizar status online no Firestore
         await updateUserOnlineStatus(true);
@@ -2688,6 +2761,7 @@ auth.onAuthStateChanged(async (user) => {
         setTimeout(() => {
             processPendingAndroidSharePayload();
         }, 300);
+        processPendingAndroidCallAction();
         finishInitialBootstrap('app');
         
         // Atualizar lastSeen ao fechar a página
@@ -2736,6 +2810,7 @@ auth.onAuthStateChanged(async (user) => {
         selectedFriendIds = new Set();
         isFriendSelectionMode = false;
         updateFriendSelectionUI();
+        pendingAndroidCallAction = null;
         if (btnEmoji) btnEmoji.disabled = true;
         if (btnVoice) btnVoice.disabled = true;
         if (btnCameraQuick) btnCameraQuick.disabled = true;
@@ -3893,6 +3968,34 @@ async function preparePeerConnection(options = {}) {
     updateCallMediaVisibility(wantsVideo ? 'video' : 'audio');
 }
 
+async function notifyFriendIncomingCall(callId, callType, friend) {
+    if (!callId || !friend || !currentUser) return;
+    const tokens = Array.isArray(friend.fcmTokens)
+        ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
+        : [];
+    if (!tokens.length) return;
+
+    const payload = {
+        tokens,
+        callId,
+        callType: callType || 'audio',
+        callerId: currentUser.uid,
+        callerName: currentUserProfile?.name || currentUser.displayName || 'Usuário',
+        callerPhotoURL: currentUserProfile?.photoURL || null
+    };
+
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/call-notify` : '/api/call-notify';
+    try {
+        await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (error) {
+        console.warn('Falha ao enviar notificação de chamada.', error);
+    }
+}
+
 async function startCall(callType = 'audio') {
     if (!selectedFriendData || !currentUser) return;
     if (isFriendBlocked(selectedFriendData.uid)) {
@@ -3960,6 +4063,8 @@ async function startCall(callType = 'audio') {
             callDocRef.collection('callerCandidates').add(event.candidate.toJSON());
         }
     };
+
+    notifyFriendIncomingCall(currentCallId, callType, selectedFriendData);
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
@@ -6895,6 +7000,72 @@ async function handleAndroidShareUploadResult(rawPayload) {
     });
 }
 
+async function handleAndroidCallAction(rawPayload) {
+    let payload = rawPayload;
+    if (typeof rawPayload === 'string') {
+        try {
+            payload = JSON.parse(rawPayload);
+        } catch (error) {
+            return;
+        }
+    }
+    if (!payload || typeof payload !== 'object') return;
+    if (!currentUser) {
+        pendingAndroidCallAction = payload;
+        alert('Faça login para atender a chamada no CameChat.');
+        return;
+    }
+
+    const callId = String(payload.callId || payload.call_id || '').trim();
+    if (!callId) return;
+
+    if (currentCallId && currentCallId !== callId) {
+        return;
+    }
+
+    let callDoc;
+    try {
+        callDoc = await db.collection('calls').doc(callId).get();
+    } catch (error) {
+        return;
+    }
+    if (!callDoc || !callDoc.exists) return;
+
+    const action = String(payload.action || payload.callAction || payload.type || 'open').toLowerCase();
+    const data = callDoc.data() || {};
+    if (data.status && data.status !== 'ringing' && action !== 'open') {
+        return;
+    }
+
+    if (action === 'reject') {
+        await callDoc.ref.set({
+            status: 'rejected',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        return;
+    }
+
+    if (currentCallId === callId && callPhase === 'incoming') {
+        if (action === 'accept') {
+            await acceptIncomingCall();
+        }
+        return;
+    }
+
+    await handleIncomingCall(callDoc);
+
+    if (action === 'accept') {
+        await acceptIncomingCall();
+    }
+}
+
+function processPendingAndroidCallAction() {
+    if (!pendingAndroidCallAction || !currentUser) return;
+    const payload = pendingAndroidCallAction;
+    pendingAndroidCallAction = null;
+    handleAndroidCallAction(payload);
+}
+
 async function askDeleteScope(messagesToDelete) {
     if (!Array.isArray(messagesToDelete) || messagesToDelete.length === 0) return null;
     const allowDeleteForAll = messagesToDelete.every((msg) => canDeleteMessageForAll(msg));
@@ -8854,6 +9025,8 @@ window.CameChatApp.handleAndroidBackPress = handleAndroidBackPress;
 window.CameChatApp.handleNativeGoogleSignInResult = handleNativeGoogleSignInResult;
 window.CameChatApp.handleAndroidSharePayload = handleAndroidSharePayload;
 window.CameChatApp.handleAndroidShareUploadResult = handleAndroidShareUploadResult;
+window.CameChatApp.handleAndroidCallAction = handleAndroidCallAction;
+window.CameChatApp.handleAndroidFcmToken = handleAndroidFcmToken;
 
 function resetChatUI() {
     selectedUserId = null;
@@ -10179,6 +10352,12 @@ btnLogout.addEventListener('click', async () => {
     try {
         setLogoutButtonVisible(false);
         await updateUserOnlineStatus(false);
+        if (isAndroidWebViewRuntime()) {
+            const token = lastAndroidFcmToken || localStorage.getItem(ANDROID_FCM_TOKEN_STORAGE_KEY) || '';
+            if (token.trim()) {
+                await unregisterAndroidFcmToken(token);
+            }
+        }
         await auth.signOut();
         resetRegisterForm();
         setSidebarOpen(false);
