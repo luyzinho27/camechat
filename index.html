@@ -6,7 +6,7 @@
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
-    <link rel="stylesheet" href="style.css?v=20260307-40">
+    <link rel="stylesheet" href="style.css?v=20260312-01">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -279,13 +279,9 @@
                         <span class="attach-icon" aria-hidden="true">&#128444;&#65039;</span>
                         Galeria
                     </button>
-                    <button type="button" class="attach-option" data-attach="camera-photo">
+                    <button type="button" class="attach-option" data-attach="camera">
                         <span class="attach-icon" aria-hidden="true">&#128247;</span>
-                        Câmera (foto)
-                    </button>
-                    <button type="button" class="attach-option" data-attach="camera-video">
-                        <span class="attach-icon" aria-hidden="true">&#127909;</span>
-                        Câmera (vídeo)
+                        Câmera
                     </button>
                     <button type="button" class="attach-option" data-attach="audio">
                         <span class="attach-icon" aria-hidden="true">&#127908;</span>
@@ -448,17 +444,15 @@
     <!-- Modal da câmera -->
     <div id="camera-modal" class="modal">
         <div class="modal-content camera-modal-content">
-            <span id="camera-close-modal" class="close-modal">&times;</span>
-            <h3>Câmera</h3>
             <div class="camera-preview">
                 <video id="camera-preview" autoplay playsinline muted></video>
             </div>
             <p id="camera-status" class="camera-status">Pronto para capturar.</p>
             <div class="camera-actions">
-                <button id="btn-camera-switch" class="btn-google" type="button">Virar câmera</button>
-                <button id="btn-camera-capture" class="btn-primary" type="button">Tirar foto</button>
-                <button id="btn-camera-record" class="btn-google" type="button">Gravar vídeo</button>
-                <button id="btn-camera-cancel" class="btn-google" type="button">Fechar</button>
+                <button id="btn-camera-switch" class="btn-camera-control" type="button" title="Virar câmera" aria-label="Virar câmera"></button>
+                <button id="btn-camera-capture" class="btn-camera-control btn-camera-primary" type="button" title="Tirar foto" aria-label="Tirar foto"></button>
+                <button id="btn-camera-record" class="btn-camera-control" type="button" title="Gravar vídeo" aria-label="Gravar vídeo"></button>
+                <button id="btn-camera-cancel" class="btn-camera-control" type="button" title="Fechar" aria-label="Fechar"></button>
             </div>
         </div>
     </div>
@@ -560,6 +554,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260312-02"></script>
+    <script src="script.js?v=20260312-03"></script>
 </body>
 </html>
