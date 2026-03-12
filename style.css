@@ -3334,10 +3334,45 @@ body.theme-dark .download-progress-item .upload-progress-status::before {
         max-width: 88%;
     }
 
-    .message-input-area {
-        padding: 8px 10px;
-        gap: 6px;
-    }
+.message-input-area {
+    padding: 8px 10px;
+    gap: 6px;
+}
+
+.chat-media-video-thumb {
+    position: relative;
+    width: min(240px, 70vw);
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0c1324;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.chat-media-video-thumb .chat-media-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    background: #000;
+}
+
+.chat-media-video-play {
+    position: absolute;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    pointer-events: none;
+}
 
     .reply-preview {
         padding: 6px 10px;
@@ -3355,9 +3390,13 @@ body.theme-dark .download-progress-item .upload-progress-status::before {
         min-width: 0;
     }
 
-    .btn-camera-quick {
-        display: none;
-    }
+.btn-camera-quick {
+    display: none;
+}
+
+body.android-app .btn-camera-quick {
+    display: inline-flex;
+}
 
     .emoji-picker {
         right: 10px;
