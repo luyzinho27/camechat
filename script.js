@@ -287,6 +287,11 @@ const CALL_ICON_SWITCH_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="cur
 const CALL_ICON_SWITCH_AUDIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.78.58 2.63a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.45-1.1a2 2 0 0 1 2.11-.45c.85.26 1.73.46 2.63.58a2 2 0 0 1 1.72 1.98z"></path><path d="M19 5h-4"></path><path d="M17 3v4"></path></svg>';
 const VOICE_ICON_IDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line></svg>';
 const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle></svg>';
+const CAMERA_ICON_SWITCH = '🔄';
+const CAMERA_ICON_PHOTO = '📷';
+const CAMERA_ICON_VIDEO = '🎥';
+const CAMERA_ICON_STOP = '⏹';
+const CAMERA_ICON_CLOSE = '✕';
 const RECORDING_HEARTBEAT_MS = 5000;
 const ONLINE_HEARTBEAT_MS = 30000;
 const ONLINE_STALE_MS = (ONLINE_HEARTBEAT_MS * 2) + 10000;
@@ -2092,7 +2097,11 @@ function triggerBlobDownload(blob, fileName, msg = null, mimeType = '', options 
 function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '', options = {}) {
     const anchor = document.createElement('a');
     const scope = resolveLocalMediaScope(msg, options.scope);
-    anchor.href = appendDownloadScopeParam(url, scope);
+    const scopedUrl = appendDownloadScopeParam(url, scope);
+    if (isAndroidWebViewRuntime() && callAndroidBridgeMethod('downloadMedia', scopedUrl, fileName, mimeType, scope)) {
+        return;
+    }
+    anchor.href = scopedUrl;
     anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType, { scope });
     anchor.rel = 'noopener';
     anchor.style.display = 'none';
@@ -7983,6 +7992,7 @@ async function openCameraModal(preferredMode = '') {
     cancelCameraRecording = false;
     currentCameraFacing = 'environment';
     updateCameraSwitchVisibility();
+    syncCameraActionIcons();
     if (cameraStatus) cameraStatus.textContent = 'Abrindo câmera...';
     await startCameraStream();
     if (!cameraStream && preferredMode) {
@@ -8004,12 +8014,17 @@ function closeCameraModal() {
 
 function resetCameraState() {
     if (cameraStatus) cameraStatus.textContent = 'Pronto para capturar.';
-    if (btnCameraRecord) {
-        btnCameraRecord.textContent = 'Gravar vídeo';
-    }
     isCameraRecording = false;
     cameraRecorderChunks = [];
     cancelCameraRecording = false;
+    syncCameraActionIcons();
+}
+
+function syncCameraActionIcons() {
+    if (btnCameraSwitch) btnCameraSwitch.innerHTML = CAMERA_ICON_SWITCH;
+    if (btnCameraCapture) btnCameraCapture.innerHTML = CAMERA_ICON_PHOTO;
+    if (btnCameraRecord) btnCameraRecord.innerHTML = isCameraRecording ? CAMERA_ICON_STOP : CAMERA_ICON_VIDEO;
+    if (btnCameraCancel) btnCameraCancel.innerHTML = CAMERA_ICON_CLOSE;
 }
 
 function shouldShowCameraSwitch() {
@@ -8133,7 +8148,7 @@ async function toggleCameraRecording() {
         const blob = new Blob(cameraRecorderChunks, { type: cameraRecorder.mimeType || mimeType || 'video/webm' });
         cameraRecorderChunks = [];
         isCameraRecording = false;
-        if (btnCameraRecord) btnCameraRecord.textContent = 'Gravar vídeo';
+        syncCameraActionIcons();
         if (cameraStatus) cameraStatus.textContent = 'Pronto para capturar.';
         if (cancelCameraRecording) {
             cancelCameraRecording = false;
@@ -8146,7 +8161,7 @@ async function toggleCameraRecording() {
     };
     cameraRecorder.start();
     isCameraRecording = true;
-    if (btnCameraRecord) btnCameraRecord.textContent = 'Parar vídeo';
+    syncCameraActionIcons();
     if (cameraStatus) cameraStatus.textContent = 'Gravando vídeo...';
 }
 
@@ -8738,19 +8753,8 @@ if (attachMenu) {
         if (!button) return;
         const action = button.dataset.attach;
         if (action === 'gallery') openAttachInput(fileUploadGallery || fileUpload);
-        if (action === 'camera-photo') {
-            if (isAndroidWebViewRuntime()) {
-                openCameraModal('photo');
-            } else {
-                openAttachInput(fileUploadCameraPhoto || fileUpload);
-            }
-        }
-        if (action === 'camera-video') {
-            if (isAndroidWebViewRuntime()) {
-                openCameraModal('video');
-            } else {
-                openAttachInput(fileUploadCameraVideo || fileUpload);
-            }
+        if (action === 'camera') {
+            openCameraModal('photo');
         }
         if (action === 'audio') openAttachInput(fileUploadAudio || fileUpload);
         if (action === 'document') openAttachInput(fileUploadDocument || fileUpload);
