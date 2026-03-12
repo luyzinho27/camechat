@@ -1584,6 +1584,46 @@ function resetMediaViewerSwipeState() {
     mediaViewerSwipeHandled = false;
 }
 
+function handleMediaViewerSwipeDelta(deltaX, deltaY, event) {
+    if (mediaViewerSwipeHandled) return true;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (!mediaViewerSwipeAxis) {
+        if (absX < MEDIA_VIEWER_SWIPE_AXIS_LOCK && absY < MEDIA_VIEWER_SWIPE_AXIS_LOCK) {
+            return false;
+        }
+        mediaViewerSwipeAxis = absX > absY ? 'x' : 'y';
+    }
+
+    if (mediaViewerSwipeAxis === 'y') {
+        if (deltaY > MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD
+            && (isAttachmentImage(mediaViewerActiveMessage)
+                || isAttachmentVideo(mediaViewerActiveMessage)
+                || isAttachmentAudio(mediaViewerActiveMessage))) {
+            event?.preventDefault?.();
+            mediaViewerSwipeHandled = true;
+            closeMediaViewer();
+            resetMediaViewerSwipeState();
+            return true;
+        }
+    }
+
+    if (mediaViewerSwipeAxis === 'x' && absX > MEDIA_VIEWER_SWIPE_NAV_THRESHOLD && absY < MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD) {
+        event?.preventDefault?.();
+        mediaViewerSwipeHandled = true;
+        if (deltaX < 0) {
+            navigateMediaViewer(1);
+        } else {
+            navigateMediaViewer(-1);
+        }
+        resetMediaViewerSwipeState();
+        return true;
+    }
+
+    return false;
+}
+
 function clampMediaViewerImageTranslate() {
     if (!mediaViewerImageEl || !mediaViewerContent) return;
     const baseWidth = mediaViewerImageEl.clientWidth || 0;
@@ -9279,43 +9319,9 @@ if (mediaViewerContent) {
     mediaViewerContent.addEventListener('pointermove', (event) => {
         if (!canSwipeMediaViewer()) return;
         if (mediaViewerSwipePointerId !== event.pointerId) return;
-        if (mediaViewerSwipeHandled) return;
-
         const deltaX = event.clientX - mediaViewerSwipeStartX;
         const deltaY = event.clientY - mediaViewerSwipeStartY;
-        const absX = Math.abs(deltaX);
-        const absY = Math.abs(deltaY);
-
-        if (!mediaViewerSwipeAxis) {
-            if (absX < MEDIA_VIEWER_SWIPE_AXIS_LOCK && absY < MEDIA_VIEWER_SWIPE_AXIS_LOCK) {
-                return;
-            }
-            mediaViewerSwipeAxis = absX > absY ? 'x' : 'y';
-        }
-
-        if (mediaViewerSwipeAxis === 'y') {
-            if (deltaY > MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD
-                && (isAttachmentImage(mediaViewerActiveMessage)
-                    || isAttachmentVideo(mediaViewerActiveMessage)
-                    || isAttachmentAudio(mediaViewerActiveMessage))) {
-                event.preventDefault();
-                mediaViewerSwipeHandled = true;
-                closeMediaViewer();
-                resetMediaViewerSwipeState();
-                return;
-            }
-        }
-
-        if (mediaViewerSwipeAxis === 'x' && absX > MEDIA_VIEWER_SWIPE_NAV_THRESHOLD && absY < MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD) {
-            event.preventDefault();
-            mediaViewerSwipeHandled = true;
-            if (deltaX < 0) {
-                navigateMediaViewer(1);
-            } else {
-                navigateMediaViewer(-1);
-            }
-            resetMediaViewerSwipeState();
-        }
+        handleMediaViewerSwipeDelta(deltaX, deltaY, event);
     }, { passive: false, capture: true });
 
     const endSwipe = (event) => {
@@ -9325,6 +9331,35 @@ if (mediaViewerContent) {
 
     mediaViewerContent.addEventListener('pointerup', endSwipe, { capture: true });
     mediaViewerContent.addEventListener('pointercancel', endSwipe, { capture: true });
+
+    let mediaViewerTouchActive = false;
+    mediaViewerContent.addEventListener('touchstart', (event) => {
+        if (!canSwipeMediaViewer()) return;
+        if (!event.touches || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        mediaViewerTouchActive = true;
+        mediaViewerSwipeStartX = touch.clientX;
+        mediaViewerSwipeStartY = touch.clientY;
+        mediaViewerSwipeAxis = '';
+        mediaViewerSwipeHandled = false;
+    }, { passive: true, capture: true });
+
+    mediaViewerContent.addEventListener('touchmove', (event) => {
+        if (!mediaViewerTouchActive || !canSwipeMediaViewer()) return;
+        if (!event.touches || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const deltaX = touch.clientX - mediaViewerSwipeStartX;
+        const deltaY = touch.clientY - mediaViewerSwipeStartY;
+        handleMediaViewerSwipeDelta(deltaX, deltaY, event);
+    }, { passive: false, capture: true });
+
+    const endTouchSwipe = () => {
+        if (!mediaViewerTouchActive) return;
+        mediaViewerTouchActive = false;
+        resetMediaViewerSwipeState();
+    };
+    mediaViewerContent.addEventListener('touchend', endTouchSwipe, { capture: true });
+    mediaViewerContent.addEventListener('touchcancel', endTouchSwipe, { capture: true });
 
     mediaViewerContent.addEventListener('click', (event) => {
         if (event.target === mediaViewerContent) {
