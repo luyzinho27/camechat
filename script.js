@@ -1901,6 +1901,7 @@ function shouldAutoDownloadIncomingAttachment(msg) {
 }
 
 function isAndroidWebViewRuntime() {
+    if (window.CameChatAndroid) return true;
     const ua = navigator.userAgent || '';
     return /Android/i.test(ua) && /\bwv\b/i.test(ua);
 }
@@ -7966,7 +7967,7 @@ function openAttachInput(input) {
     input.click();
 }
 
-async function openCameraModal() {
+async function openCameraModal(preferredMode = '') {
     if (!cameraModal) return;
     if (!selectedUserId) {
         alert('Selecione um usuário para conversar.');
@@ -7984,6 +7985,14 @@ async function openCameraModal() {
     updateCameraSwitchVisibility();
     if (cameraStatus) cameraStatus.textContent = 'Abrindo câmera...';
     await startCameraStream();
+    if (!cameraStream && preferredMode) {
+        closeCameraModal();
+        if (preferredMode === 'photo') {
+            openAttachInput(fileUploadCameraPhoto || fileUpload);
+        } else if (preferredMode === 'video') {
+            openAttachInput(fileUploadCameraVideo || fileUpload);
+        }
+    }
 }
 
 function closeCameraModal() {
@@ -8719,7 +8728,7 @@ if (btnAttach) {
 if (btnCameraQuick) {
     btnCameraQuick.addEventListener('click', (event) => {
         event.stopPropagation();
-        openCameraModal();
+        openCameraModal('photo');
     });
 }
 
@@ -8731,14 +8740,14 @@ if (attachMenu) {
         if (action === 'gallery') openAttachInput(fileUploadGallery || fileUpload);
         if (action === 'camera-photo') {
             if (isAndroidWebViewRuntime()) {
-                openCameraModal();
+                openCameraModal('photo');
             } else {
                 openAttachInput(fileUploadCameraPhoto || fileUpload);
             }
         }
         if (action === 'camera-video') {
             if (isAndroidWebViewRuntime()) {
-                openCameraModal();
+                openCameraModal('video');
             } else {
                 openAttachInput(fileUploadCameraVideo || fileUpload);
             }
