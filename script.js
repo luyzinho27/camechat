@@ -297,6 +297,9 @@ const MESSAGE_LONG_PRESS_MS = 450;
 const MESSAGE_EDIT_WINDOW_MS = 30 * 60 * 1000;
 const MEDIA_VIEWER_MIN_SCALE = 1;
 const MEDIA_VIEWER_MAX_SCALE = 4;
+const MEDIA_VIEWER_SWIPE_AXIS_LOCK = 12;
+const MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD = 90;
+const MEDIA_VIEWER_SWIPE_NAV_THRESHOLD = 80;
 const APP_BOOTSTRAP_FALLBACK_MS = 18000;
 
 // ========== VARIÁVEIS DE ESTADO ==========
@@ -432,6 +435,11 @@ let mediaViewerImagePinchDistance = 0;
 let mediaViewerImageStartScale = 1;
 let mediaViewerActiveMessage = null;
 let mediaViewerActiveUrl = '';
+let mediaViewerSwipePointerId = null;
+let mediaViewerSwipeStartX = 0;
+let mediaViewerSwipeStartY = 0;
+let mediaViewerSwipeAxis = '';
+let mediaViewerSwipeHandled = false;
 let isManualMediaSaveInProgress = false;
 let pcMediaRootHandle = null;
 let pcMediaRootHandleLoaded = false;
@@ -1509,6 +1517,51 @@ function syncMediaViewerSaveButton() {
     btnMediaViewerSave.disabled = !canSave || isManualMediaSaveInProgress;
 }
 
+function getConversationMediaAttachments() {
+    if (!Array.isArray(currentConversationMessages)) return [];
+    return currentConversationMessages.filter((msg) => {
+        return isAttachmentImage(msg) || isAttachmentVideo(msg) || isAttachmentAudio(msg);
+    });
+}
+
+function getMediaViewerActiveIndex(list) {
+    if (!mediaViewerActiveMessage?.id) return -1;
+    return list.findIndex((msg) => msg?.id === mediaViewerActiveMessage.id);
+}
+
+function navigateMediaViewer(direction) {
+    const mediaItems = getConversationMediaAttachments();
+    if (!mediaItems.length) return false;
+    const currentIndex = getMediaViewerActiveIndex(mediaItems);
+    if (currentIndex === -1) return false;
+    const nextIndex = currentIndex + direction;
+    if (nextIndex < 0 || nextIndex >= mediaItems.length) return false;
+    const nextMsg = mediaItems[nextIndex];
+    openAttachmentInNewTab(nextMsg);
+    return true;
+}
+
+function canSwipeMediaViewer() {
+    if (!mediaViewerModal || mediaViewerModal.classList.contains('hidden')) return false;
+    if (!mediaViewerActiveMessage) return false;
+    if (!(isAttachmentImage(mediaViewerActiveMessage) || isAttachmentVideo(mediaViewerActiveMessage) || isAttachmentAudio(mediaViewerActiveMessage))) {
+        return false;
+    }
+    if (isAttachmentImage(mediaViewerActiveMessage)) {
+        if (mediaViewerImageScale > 1.01) return false;
+        if (mediaViewerImagePointers.size > 1) return false;
+    }
+    return true;
+}
+
+function resetMediaViewerSwipeState() {
+    mediaViewerSwipePointerId = null;
+    mediaViewerSwipeStartX = 0;
+    mediaViewerSwipeStartY = 0;
+    mediaViewerSwipeAxis = '';
+    mediaViewerSwipeHandled = false;
+}
+
 function clampMediaViewerImageTranslate() {
     if (!mediaViewerImageEl || !mediaViewerContent) return;
     const baseWidth = mediaViewerImageEl.clientWidth || 0;
@@ -1681,6 +1734,7 @@ function closeMediaViewer() {
     if (!mediaViewerModal) return;
     mediaViewerModal.classList.add('hidden');
     document.body.classList.remove('media-viewer-open');
+    resetMediaViewerSwipeState();
     clearMediaViewerContent();
 }
 
@@ -8675,8 +8729,20 @@ if (attachMenu) {
         if (!button) return;
         const action = button.dataset.attach;
         if (action === 'gallery') openAttachInput(fileUploadGallery || fileUpload);
-        if (action === 'camera-photo') openAttachInput(fileUploadCameraPhoto || fileUpload);
-        if (action === 'camera-video') openAttachInput(fileUploadCameraVideo || fileUpload);
+        if (action === 'camera-photo') {
+            if (isAndroidWebViewRuntime()) {
+                openCameraModal();
+            } else {
+                openAttachInput(fileUploadCameraPhoto || fileUpload);
+            }
+        }
+        if (action === 'camera-video') {
+            if (isAndroidWebViewRuntime()) {
+                openCameraModal();
+            } else {
+                openAttachInput(fileUploadCameraVideo || fileUpload);
+            }
+        }
         if (action === 'audio') openAttachInput(fileUploadAudio || fileUpload);
         if (action === 'document') openAttachInput(fileUploadDocument || fileUpload);
     });
@@ -9110,6 +9176,74 @@ if (mediaViewerModal) {
 }
 
 if (mediaViewerContent) {
+    mediaViewerContent.addEventListener('pointerdown', (event) => {
+        if (!canSwipeMediaViewer()) return;
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        if (event.target.closest('.btn-media-viewer-close, .btn-media-viewer-save, a, button, input, textarea, select')) {
+            return;
+        }
+
+        mediaViewerSwipePointerId = event.pointerId;
+        mediaViewerSwipeStartX = event.clientX;
+        mediaViewerSwipeStartY = event.clientY;
+        mediaViewerSwipeAxis = '';
+        mediaViewerSwipeHandled = false;
+
+        try {
+            mediaViewerContent.setPointerCapture(event.pointerId);
+        } catch (error) {
+            // ignore
+        }
+    }, { passive: false });
+
+    mediaViewerContent.addEventListener('pointermove', (event) => {
+        if (!canSwipeMediaViewer()) return;
+        if (mediaViewerSwipePointerId !== event.pointerId) return;
+        if (mediaViewerSwipeHandled) return;
+
+        const deltaX = event.clientX - mediaViewerSwipeStartX;
+        const deltaY = event.clientY - mediaViewerSwipeStartY;
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+
+        if (!mediaViewerSwipeAxis) {
+            if (absX < MEDIA_VIEWER_SWIPE_AXIS_LOCK && absY < MEDIA_VIEWER_SWIPE_AXIS_LOCK) {
+                return;
+            }
+            mediaViewerSwipeAxis = absX > absY ? 'x' : 'y';
+        }
+
+        if (mediaViewerSwipeAxis === 'y') {
+            if (deltaY > MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD
+                && (isAttachmentImage(mediaViewerActiveMessage) || isAttachmentVideo(mediaViewerActiveMessage))) {
+                event.preventDefault();
+                mediaViewerSwipeHandled = true;
+                closeMediaViewer();
+                resetMediaViewerSwipeState();
+                return;
+            }
+        }
+
+        if (mediaViewerSwipeAxis === 'x' && absX > MEDIA_VIEWER_SWIPE_NAV_THRESHOLD && absY < MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD) {
+            event.preventDefault();
+            mediaViewerSwipeHandled = true;
+            if (deltaX < 0) {
+                navigateMediaViewer(1);
+            } else {
+                navigateMediaViewer(-1);
+            }
+            resetMediaViewerSwipeState();
+        }
+    }, { passive: false });
+
+    const endSwipe = (event) => {
+        if (mediaViewerSwipePointerId !== event.pointerId) return;
+        resetMediaViewerSwipeState();
+    };
+
+    mediaViewerContent.addEventListener('pointerup', endSwipe);
+    mediaViewerContent.addEventListener('pointercancel', endSwipe);
+
     mediaViewerContent.addEventListener('click', (event) => {
         if (event.target === mediaViewerContent) {
             closeMediaViewer();
