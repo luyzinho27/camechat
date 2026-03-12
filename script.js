@@ -305,7 +305,7 @@ const MEDIA_VIEWER_MAX_SCALE = 4;
 const MEDIA_VIEWER_SWIPE_AXIS_LOCK = 12;
 const MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD = 90;
 const MEDIA_VIEWER_SWIPE_NAV_THRESHOLD = 80;
-const APP_BOOTSTRAP_FALLBACK_MS = 18000;
+const APP_BOOTSTRAP_FALLBACK_MS = 9000;
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -417,6 +417,15 @@ let cameraRecorderChunks = [];
 let isCameraRecording = false;
 let cancelCameraRecording = false;
 let currentCameraFacing = 'environment';
+const CAMERA_VIDEO_CONSTRAINTS = {
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+    frameRate: { ideal: 30, max: 30 }
+};
+const CAMERA_RECORDING_OPTIONS = {
+    videoBitsPerSecond: 2000000,
+    audioBitsPerSecond: 96000
+};
 let autoDownloadedAttachmentKeys = new Set();
 let autoDownloadingAttachmentKeys = new Set();
 let isMessageSelectionMode = false;
@@ -451,6 +460,7 @@ let pcMediaRootHandleLoaded = false;
 let attachmentCacheObjectUrls = new Map();
 let hasCompletedInitialBootstrap = false;
 let appBootstrapFallbackTimer = null;
+let backendWarmupStarted = false;
 let nativeGoogleSignInPending = false;
 let nativeGoogleSignInRequestedRole = '';
 
@@ -908,6 +918,13 @@ function startInitialBootstrapFallback() {
     appBootstrapFallbackTimer = window.setTimeout(() => {
         finishInitialBootstrap(currentUser ? 'app' : 'auth');
     }, APP_BOOTSTRAP_FALLBACK_MS);
+}
+
+function warmUpBackend() {
+    if (backendWarmupStarted) return;
+    backendWarmupStarted = true;
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/health` : '/api/health';
+    fetch(apiUrl, { method: 'GET', cache: 'no-store', credentials: 'include' }).catch(() => {});
 }
 
 async function ensureUserDocument(user, options = {}) {
@@ -1728,6 +1745,7 @@ function clearMediaViewerContent() {
     });
     mediaViewerContent.innerHTML = '';
     mediaViewerContent.classList.remove('media-viewer-image-mode');
+    if (mediaViewerModal) mediaViewerModal.classList.remove('media-viewer-fullscreen');
     resetMediaViewerImageState();
     mediaViewerActiveMessage = null;
     mediaViewerActiveUrl = '';
@@ -1788,6 +1806,7 @@ function openMediaViewer(msg, resolvedUrl) {
     syncMediaViewerSaveButton();
 
     if (isAttachmentImage(msg)) {
+        if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         mediaViewerContent.classList.add('media-viewer-image-mode');
         const img = document.createElement('img');
         img.src = resolvedUrl;
@@ -1795,6 +1814,7 @@ function openMediaViewer(msg, resolvedUrl) {
         mediaViewerContent.appendChild(img);
         bindMediaViewerImageInteractions(img);
     } else if (isAttachmentVideo(msg)) {
+        if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         const video = document.createElement('video');
         video.src = resolvedUrl;
         video.controls = true;
@@ -1802,6 +1822,7 @@ function openMediaViewer(msg, resolvedUrl) {
         video.playsInline = true;
         mediaViewerContent.appendChild(video);
     } else if (isAttachmentAudio(msg)) {
+        if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         const audio = document.createElement('audio');
         audio.src = resolvedUrl;
         audio.controls = true;
@@ -2558,6 +2579,8 @@ auth.onAuthStateChanged(async (user) => {
         authContainer.classList.add('hidden');
         app.classList.remove('hidden');
         setLogoutButtonVisible(false);
+        finishInitialBootstrap('app');
+        warmUpBackend();
 
         const fallbackRole = await resolveRoleForSignup('user_chat');
         let ensuredProfile = null;
@@ -2680,6 +2703,7 @@ auth.onAuthStateChanged(async (user) => {
         setSidebarOpen(false);
         resetCallState();
         finishInitialBootstrap('auth');
+        warmUpBackend();
     }
 });
 
@@ -8088,15 +8112,19 @@ async function startCameraStream() {
         return;
     }
     if (cameraStream) return;
+    const videoConstraints = {
+        ...CAMERA_VIDEO_CONSTRAINTS,
+        facingMode: { ideal: currentCameraFacing }
+    };
     try {
         cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: currentCameraFacing } },
+            video: videoConstraints,
             audio: true
         });
     } catch (error) {
         try {
             cameraStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: currentCameraFacing } },
+                video: videoConstraints,
                 audio: false
             });
             if (cameraStatus) {
@@ -8171,7 +8199,9 @@ async function toggleCameraRecording() {
         mimeType = mimeTypeCandidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
     }
     try {
-        cameraRecorder = mimeType ? new MediaRecorder(cameraStream, { mimeType }) : new MediaRecorder(cameraStream);
+        cameraRecorder = mimeType
+            ? new MediaRecorder(cameraStream, { mimeType, ...CAMERA_RECORDING_OPTIONS })
+            : new MediaRecorder(cameraStream, { ...CAMERA_RECORDING_OPTIONS });
     } catch (error) {
         cameraRecorder = new MediaRecorder(cameraStream);
     }
@@ -8458,7 +8488,7 @@ async function handleChatFile(file) {
         };
 
         await messageRef.set(messagePayload);
-        await autoSaveOutgoingAttachment({ id: messageRef.id, ...messagePayload }, file);
+        Promise.resolve().then(() => autoSaveOutgoingAttachment({ id: messageRef.id, ...messagePayload }, file));
         clearReplyTargetMessage();
     } catch (error) {
         alert('Erro ao enviar arquivo: ' + error.message);
@@ -9244,7 +9274,7 @@ if (mediaViewerContent) {
         } catch (error) {
             // ignore
         }
-    }, { passive: false });
+    }, { passive: false, capture: true });
 
     mediaViewerContent.addEventListener('pointermove', (event) => {
         if (!canSwipeMediaViewer()) return;
@@ -9286,15 +9316,15 @@ if (mediaViewerContent) {
             }
             resetMediaViewerSwipeState();
         }
-    }, { passive: false });
+    }, { passive: false, capture: true });
 
     const endSwipe = (event) => {
         if (mediaViewerSwipePointerId !== event.pointerId) return;
         resetMediaViewerSwipeState();
     };
 
-    mediaViewerContent.addEventListener('pointerup', endSwipe);
-    mediaViewerContent.addEventListener('pointercancel', endSwipe);
+    mediaViewerContent.addEventListener('pointerup', endSwipe, { capture: true });
+    mediaViewerContent.addEventListener('pointercancel', endSwipe, { capture: true });
 
     mediaViewerContent.addEventListener('click', (event) => {
         if (event.target === mediaViewerContent) {
