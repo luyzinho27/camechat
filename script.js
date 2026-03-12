@@ -1911,6 +1911,10 @@ function isAndroidWebViewRuntime() {
     return /Android/i.test(ua) && /\bwv\b/i.test(ua);
 }
 
+if (document.body && isAndroidWebViewRuntime()) {
+    document.body.classList.add('android-app');
+}
+
 function isCallAudioElement(element) {
     return !!element && (element === localAudio || element === remoteAudio);
 }
@@ -7468,12 +7472,30 @@ function renderMessages(messages, options = {}) {
             if (videoUrl) {
                 div.innerHTML = `
                     ${replyReference}
-                    <video class="chat-media-video" src="${videoUrl}" controls playsinline preload="metadata" style="max-width: 240px; border-radius: 10px;"></video>
+                    <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vídeo">
+                        <video class="chat-media-video" src="${videoUrl}" playsinline preload="metadata" muted></video>
+                        <span class="chat-media-video-play" aria-hidden="true">&#9658;</span>
+                    </div>
                     ${meta}
                 `;
                 const videoEl = div.querySelector('.chat-media-video');
                 if (videoEl) {
                     attachMediaFallbackHandlers(videoEl, msg);
+                    prepareVideoThumbnail(videoEl);
+                }
+                const videoThumb = div.querySelector('.chat-media-video-thumb');
+                if (videoThumb && !isSelectionMode) {
+                    const openVideo = (event) => {
+                        if (shouldBlockMessagePrimaryAction(event)) return;
+                        openAttachmentInNewTab(msg, videoEl?.currentSrc || videoEl?.src || videoUrl);
+                    };
+                    videoThumb.addEventListener('click', openVideo);
+                    videoThumb.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openVideo(event);
+                        }
+                    });
                 }
             } else {
                 div.innerHTML = `
@@ -8025,6 +8047,21 @@ function syncCameraActionIcons() {
     if (btnCameraCapture) btnCameraCapture.innerHTML = CAMERA_ICON_PHOTO;
     if (btnCameraRecord) btnCameraRecord.innerHTML = isCameraRecording ? CAMERA_ICON_STOP : CAMERA_ICON_VIDEO;
     if (btnCameraCancel) btnCameraCancel.innerHTML = CAMERA_ICON_CLOSE;
+}
+
+function prepareVideoThumbnail(videoEl) {
+    if (!videoEl) return;
+    const onLoaded = () => {
+        try {
+            if (Number.isFinite(videoEl.duration) && videoEl.duration > 0) {
+                const target = Math.min(0.1, videoEl.duration / 2);
+                videoEl.currentTime = target;
+            }
+        } catch (error) {
+            // ignore
+        }
+    };
+    videoEl.addEventListener('loadedmetadata', onLoaded, { once: true });
 }
 
 function shouldShowCameraSwitch() {
@@ -9228,7 +9265,9 @@ if (mediaViewerContent) {
 
         if (mediaViewerSwipeAxis === 'y') {
             if (deltaY > MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD
-                && (isAttachmentImage(mediaViewerActiveMessage) || isAttachmentVideo(mediaViewerActiveMessage))) {
+                && (isAttachmentImage(mediaViewerActiveMessage)
+                    || isAttachmentVideo(mediaViewerActiveMessage)
+                    || isAttachmentAudio(mediaViewerActiveMessage))) {
                 event.preventDefault();
                 mediaViewerSwipeHandled = true;
                 closeMediaViewer();
