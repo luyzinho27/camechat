@@ -12,6 +12,16 @@ try {
     console.warn('SDK S3 nao encontrado. Upload em bucket externo desativado; usando disco local.');
 }
 
+let firebaseAdmin = null;
+try {
+    firebaseAdmin = require('firebase-admin');
+} catch (error) {
+    console.warn('Firebase Admin SDK nao encontrado. Notificacoes de chamadas desativadas.');
+}
+
+let firebaseMessaging = null;
+let firebaseInitError = '';
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -111,6 +121,52 @@ const objectStorageClient = canUseObjectStorage
     })
     : null;
 
+function getFirebaseMessaging() {
+    if (firebaseMessaging) return firebaseMessaging;
+    if (!firebaseAdmin) {
+        firebaseInitError = firebaseInitError || 'Firebase Admin SDK indisponivel.';
+        return null;
+    }
+    if (firebaseInitError) return null;
+
+    let serviceAccount = null;
+    const rawJson = (process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
+    const jsonPath = (process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '').trim();
+
+    try {
+        if (rawJson) {
+            const normalized = rawJson.replace(/\\n/g, '\n');
+            serviceAccount = JSON.parse(normalized);
+        } else if (jsonPath) {
+            const resolvedPath = path.isAbsolute(jsonPath)
+                ? jsonPath
+                : path.join(__dirname, jsonPath);
+            serviceAccount = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+        }
+    } catch (error) {
+        firebaseInitError = 'Falha ao carregar o service account do Firebase.';
+        return null;
+    }
+
+    if (!serviceAccount) {
+        firebaseInitError = 'Service account do Firebase nao configurado.';
+        return null;
+    }
+
+    try {
+        if (!firebaseAdmin.apps.length) {
+            firebaseAdmin.initializeApp({
+                credential: firebaseAdmin.credential.cert(serviceAccount)
+            });
+        }
+        firebaseMessaging = firebaseAdmin.messaging();
+        return firebaseMessaging;
+    } catch (error) {
+        firebaseInitError = 'Falha ao inicializar o Firebase Admin.';
+        return null;
+    }
+}
+
 async function uploadBufferToObjectStorage(file, keyPrefix, generatedName) {
     if (!objectStorageClient) {
         throw new Error('Bucket externo nao configurado.');
@@ -190,6 +246,7 @@ const uploadChatMemory = multer({
 });
 
 app.use(cors());
+app.use(express.json({ limit: '1mb' }));
 app.use('/images', express.static(imagesRoot, {
     etag: true,
     maxAge: '365d',
@@ -248,6 +305,46 @@ app.post('/api/upload-chat', async (req, res, next) => {
         return res.json({ url });
     } catch (error) {
         return next(error);
+    }
+});
+
+app.post('/api/call-notify', async (req, res) => {
+    try {
+        const tokens = Array.isArray(req.body?.tokens)
+            ? req.body.tokens.filter((token) => typeof token === 'string' && token.trim())
+            : [];
+        if (tokens.length === 0) {
+            return res.json({ ok: true, skipped: true });
+        }
+
+        const messaging = getFirebaseMessaging();
+        if (!messaging) {
+            return res.status(500).json({ message: firebaseInitError || 'Firebase Admin nao configurado.' });
+        }
+
+        const payload = {
+            tokens,
+            data: {
+                type: 'call',
+                callId: String(req.body?.callId || ''),
+                callType: String(req.body?.callType || 'audio'),
+                callerId: String(req.body?.callerId || ''),
+                callerName: String(req.body?.callerName || ''),
+                callerPhoto: String(req.body?.callerPhotoURL || '')
+            },
+            android: {
+                priority: 'high'
+            }
+        };
+
+        const response = await messaging.sendMulticast(payload);
+        return res.json({
+            ok: true,
+            successCount: response.successCount,
+            failureCount: response.failureCount
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || 'Falha ao notificar chamada.' });
     }
 });
 
