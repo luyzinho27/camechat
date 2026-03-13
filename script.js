@@ -21,6 +21,9 @@ const RTC_CONFIG = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch((error) => {
+    console.warn('Persistência offline do Firestore indisponível.', error);
+});
 
 // Mantem sessao ativa ate o usuario clicar em "Sair"
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((error) => {
@@ -149,6 +152,9 @@ const CALL_BLOCK_STORAGE_KEY = 'camechat_block_incoming_calls';
 const LAST_SEEN_VISIBILITY_STORAGE_KEY = 'camechat_last_seen_visible';
 const LANGUAGE_STORAGE_KEY = 'camechat_language';
 const MUTED_FRIENDS_STORAGE_KEY_PREFIX = 'camechat_muted_friends_';
+const FRIENDS_CACHE_STORAGE_KEY_PREFIX = 'camechat_friends_cache_';
+const USERS_CACHE_STORAGE_KEY_PREFIX = 'camechat_users_cache_';
+const USERS_CACHE_MAX_PHOTO_DATA_LENGTH = 30000;
 const ANDROID_FCM_TOKEN_STORAGE_KEY = 'camechat_android_fcm_token';
 
 let soundNotificationsEnabled = true;
@@ -209,6 +215,10 @@ const friendBlockedBadge = document.getElementById('friend-blocked-badge');
 const friendRemoveBtn = document.getElementById('friend-remove-btn');
 const friendBlockBtn = document.getElementById('friend-block-btn');
 const friendUnblockBtn = document.getElementById('friend-unblock-btn');
+const friendAliasModal = document.getElementById('friend-alias-modal');
+const friendAliasClose = document.getElementById('friend-alias-close');
+const friendAliasInput = document.getElementById('friend-alias-input');
+const friendAliasSave = document.getElementById('friend-alias-save');
 const userTagMatchModal = document.getElementById('user-tag-match-modal');
 const userTagMatchClose = document.getElementById('user-tag-match-close');
 const userTagMatchText = document.getElementById('user-tag-match-text');
@@ -350,6 +360,7 @@ let cropStartOffsetX = 0;
 let cropStartOffsetY = 0;
 let profileCropReady = false;
 let selectedFriendData = null;
+let pendingFriendAliasUser = null;
 let callDocRef = null;
 let callDocUnsubscribe = null;
 let incomingCallUnsubscribe = null;
@@ -410,6 +421,9 @@ let renegotiationInProgress = false;
 let renegotiationTimeout = null;
 let pendingRenegotiationTarget = null;
 let renegotiationFallbackUsed = false;
+let conversationMetaByFriendId = new Map();
+let conversationMetaUnsubscribes = new Map();
+let conversationMetaBackfillAttempts = new Set();
 let audioRecorder = null;
 let audioRecorderStream = null;
 let audioRecorderChunks = [];
@@ -797,6 +811,89 @@ function persistMutedFriendsForCurrentUser() {
     }
 }
 
+function getFriendsCacheStorageKey(uid = currentUser?.uid) {
+    return uid ? `${FRIENDS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
+}
+
+function getUsersCacheStorageKey(uid = currentUser?.uid) {
+    return uid ? `${USERS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
+}
+
+function loadCachedFriendsForCurrentUser() {
+    const key = getFriendsCacheStorageKey();
+    if (!key) return [];
+    try {
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+        if (parsed && Array.isArray(parsed.data)) return parsed.data.filter(Boolean);
+    } catch (error) {
+        // ignore
+    }
+    return [];
+}
+
+function persistFriendsCache(friends) {
+    const key = getFriendsCacheStorageKey();
+    if (!key) return;
+    const safeFriends = Array.isArray(friends) ? friends.filter(Boolean) : [];
+    try {
+        localStorage.setItem(key, JSON.stringify({ data: safeFriends, updatedAt: Date.now() }));
+    } catch (error) {
+        // ignore
+    }
+}
+
+function sanitizeUserForCache(user) {
+    if (!user || !user.uid) return null;
+    const photoData = typeof user.photoData === 'string'
+        && user.photoData.startsWith('data:image/')
+        && user.photoData.length <= USERS_CACHE_MAX_PHOTO_DATA_LENGTH
+        ? user.photoData
+        : null;
+    return {
+        uid: user.uid,
+        name: user.name || '',
+        email: user.email || '',
+        photoURL: user.photoURL || '',
+        photoData: photoData,
+        userTag: user.userTag || '',
+        userTagLower: user.userTagLower || '',
+        online: !!user.online,
+        lastSeen: user.lastSeen || null,
+        disabled: !!user.disabled
+    };
+}
+
+function loadCachedUsersForCurrentUser() {
+    const key = getUsersCacheStorageKey();
+    if (!key) return [];
+    try {
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : null;
+        const data = Array.isArray(parsed) ? parsed : (parsed?.data || []);
+        if (Array.isArray(data)) {
+            return data.filter((user) => user && user.uid);
+        }
+    } catch (error) {
+        // ignore
+    }
+    return [];
+}
+
+function persistUsersCache(users) {
+    const key = getUsersCacheStorageKey();
+    if (!key) return;
+    const safeUsers = Array.isArray(users)
+        ? users.map(sanitizeUserForCache).filter(Boolean)
+        : [];
+    try {
+        localStorage.setItem(key, JSON.stringify({ data: safeUsers, updatedAt: Date.now() }));
+    } catch (error) {
+        // ignore
+    }
+}
+
 function isFriendMuted(friendId) {
     return !!friendId && mutedFriendIds.has(friendId);
 }
@@ -956,6 +1053,7 @@ async function ensureUserDocument(user, options = {}) {
             role: options.role || 'user_chat',
             friends: Array.isArray(options.friends) ? options.friends : [],
             blocked: Array.isArray(options.blocked) ? options.blocked : [],
+            friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
             showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
             online: true
         };
@@ -975,6 +1073,7 @@ async function ensureUserDocument(user, options = {}) {
         friends: Array.isArray(options.friends) ? options.friends : [],
         blocked: Array.isArray(options.blocked) ? options.blocked : [],
         fcmTokens: Array.isArray(options.fcmTokens) ? options.fcmTokens : [],
+        friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
         showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
         online: true,
         lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1017,6 +1116,7 @@ async function ensureUserDocument(user, options = {}) {
     if (!Array.isArray(data.friends)) updates.friends = [];
     if (!Array.isArray(data.blocked)) updates.blocked = [];
     if (!Array.isArray(data.fcmTokens)) updates.fcmTokens = [];
+    if (!data.friendAliases || typeof data.friendAliases !== 'object') updates.friendAliases = {};
     if (typeof data.showOnlineStatus !== 'boolean') updates.showOnlineStatus = true;
     if (!data.userTag || data.userTag !== existingTagFields.userTag) updates.userTag = existingTagFields.userTag;
     if (!data.userTagLower || data.userTagLower !== existingTagFields.userTagLower) updates.userTagLower = existingTagFields.userTagLower;
@@ -2594,6 +2694,9 @@ window.addEventListener('click', (e) => {
     if (friendModal && e.target === friendModal) {
         closeFriendModal();
     }
+    if (friendAliasModal && e.target === friendAliasModal) {
+        closeFriendAliasModal();
+    }
     if (adminEditModal && e.target === adminEditModal) {
         closeAdminEditModal();
     }
@@ -2720,6 +2823,18 @@ auth.onAuthStateChanged(async (user) => {
         };
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
         loadMutedFriendsForCurrentUser();
+        currentFriends = Array.isArray(currentUserProfile.friends) ? currentUserProfile.friends : [];
+        const cachedFriends = loadCachedFriendsForCurrentUser();
+        if (!currentFriends.length && cachedFriends.length > 0) {
+            currentFriends = cachedFriends;
+        }
+        const cachedUsers = loadCachedUsersForCurrentUser();
+        if ((!Array.isArray(allUsersCache) || allUsersCache.length === 0) && cachedUsers.length > 0) {
+            allUsersCache = cachedUsers;
+        }
+        if (currentFriends.length || allUsersCache.length) {
+            renderFriendUsers();
+        }
         if (typeof currentUserProfile.showOnlineStatus === 'boolean') {
             applyOnlineStatusVisibilitySetting(currentUserProfile.showOnlineStatus, true, false);
         } else {
@@ -2797,6 +2912,7 @@ auth.onAuthStateChanged(async (user) => {
         if (adminUsersUnsubscribe) adminUsersUnsubscribe();
         if (currentUserDocUnsubscribe) currentUserDocUnsubscribe();
         if (incomingCallUnsubscribe) incomingCallUnsubscribe();
+        clearConversationMetaSubscriptions();
         messagesUnsubscribe = null;
         usersUnsubscribe = null;
         adminUsersUnsubscribe = null;
@@ -2878,8 +2994,12 @@ function subscribeToCurrentUserDoc() {
             currentUserProfile = { ...(currentUserProfile || {}), ...data };
             currentUserRole = data.role || currentUserRole || 'user_chat';
             currentFriends = Array.isArray(data.friends) ? data.friends : [];
+            persistFriendsCache(currentFriends);
             if (!Array.isArray(currentUserProfile.blocked)) {
                 currentUserProfile.blocked = [];
+            }
+            if (!currentUserProfile.friendAliases || typeof currentUserProfile.friendAliases !== 'object') {
+                currentUserProfile.friendAliases = {};
             }
             if (typeof data.showOnlineStatus === 'boolean' && data.showOnlineStatus !== showOnlineStatusEnabled) {
                 applyOnlineStatusVisibilitySetting(data.showOnlineStatus, true, false);
@@ -3254,9 +3374,10 @@ function getActiveCallFriend() {
     const friendName = isCaller ? activeCallData.calleeName : activeCallData.callerName;
     const friendPhotoURL = isCaller ? activeCallData.calleePhotoURL : activeCallData.callerPhotoURL;
     const friendPhotoData = isCaller ? activeCallData.calleePhotoData : activeCallData.callerPhotoData;
+    const displayName = getFriendDisplayName({ uid: friendId, name: friendName });
     return {
         uid: friendId,
-        name: friendName,
+        name: displayName,
         photoURL: friendPhotoURL || null,
         photoData: friendPhotoData || null
     };
@@ -3956,7 +4077,9 @@ function resetCallState() {
 function updateCallModal({ title, status, user }) {
     if (callTitle) callTitle.textContent = title || 'Chamada de voz';
     if (callStatus) callStatus.textContent = status || '';
-    if (callUserName) callUserName.textContent = user?.name || 'Usuário';
+    if (callUserName) {
+        callUserName.textContent = user?.uid ? getFriendDisplayName(user) : (user?.name || 'Usuário');
+    }
     if (callUserPhoto) {
         applyProfilePhoto(callUserPhoto, user, 'https://via.placeholder.com/90/cccccc/666666?text=User');
     }
@@ -4506,7 +4629,7 @@ async function addFriendByEmail(email) {
     await db.collection('users').doc(currentUser.uid).set({
         friends: firebase.firestore.FieldValue.arrayUnion(selectedUser.uid)
     }, { merge: true });
-    alert('Usuário adicionado à sua lista de amigos.');
+    openFriendAliasModal(selectedUser);
 }
 
 async function removeFriend(friendId) {
@@ -5873,13 +5996,31 @@ if (adminCreateForm) {
 // Carregar lista de usuários
 function loadUsers() {
     if (usersUnsubscribe) usersUnsubscribe();
-    
+    const cachedUsers = loadCachedUsersForCurrentUser();
+    if ((!Array.isArray(allUsersCache) || allUsersCache.length === 0) && cachedUsers.length > 0) {
+        allUsersCache = cachedUsers;
+        renderFriendUsers();
+    }
+
     usersUnsubscribe = db.collection('users')
         .where('uid', '!=', currentUser.uid)
         .onSnapshot((snapshot) => {
             const users = [];
             snapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+            if (snapshot.empty) {
+                if (snapshot.metadata?.fromCache) {
+                    if (allUsersCache.length === 0 && cachedUsers.length > 0) {
+                        allUsersCache = cachedUsers;
+                        renderFriendUsers();
+                    }
+                    return;
+                }
+                if ((currentFriends || []).length > 0) {
+                    return;
+                }
+            }
             allUsersCache = users;
+            persistUsersCache(allUsersCache);
             renderFriendUsers();
         });
 }
@@ -5890,12 +6031,13 @@ function renderFriendUsers() {
     const blockedSet = new Set(currentUserProfile?.blocked || []);
     const friends = allUsersCache.filter(user => friendSet.has(user.uid) && !user.disabled && !blockedSet.has(user.uid));
 
-    // Ordenar: online primeiro, depois por lastSeen
+    ensureConversationMetaSubscriptions(friends.map((user) => user.uid));
+
+    // Ordenar pela mensagem mais recente
     friends.sort((a, b) => {
-        const aOnline = isUserPresenceVisible(a) && isUserEffectivelyOnline(a);
-        const bOnline = isUserPresenceVisible(b) && isUserEffectivelyOnline(b);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
+        const aLast = getFriendLastMessageTimestampMs(a.uid);
+        const bLast = getFriendLastMessageTimestampMs(b.uid);
+        if (aLast !== bLast) return bLast - aLast;
         return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
     });
 
@@ -6078,10 +6220,11 @@ function renderUsers(users) {
             user,
             'https://via.placeholder.com/45/cccccc/666666?text=User'
         );
+        const displayName = getFriendDisplayName(user);
         li.innerHTML = `
             <img src="${fallbackPhoto}" data-photo-url="${user.photoURL || ''}" alt="avatar">
             <div class="user-item-info">
-                <h4>${user.name || 'Usuário'}</h4>
+                <h4>${displayName}</h4>
                 <p class="${statusClass}">${status}</p>
             </div>
         `;
@@ -6144,6 +6287,146 @@ function getUserPresenceStatusText(user) {
     return lastSeen ? formatUiText('presenceLastSeen', { time: lastSeen }) : getUiText('presenceOffline');
 }
 
+function getFriendAlias(friendId) {
+    if (!friendId || !currentUserProfile?.friendAliases) return '';
+    const alias = currentUserProfile.friendAliases[friendId];
+    return typeof alias === 'string' ? alias.trim() : '';
+}
+
+function getFriendDisplayName(user) {
+    if (!user) return 'Usuário';
+    const alias = getFriendAlias(user.uid);
+    return alias || user.name || 'Usuário';
+}
+
+async function setFriendAlias(friendId, alias) {
+    if (!currentUser || !friendId) return;
+    const safeAlias = String(alias || '').trim();
+    const updates = {};
+    const fieldPath = `friendAliases.${friendId}`;
+    updates[fieldPath] = safeAlias ? safeAlias : firebase.firestore.FieldValue.delete();
+    await db.collection('users').doc(currentUser.uid).set(updates, { merge: true });
+}
+
+function openFriendAliasModal(user) {
+    if (!friendAliasModal || !friendAliasInput || !user) return;
+    pendingFriendAliasUser = user;
+    friendAliasInput.value = getFriendAlias(user.uid) || user.name || '';
+    friendAliasModal.classList.add('show');
+    friendAliasInput.focus();
+}
+
+function closeFriendAliasModal() {
+    if (!friendAliasModal) return;
+    friendAliasModal.classList.remove('show');
+    pendingFriendAliasUser = null;
+}
+
+async function saveFriendAlias() {
+    if (!pendingFriendAliasUser || !friendAliasInput) return;
+    const alias = friendAliasInput.value.trim();
+    await setFriendAlias(pendingFriendAliasUser.uid, alias);
+    const editedUid = pendingFriendAliasUser.uid;
+    closeFriendAliasModal();
+    renderFriendUsers();
+    if (selectedFriendData && selectedFriendData.uid === editedUid) {
+        chatPartnerName.textContent = getFriendDisplayName(selectedFriendData);
+        renderChatPartnerStatus();
+    }
+}
+
+function getConversationMetaForFriend(friendId) {
+    if (!friendId) return null;
+    return conversationMetaByFriendId.get(friendId) || null;
+}
+
+function getFriendLastMessageTimestampMs(friendId) {
+    const meta = getConversationMetaForFriend(friendId);
+    const ts = timestampToDate(meta?.lastMessageAt || meta?.updatedAt);
+    return ts ? ts.getTime() : 0;
+}
+
+async function backfillConversationMeta(friendId) {
+    if (!currentUser || !friendId) return;
+    if (conversationMetaBackfillAttempts.has(friendId)) return;
+    conversationMetaBackfillAttempts.add(friendId);
+
+    try {
+        const conversationId = getConversationId(currentUser.uid, friendId);
+        const snapshot = await db.collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .orderBy('timestamp', 'desc')
+            .limit(1)
+            .get();
+        if (snapshot.empty) return;
+        const doc = snapshot.docs[0];
+        const data = doc.data() || {};
+        const payload = {
+            type: data.type || (data.imageUrl ? 'image' : 'text'),
+            text: data.text || '',
+            fileName: data.fileName || '',
+            senderId: data.senderId || '',
+            receiverId: data.receiverId || '',
+            timestamp: data.timestamp || null
+        };
+        await updateConversationLastMessage(conversationId, payload);
+    } catch (error) {
+        console.warn('Falha ao atualizar meta da conversa.', error);
+    }
+}
+
+function clearConversationMetaSubscriptions() {
+    conversationMetaUnsubscribes.forEach((unsubscribe) => {
+        try {
+            unsubscribe();
+        } catch (error) {
+            // ignore
+        }
+    });
+    conversationMetaUnsubscribes = new Map();
+    conversationMetaByFriendId = new Map();
+    conversationMetaBackfillAttempts = new Set();
+}
+
+function ensureConversationMetaSubscriptions(friendIds) {
+    if (!currentUser || !Array.isArray(friendIds)) return;
+    const activeIds = new Set(friendIds.filter(Boolean));
+
+    conversationMetaUnsubscribes.forEach((unsubscribe, friendId) => {
+        if (!activeIds.has(friendId)) {
+            try {
+                unsubscribe();
+            } catch (error) {
+                // ignore
+            }
+            conversationMetaUnsubscribes.delete(friendId);
+            conversationMetaByFriendId.delete(friendId);
+        }
+    });
+
+    activeIds.forEach((friendId) => {
+        if (conversationMetaUnsubscribes.has(friendId)) return;
+        const conversationId = getConversationId(currentUser.uid, friendId);
+        const unsubscribe = db.collection('conversations')
+            .doc(conversationId)
+            .onSnapshot((doc) => {
+                if (!doc.exists) {
+                    conversationMetaByFriendId.delete(friendId);
+                    backfillConversationMeta(friendId);
+                } else {
+                    const meta = doc.data() || {};
+                    conversationMetaByFriendId.set(friendId, meta);
+                    if (!meta.lastMessageAt && !meta.lastMessageText && !meta.lastMessageType) {
+                        backfillConversationMeta(friendId);
+                    }
+                }
+                renderFriendUsers();
+            });
+        conversationMetaUnsubscribes.set(friendId, unsubscribe);
+    });
+}
+
 // Filtrar usuários
 searchUser.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
@@ -6174,7 +6457,7 @@ async function selectUser(user) {
     });
     
     // Atualizar cabeçalho do chat
-    chatPartnerName.textContent = user.name || 'Usuário';
+    chatPartnerName.textContent = getFriendDisplayName(user);
     applyProfilePhoto(chatPartnerPhoto, user, 'https://via.placeholder.com/45/cccccc/666666?text=User');
     const isBlocked = isFriendBlocked(user.uid);
     remoteUserActivityState = null;
@@ -6849,7 +7132,7 @@ function buildShareFriendItem(user) {
     const li = document.createElement('li');
     li.className = 'share-message-friend-item';
     li.dataset.uid = user.uid;
-    const safeName = escapeHtml(user.name || 'Usuário');
+    const safeName = escapeHtml(getFriendDisplayName(user));
     const safeStatus = escapeHtml(getUserPresenceStatusText(user));
 
     li.innerHTML = `
@@ -6946,24 +7229,27 @@ async function sendChatFileFromUrl(fileUrl, meta = {}) {
     const delivered = isUserEffectivelyOnline(selectedFriendData);
     const replyPayload = getPendingReplyPayload();
 
+    const messagePayload = {
+        fileUrl: fileUrl,
+        fileName: fileName,
+        fileType: fileType,
+        fileSize: fileSize || null,
+        imageUrl: messageType === 'image' ? fileUrl : null,
+        senderId: currentUser.uid,
+        receiverId: selectedUserId,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        type: messageType,
+        read: false,
+        delivered: delivered,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        replyTo: replyPayload || null
+    };
+
     await db.collection('conversations')
         .doc(conversationId)
         .collection('messages')
-        .add({
-            fileUrl: fileUrl,
-            fileName: fileName,
-            fileType: fileType,
-            fileSize: fileSize || null,
-            imageUrl: messageType === 'image' ? fileUrl : null,
-            senderId: currentUser.uid,
-            receiverId: selectedUserId,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            type: messageType,
-            read: false,
-            delivered: delivered,
-            deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
-            replyTo: replyPayload || null
-        });
+        .add(messagePayload);
+    await updateConversationLastMessage(conversationId, messagePayload);
     clearReplyTargetMessage();
 }
 
@@ -7292,6 +7578,9 @@ async function forwardMessagesToFriend(messagesToForward, targetUid) {
         });
         await batch.commit();
     }
+
+    const lastPayload = buildForwardMessagePayload(sorted[sorted.length - 1], targetUid, delivered);
+    await updateConversationLastMessage(conversationId, lastPayload);
 }
 
 async function shareSelectedMessages() {
@@ -8150,6 +8439,24 @@ async function saveEditedMessage(text) {
     clearEditingMessage();
 }
 
+async function updateConversationLastMessage(conversationId, payload) {
+    if (!conversationId || !payload) return;
+    const lastMessageAt = payload.timestamp || firebase.firestore.FieldValue.serverTimestamp();
+    const update = {
+        lastMessageAt: lastMessageAt,
+        lastMessageType: payload.type || 'text',
+        lastMessageSenderId: payload.senderId || currentUser?.uid || '',
+        lastMessageReceiverId: payload.receiverId || selectedUserId || '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (payload.type === 'text') {
+        update.lastMessageText = String(payload.text || '');
+    } else if (payload.fileName) {
+        update.lastMessageText = String(payload.fileName || '');
+    }
+    await db.collection('conversations').doc(conversationId).set(update, { merge: true });
+}
+
 async function submitTextComposerMessage() {
     const text = messageInput.value.trim();
     if (!text || !selectedUserId) return;
@@ -8172,20 +8479,23 @@ async function submitTextComposerMessage() {
     const replyPayload = getPendingReplyPayload();
 
     try {
+        const messagePayload = {
+            text: text,
+            senderId: currentUser.uid,
+            receiverId: selectedUserId,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            type: 'text',
+            read: false,
+            delivered: delivered,
+            deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+            replyTo: replyPayload || null
+        };
+
         await db.collection('conversations')
             .doc(conversationId)
             .collection('messages')
-            .add({
-                text: text,
-                senderId: currentUser.uid,
-                receiverId: selectedUserId,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                type: 'text',
-                read: false,
-                delivered: delivered,
-                deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
-                replyTo: replyPayload || null
-            });
+            .add(messagePayload);
+        await updateConversationLastMessage(conversationId, messagePayload);
 
         messageInput.value = '';
         clearReplyTargetMessage();
@@ -8203,7 +8513,7 @@ function getDefaultChatPartnerStatus() {
 }
 
 function getChatPartnerActivityLabel(state) {
-    const displayName = selectedFriendData?.name || chatPartnerName?.textContent || 'Usu\u00e1rio';
+    const displayName = selectedFriendData ? getFriendDisplayName(selectedFriendData) : (chatPartnerName?.textContent || 'Usu\u00e1rio');
     if (state === 'recording') {
         return formatUiText('recordingActivity', { name: displayName });
     }
@@ -8957,6 +9267,7 @@ async function handleChatFile(file) {
         };
 
         await messageRef.set(messagePayload);
+        await updateConversationLastMessage(conversationId, messagePayload);
         Promise.resolve().then(() => autoSaveOutgoingAttachment({ id: messageRef.id, ...messagePayload }, file));
         clearReplyTargetMessage();
     } catch (error) {
@@ -9216,7 +9527,7 @@ function openFriendModal() {
     if (friendPreviewImage) {
         applyProfilePhoto(friendPreviewImage, selectedFriendData, 'https://via.placeholder.com/120/cccccc/666666?text=User');
     }
-    if (friendDetailName) friendDetailName.textContent = selectedFriendData.name || 'Usuário';
+    if (friendDetailName) friendDetailName.textContent = getFriendDisplayName(selectedFriendData);
     if (friendDetailHandle) friendDetailHandle.textContent = getUserTagValue(selectedFriendData);
     if (friendDetailEmail) friendDetailEmail.textContent = selectedFriendData.email || '';
     renderFriendDetailStatus(selectedFriendData);
@@ -9527,6 +9838,25 @@ if (chatPartnerName) {
 
 if (friendCloseModal) {
     friendCloseModal.addEventListener('click', closeFriendModal);
+}
+
+if (friendAliasClose) {
+    friendAliasClose.addEventListener('click', closeFriendAliasModal);
+}
+
+if (friendAliasSave) {
+    friendAliasSave.addEventListener('click', () => {
+        saveFriendAlias();
+    });
+}
+
+if (friendAliasInput) {
+    friendAliasInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveFriendAlias();
+        }
+    });
 }
 
 if (userTagMatchClose) {
