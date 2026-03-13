@@ -566,6 +566,10 @@ body.media-viewer-open {
     background: #6f42c1;
 }
 
+.btn-call-camera-switch {
+    background: #0b7285;
+}
+
 .btn-call-switch-video {
     background: #0a8754;
 }
@@ -600,6 +604,7 @@ body.media-viewer-open {
 .btn-call-speaker:hover,
 .btn-call-mute:hover,
 .btn-call-video-toggle:hover,
+.btn-call-camera-switch:hover,
 .btn-call-switch-video:hover,
 .btn-call-switch-audio:hover,
 .btn-call-minimize:hover {
@@ -3405,7 +3410,15 @@ body.theme-dark .download-progress-item .upload-progress-status::before {
     display: none;
 }
 
+.btn-call-camera-switch {
+    display: none;
+}
+
 body.android-app .btn-camera-quick {
+    display: inline-flex;
+}
+
+body.android-app .btn-call-camera-switch {
     display: inline-flex;
 }
 
