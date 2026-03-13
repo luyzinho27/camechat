@@ -382,8 +382,7 @@ app.post('/api/call-notify', async (req, res) => {
             ? 'Chamada de video recebida'
             : 'Chamada de voz recebida';
 
-        const payload = {
-            tokens,
+        const baseMessage = {
             notification: {
                 title: callerName,
                 body: notificationBody
@@ -407,12 +406,28 @@ app.post('/api/call-notify', async (req, res) => {
             }
         };
 
-        const response = await messaging.sendMulticast(payload);
-        return res.json({
-            ok: true,
-            successCount: response.successCount,
-            failureCount: response.failureCount
-        });
+        try {
+            const response = await messaging.sendMulticast({
+                ...baseMessage,
+                tokens
+            });
+            return res.json({
+                ok: true,
+                successCount: response.successCount,
+                failureCount: response.failureCount
+            });
+        } catch (error) {
+            const message = String(error?.message || '');
+            if (message.includes('/batch')) {
+                const results = await Promise.allSettled(
+                    tokens.map((token) => messaging.send({ ...baseMessage, token }))
+                );
+                const successCount = results.filter((result) => result.status === 'fulfilled').length;
+                const failureCount = tokens.length - successCount;
+                return res.json({ ok: true, successCount, failureCount, fallback: true });
+            }
+            throw error;
+        }
     } catch (error) {
         return res.status(500).json({ message: error.message || 'Falha ao notificar chamada.' });
     }
