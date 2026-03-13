@@ -239,6 +239,7 @@ const callRejectBtn = document.getElementById('call-reject-btn');
 const callHangupBtn = document.getElementById('call-hangup-btn');
 const btnCallMute = document.getElementById('btn-call-mute');
 const btnCallVideoToggle = document.getElementById('btn-call-video-toggle');
+const btnCallCameraSwitch = document.getElementById('btn-call-camera-switch');
 const btnCallMinimize = document.getElementById('btn-call-minimize');
 const btnCallSpeaker = document.getElementById('btn-call-speaker');
 const btnCallSwitchVideo = document.getElementById('btn-call-switch-video');
@@ -283,6 +284,7 @@ const CALL_ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentCo
 const CALL_ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
 const CALL_ICON_VIDEO_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="13" height="10" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg>';
 const CALL_ICON_VIDEO_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="13" height="10" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
+const CALL_ICON_CAMERA_SWITCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="7" width="16" height="10" rx="2"></rect><path d="M8 7l2-3h4l2 3"></path><path d="M7 12h3"></path><path d="M14 12h3"></path><path d="M10 10l-2 2 2 2"></path><path d="M14 10l2 2-2 2"></path></svg>';
 const CALL_ICON_MINIMIZE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"></rect><line x1="8" y1="15" x2="16" y2="15"></line></svg>';
 const CALL_ICON_SPEAKER_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15 9a5 5 0 0 1 0 6"></path><path d="M18 6a9 9 0 0 1 0 12"></path></svg>';
 const CALL_ICON_SPEAKER_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
@@ -362,6 +364,7 @@ let activeCallData = null;
 let callTimeout = null;
 let callPhase = null;
 let currentCallType = null;
+let currentCallCameraFacing = 'user';
 let ringtoneInterval = null;
 let ringtoneContext = null;
 let touchStartX = 0;
@@ -3265,11 +3268,18 @@ function getCurrentCallType() {
     return 'audio';
 }
 
+function getCallVideoConstraints() {
+    if (isAndroidWebViewRuntime()) {
+        return { facingMode: { ideal: currentCallCameraFacing } };
+    }
+    return true;
+}
+
 async function addLocalVideoTrack() {
     if (localStream && localStream.getVideoTracks().length) return true;
     let cameraStream = null;
     try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: getCallVideoConstraints(), audio: false });
     } catch (error) {
         return false;
     }
@@ -3538,6 +3548,12 @@ function updateCallControls() {
         btnCallVideoToggle.setAttribute('aria-pressed', String(isVideoMuted));
         btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vídeo' : 'Desativar vídeo');
     }
+    if (btnCallCameraSwitch) {
+        const showCameraSwitch = showControls && isVideoCall && isAndroidWebViewRuntime();
+        btnCallCameraSwitch.classList.toggle('hidden', !showCameraSwitch);
+        btnCallCameraSwitch.disabled = !hasVideo || !isVideoCall;
+        btnCallCameraSwitch.innerHTML = CALL_ICON_CAMERA_SWITCH;
+    }
     if (btnCallSpeaker) {
         btnCallSpeaker.classList.toggle('hidden', !showControls);
         btnCallSpeaker.disabled = !remoteStream || remoteStream.getAudioTracks().length === 0;
@@ -3564,6 +3580,7 @@ function updateCallControls() {
         if (btnCallSwitchVideo) btnCallSwitchVideo.disabled = true;
         if (btnCallSwitchAudio) btnCallSwitchAudio.disabled = true;
         if (btnCallVideoToggle) btnCallVideoToggle.disabled = true;
+        if (btnCallCameraSwitch) btnCallCameraSwitch.disabled = true;
     }
     updateProximityHandling();
 }
@@ -3589,6 +3606,62 @@ function toggleLocalVideo() {
         track.enabled = enable;
     });
     isVideoMuted = !enable;
+    updateCallControls();
+}
+
+async function switchCallCamera() {
+    if (!isAndroidWebViewRuntime()) return;
+    if (!localStream) return;
+    const currentTrack = localStream.getVideoTracks()[0];
+    if (!currentTrack) return;
+
+    const nextFacing = currentCallCameraFacing === 'user' ? 'environment' : 'user';
+    let newStream = null;
+    try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: nextFacing } },
+            audio: false
+        });
+    } catch (error) {
+        try {
+            newStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: nextFacing } },
+                audio: false
+            });
+        } catch (fallbackError) {
+            return;
+        }
+    }
+
+    const newTrack = newStream.getVideoTracks()[0];
+    if (!newTrack) {
+        newStream.getTracks().forEach(track => track.stop());
+        return;
+    }
+
+    if (peerConnection) {
+        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender && sender.replaceTrack) {
+            try {
+                await sender.replaceTrack(newTrack);
+            } catch (error) {
+                // ignore
+            }
+        } else if (sender) {
+            try {
+                peerConnection.removeTrack(sender);
+            } catch (error) {
+                // ignore
+            }
+            peerConnection.addTrack(newTrack, localStream);
+        }
+    }
+
+    localStream.removeTrack(currentTrack);
+    currentTrack.stop();
+    localStream.addTrack(newTrack);
+    if (localVideo) localVideo.srcObject = localStream;
+    currentCallCameraFacing = nextFacing;
     updateCallControls();
 }
 
@@ -3822,6 +3895,7 @@ function resetCallState() {
     activeCallData = null;
     callPhase = null;
     currentCallType = null;
+    currentCallCameraFacing = 'user';
 
     if (callTimeout) clearTimeout(callTimeout);
     callTimeout = null;
@@ -3958,7 +4032,10 @@ async function preparePeerConnection(options = {}) {
         }
     };
 
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: wantsVideo });
+    localStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: wantsVideo ? getCallVideoConstraints() : false
+    });
     if (localAudio) localAudio.srcObject = localStream;
     if (localVideo) localVideo.srcObject = localStream;
     localStream.getTracks().forEach(track => {
@@ -4009,6 +4086,7 @@ async function startCall(callType = 'audio') {
 
     try {
         currentCallType = callType;
+        currentCallCameraFacing = 'user';
         isAudioMuted = false;
         isVideoMuted = false;
         isCallMinimized = false;
@@ -4199,6 +4277,7 @@ async function acceptIncomingCall() {
     if (!callDocRef || !activeCallData || currentCallRole !== 'callee') return;
 
     try {
+        currentCallCameraFacing = 'user';
         const wantsVideo = (currentCallType || activeCallData.type) === 'video';
         await preparePeerConnection({ video: wantsVideo });
     } catch (error) {
@@ -9774,6 +9853,12 @@ if (btnCallMute) {
 if (btnCallVideoToggle) {
     btnCallVideoToggle.addEventListener('click', () => {
         toggleLocalVideo();
+    });
+}
+
+if (btnCallCameraSwitch) {
+    btnCallCameraSwitch.addEventListener('click', () => {
+        switchCallCamera();
     });
 }
 
