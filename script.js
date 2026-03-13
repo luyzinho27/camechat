@@ -6302,10 +6302,18 @@ function getFriendDisplayName(user) {
 async function setFriendAlias(friendId, alias) {
     if (!currentUser || !friendId) return;
     const safeAlias = String(alias || '').trim();
-    const updates = {};
-    const fieldPath = `friendAliases.${friendId}`;
-    updates[fieldPath] = safeAlias ? safeAlias : firebase.firestore.FieldValue.delete();
-    await db.collection('users').doc(currentUser.uid).set(updates, { merge: true });
+    const currentMap = { ...(currentUserProfile?.friendAliases || {}) };
+    if (safeAlias) {
+        currentMap[friendId] = safeAlias;
+    } else {
+        delete currentMap[friendId];
+    }
+    await db.collection('users').doc(currentUser.uid).set({
+        friendAliases: currentMap
+    }, { merge: true });
+    if (currentUserProfile) {
+        currentUserProfile.friendAliases = { ...currentMap };
+    }
 }
 
 function openFriendAliasModal(user) {
