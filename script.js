@@ -3672,10 +3672,11 @@ function updateCallControls() {
         btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vídeo' : 'Desativar vídeo');
     }
     if (btnCallCameraSwitch) {
-        const showCameraSwitch = showControls && isVideoCall && shouldShowCameraSwitch();
+        const showCameraSwitch = showControls && isVideoCall && isAndroidWebViewRuntime();
         btnCallCameraSwitch.classList.toggle('hidden', !showCameraSwitch);
         btnCallCameraSwitch.disabled = !hasVideo || !isVideoCall;
         btnCallCameraSwitch.innerHTML = CALL_ICON_CAMERA_SWITCH;
+        btnCallCameraSwitch.style.display = showCameraSwitch ? 'inline-flex' : '';
     }
     if (btnCallSpeaker) {
         btnCallSpeaker.classList.toggle('hidden', !showControls);
@@ -3733,7 +3734,7 @@ function toggleLocalVideo() {
 }
 
 async function switchCallCamera() {
-    if (!shouldShowCameraSwitch()) return;
+    if (!isAndroidWebViewRuntime()) return;
     if (!localStream) return;
     const currentTrack = localStream.getVideoTracks()[0];
     if (!currentTrack) return;
