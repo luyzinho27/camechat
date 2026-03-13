@@ -22,6 +22,53 @@ try {
 let firebaseMessaging = null;
 let firebaseInitError = '';
 
+function repairServiceAccountJson(rawValue) {
+    const raw = (rawValue || '').toString();
+    const pattern = /"private_key"\s*:\s*"([\s\S]*?)"/m;
+    const match = raw.match(pattern);
+    if (!match) return raw;
+    const repairedKey = match[1].replace(/\r?\n/g, '\\n');
+    return raw.replace(pattern, `"private_key": "${repairedKey}"`);
+}
+
+function parseServiceAccountJson(rawValue) {
+    let candidate = (rawValue || '').toString().trim();
+    if (!candidate) return null;
+
+    if (
+        (candidate.startsWith('"') && candidate.endsWith('"'))
+        || (candidate.startsWith("'") && candidate.endsWith("'"))
+    ) {
+        try {
+            candidate = JSON.parse(candidate);
+        } catch (_) {
+            // mantem o valor original
+        }
+    }
+
+    try {
+        const parsed = JSON.parse(candidate);
+        if (typeof parsed === 'string') {
+            try {
+                return JSON.parse(parsed);
+            } catch (_) {
+                return null;
+            }
+        }
+        return parsed;
+    } catch (_) {
+        const repaired = repairServiceAccountJson(candidate);
+        if (repaired !== candidate) {
+            try {
+                return JSON.parse(repaired);
+            } catch (_) {
+                return null;
+            }
+        }
+        return null;
+    }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -131,17 +178,22 @@ function getFirebaseMessaging() {
 
     let serviceAccount = null;
     const rawJson = (process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
+    const rawBase64 = (process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 || '').trim();
     const jsonPath = (process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '').trim();
+    const hasSource = Boolean(rawJson || rawBase64 || jsonPath);
 
     try {
-        if (rawJson) {
-            const normalized = rawJson.replace(/\\n/g, '\n');
-            serviceAccount = JSON.parse(normalized);
+        if (rawBase64) {
+            const decoded = Buffer.from(rawBase64, 'base64').toString('utf8');
+            serviceAccount = parseServiceAccountJson(decoded);
+        } else if (rawJson) {
+            serviceAccount = parseServiceAccountJson(rawJson);
         } else if (jsonPath) {
             const resolvedPath = path.isAbsolute(jsonPath)
                 ? jsonPath
                 : path.join(__dirname, jsonPath);
-            serviceAccount = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+            const fileContent = fs.readFileSync(resolvedPath, 'utf8');
+            serviceAccount = parseServiceAccountJson(fileContent);
         }
     } catch (error) {
         firebaseInitError = 'Falha ao carregar o service account do Firebase.';
@@ -149,7 +201,9 @@ function getFirebaseMessaging() {
     }
 
     if (!serviceAccount) {
-        firebaseInitError = 'Service account do Firebase nao configurado.';
+        firebaseInitError = hasSource
+            ? 'Falha ao carregar o service account do Firebase.'
+            : 'Service account do Firebase nao configurado.';
         return null;
     }
 
@@ -322,18 +376,34 @@ app.post('/api/call-notify', async (req, res) => {
             return res.status(500).json({ message: firebaseInitError || 'Firebase Admin nao configurado.' });
         }
 
+        const isVideo = String(req.body?.callType || 'audio') === 'video';
+        const callerName = String(req.body?.callerName || 'Usuario');
+        const notificationBody = isVideo
+            ? 'Chamada de video recebida'
+            : 'Chamada de voz recebida';
+
         const payload = {
             tokens,
+            notification: {
+                title: callerName,
+                body: notificationBody
+            },
             data: {
                 type: 'call',
                 callId: String(req.body?.callId || ''),
                 callType: String(req.body?.callType || 'audio'),
                 callerId: String(req.body?.callerId || ''),
-                callerName: String(req.body?.callerName || ''),
+                callerName,
                 callerPhoto: String(req.body?.callerPhotoURL || '')
             },
             android: {
-                priority: 'high'
+                priority: 'high',
+                notification: {
+                    channelId: 'camechat_calls',
+                    visibility: 'PUBLIC',
+                    sound: 'default',
+                    defaultVibrateTimings: true
+                }
             }
         };
 
