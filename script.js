@@ -6323,15 +6323,26 @@ function closeFriendAliasModal() {
 }
 
 async function saveFriendAlias() {
-    if (!pendingFriendAliasUser || !friendAliasInput) return;
+    if (!pendingFriendAliasUser || !friendAliasInput) {
+        alert('Não foi possível salvar o nome do contato. Tente novamente.');
+        return;
+    }
     const alias = friendAliasInput.value.trim();
-    await setFriendAlias(pendingFriendAliasUser.uid, alias);
-    const editedUid = pendingFriendAliasUser.uid;
-    closeFriendAliasModal();
-    renderFriendUsers();
-    if (selectedFriendData && selectedFriendData.uid === editedUid) {
-        chatPartnerName.textContent = getFriendDisplayName(selectedFriendData);
-        renderChatPartnerStatus();
+    try {
+        await setFriendAlias(pendingFriendAliasUser.uid, alias);
+        const editedUid = pendingFriendAliasUser.uid;
+        closeFriendAliasModal();
+        renderFriendUsers();
+        if (selectedFriendData && selectedFriendData.uid === editedUid) {
+            chatPartnerName.textContent = getFriendDisplayName(selectedFriendData);
+            renderChatPartnerStatus();
+        }
+    } catch (error) {
+        if (error?.code === 'permission-denied') {
+            alert('Permissão negada ao salvar o nome do contato. Publique as regras do Firestore atualizadas e tente novamente.');
+        } else {
+            alert('Não foi possível salvar o nome do contato: ' + (error?.message || error));
+        }
     }
 }
 
