@@ -215,6 +215,7 @@ const friendBlockedBadge = document.getElementById('friend-blocked-badge');
 const friendRemoveBtn = document.getElementById('friend-remove-btn');
 const friendBlockBtn = document.getElementById('friend-block-btn');
 const friendUnblockBtn = document.getElementById('friend-unblock-btn');
+const friendAliasEditBtn = document.getElementById('friend-alias-edit');
 const friendAliasModal = document.getElementById('friend-alias-modal');
 const friendAliasClose = document.getElementById('friend-alias-close');
 const friendAliasInput = document.getElementById('friend-alias-input');
@@ -361,6 +362,7 @@ let cropStartOffsetY = 0;
 let profileCropReady = false;
 let selectedFriendData = null;
 let pendingFriendAliasUser = null;
+let reopenFriendModalAfterAlias = false;
 let callDocRef = null;
 let callDocUnsubscribe = null;
 let incomingCallUnsubscribe = null;
@@ -3670,7 +3672,7 @@ function updateCallControls() {
         btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vídeo' : 'Desativar vídeo');
     }
     if (btnCallCameraSwitch) {
-        const showCameraSwitch = showControls && isVideoCall && isAndroidWebViewRuntime();
+        const showCameraSwitch = showControls && isVideoCall && shouldShowCameraSwitch();
         btnCallCameraSwitch.classList.toggle('hidden', !showCameraSwitch);
         btnCallCameraSwitch.disabled = !hasVideo || !isVideoCall;
         btnCallCameraSwitch.innerHTML = CALL_ICON_CAMERA_SWITCH;
@@ -3731,7 +3733,7 @@ function toggleLocalVideo() {
 }
 
 async function switchCallCamera() {
-    if (!isAndroidWebViewRuntime()) return;
+    if (!shouldShowCameraSwitch()) return;
     if (!localStream) return;
     const currentTrack = localStream.getVideoTracks()[0];
     if (!currentTrack) return;
@@ -5636,7 +5638,7 @@ function showIncomingDesktopNotification(senderUid, messageData) {
     const sender = (selectedFriendData && selectedFriendData.uid === senderUid)
         ? selectedFriendData
         : getCachedUserByUid(senderUid);
-    const senderName = sender?.name || 'Usuário';
+    const senderName = sender ? getFriendDisplayName(sender) : 'Usuário';
     const icon = getSafePhotoData(sender?.photoData) || getSafePhotoUrl(sender?.photoURL) || 'images/camechat_logo.png';
     const body = buildIncomingNotificationBody(messageData);
 
@@ -6316,9 +6318,10 @@ async function setFriendAlias(friendId, alias) {
     }
 }
 
-function openFriendAliasModal(user) {
+function openFriendAliasModal(user, options = {}) {
     if (!friendAliasModal || !friendAliasInput || !user) return;
     pendingFriendAliasUser = user;
+    reopenFriendModalAfterAlias = !!options.reopenFriendModal;
     friendAliasInput.value = getFriendAlias(user.uid) || user.name || '';
     friendAliasModal.classList.add('show');
     friendAliasInput.focus();
@@ -6328,6 +6331,7 @@ function closeFriendAliasModal() {
     if (!friendAliasModal) return;
     friendAliasModal.classList.remove('show');
     pendingFriendAliasUser = null;
+    reopenFriendModalAfterAlias = false;
 }
 
 async function saveFriendAlias() {
@@ -6339,11 +6343,15 @@ async function saveFriendAlias() {
     try {
         await setFriendAlias(pendingFriendAliasUser.uid, alias);
         const editedUid = pendingFriendAliasUser.uid;
+        const shouldReopen = reopenFriendModalAfterAlias;
         closeFriendAliasModal();
         renderFriendUsers();
         if (selectedFriendData && selectedFriendData.uid === editedUid) {
             chatPartnerName.textContent = getFriendDisplayName(selectedFriendData);
             renderChatPartnerStatus();
+        }
+        if (shouldReopen && selectedFriendData && selectedFriendData.uid === editedUid) {
+            openFriendModal();
         }
     } catch (error) {
         if (error?.code === 'permission-denied') {
@@ -7996,7 +8004,14 @@ function getReplyThumbnailUrl(message) {
 function getDisplayNameByUid(uid) {
     if (!uid || !currentUser) return 'Usuário';
     if (uid === currentUser.uid) return 'Você';
-    return getCachedUserByUid(uid)?.name || selectedFriendData?.name || 'Usuário';
+    const alias = getFriendAlias(uid);
+    if (alias) return alias;
+    const cached = getCachedUserByUid(uid);
+    if (cached) return cached.name || 'Usuário';
+    if (selectedFriendData && selectedFriendData.uid === uid) {
+        return getFriendDisplayName(selectedFriendData);
+    }
+    return 'Usuário';
 }
 
 function normalizeReplyReferencePayload(sourceMessage) {
@@ -8710,7 +8725,7 @@ function subscribeToFriendDoc(uid) {
             selectedFriendData = data;
 
             if (chatPartnerName) {
-                chatPartnerName.textContent = data.name || 'Usuário';
+                chatPartnerName.textContent = getFriendDisplayName(data);
             }
 
             if (chatPartnerPhoto) {
@@ -9857,6 +9872,16 @@ if (chatPartnerName) {
 
 if (friendCloseModal) {
     friendCloseModal.addEventListener('click', closeFriendModal);
+}
+
+if (friendAliasEditBtn) {
+    friendAliasEditBtn.addEventListener('click', () => {
+        if (!selectedFriendData) return;
+        if (friendModal) {
+            friendModal.classList.remove('show');
+        }
+        openFriendAliasModal(selectedFriendData, { reopenFriendModal: true });
+    });
 }
 
 if (friendAliasClose) {
