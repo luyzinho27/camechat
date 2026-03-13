@@ -364,6 +364,16 @@ body.media-viewer-open {
     max-width: 420px;
 }
 
+.friend-alias-modal-content {
+    max-width: 360px;
+    text-align: left;
+}
+
+.friend-alias-modal-content p {
+    margin: 8px 0 12px;
+    color: #666;
+}
+
 .user-tag-match-modal-content {
     max-width: 460px;
 }
