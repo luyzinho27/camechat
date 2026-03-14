@@ -4840,7 +4840,14 @@ async function addFriendByEmail(email) {
     await db.collection('users').doc(currentUser.uid).set({
         friends: firebase.firestore.FieldValue.arrayUnion(selectedUser.uid)
     }, { merge: true });
-    openFriendAliasModal(selectedUser);
+    if (!currentFriends.includes(selectedUser.uid)) {
+        currentFriends.push(selectedUser.uid);
+        persistFriendsCache(currentFriends);
+        renderFriendUsers();
+    }
+    if (selectedUser.uid !== currentUser.uid) {
+        openFriendAliasModal(selectedUser);
+    }
 }
 
 async function removeFriend(friendId) {
@@ -6242,6 +6249,24 @@ function renderFriendUsers() {
     const blockedSet = new Set(currentUserProfile?.blocked || []);
     const friends = allUsersCache.filter(user => friendSet.has(user.uid) && !user.disabled && !blockedSet.has(user.uid));
 
+    if (currentUser && friendSet.has(currentUser.uid)) {
+        const selfUser = {
+            ...(currentUserProfile || {}),
+            uid: currentUser.uid,
+            id: currentUser.uid,
+            name: (currentUserProfile?.name || currentUser.displayName || currentUser.email || 'Usuário'),
+            email: currentUserProfile?.email || currentUser.email || '',
+            photoURL: currentUserProfile?.photoURL || currentUser.photoURL || null,
+            photoData: currentUserProfile?.photoData || null
+        };
+        const existingIndex = friends.findIndex((user) => user.uid === currentUser.uid);
+        if (existingIndex >= 0) {
+            friends[existingIndex] = { ...friends[existingIndex], ...selfUser };
+        } else {
+            friends.unshift(selfUser);
+        }
+    }
+
     ensureConversationMetaSubscriptions(friends.map((user) => user.uid));
 
     // Ordenar pela mensagem mais recente
@@ -6506,6 +6531,10 @@ function getFriendAlias(friendId) {
 
 function getFriendDisplayName(user) {
     if (!user) return 'Usuário';
+    if (currentUser && user.uid === currentUser.uid) {
+        const baseName = user.name || currentUserProfile?.name || currentUser.displayName || 'Usuário';
+        return `${baseName} (Você)`;
+    }
     const alias = getFriendAlias(user.uid);
     return alias || user.name || 'Usuário';
 }
@@ -6529,6 +6558,7 @@ async function setFriendAlias(friendId, alias) {
 
 function openFriendAliasModal(user, options = {}) {
     if (!friendAliasModal || !friendAliasInput || !user) return;
+    if (currentUser && user.uid === currentUser.uid) return;
     pendingFriendAliasUser = user;
     reopenFriendModalAfterAlias = !!options.reopenFriendModal;
     friendAliasInput.value = getFriendAlias(user.uid) || user.name || '';
@@ -10011,9 +10041,13 @@ function updateFriendModalState() {
     if (!selectedFriendData) return;
     const blockedSet = new Set(currentUserProfile?.blocked || []);
     const isBlocked = blockedSet.has(selectedFriendData.uid);
+    const isSelf = currentUser && selectedFriendData.uid === currentUser.uid;
 
     if (friendBlockedBadge) {
         friendBlockedBadge.classList.toggle('hidden', !isBlocked);
+    }
+    if (friendAliasEditBtn) {
+        friendAliasEditBtn.classList.toggle('hidden', isSelf);
     }
     if (friendBlockBtn) {
         friendBlockBtn.classList.toggle('hidden', isBlocked);
@@ -10297,6 +10331,7 @@ if (friendCloseModal) {
 if (friendAliasEditBtn) {
     friendAliasEditBtn.addEventListener('click', () => {
         if (!selectedFriendData) return;
+        if (currentUser && selectedFriendData.uid === currentUser.uid) return;
         if (friendModal) {
             friendModal.classList.remove('show');
         }
