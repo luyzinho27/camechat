@@ -13,6 +13,7 @@ CameChat é uma aplicação de mensagens em tempo real com suporte a texto, míd
 - Compartilhamento de mensagens e arquivos para vários amigos.
 - Envio e recebimento de imagens, vídeos, áudios e documentos.
 - Gravação de áudio e vídeo diretamente no chat.
+- Controle de flash da câmera (quando suportado).
 - Pré-visualização de mídias com gestos e navegação entre itens.
 - Chamadas de voz e vídeo com controles e alternância de câmera.
 - Indicadores de digitando/gravando áudio.
