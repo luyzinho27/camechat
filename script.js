@@ -102,6 +102,7 @@ const cameraCloseModal = document.getElementById('camera-close-modal');
 const cameraPreview = document.getElementById('camera-preview');
 const cameraStatus = document.getElementById('camera-status');
 const btnCameraSwitch = document.getElementById('btn-camera-switch');
+const btnCameraFlash = document.getElementById('btn-camera-flash');
 const btnCameraCapture = document.getElementById('btn-camera-capture');
 const btnCameraRecord = document.getElementById('btn-camera-record');
 const btnCameraCancel = document.getElementById('btn-camera-cancel');
@@ -318,6 +319,8 @@ const CALL_ICON_SWITCH_AUDIO = '<svg viewBox="0 0 24 24" fill="none" stroke="cur
 const VOICE_ICON_IDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line></svg>';
 const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle></svg>';
 const CAMERA_ICON_SWITCH = '🔄';
+const CAMERA_ICON_FLASH_ON = '⚡';
+const CAMERA_ICON_FLASH_OFF = '⚡';
 const CAMERA_ICON_PHOTO = '📷';
 const CAMERA_ICON_VIDEO = '🎥';
 const CAMERA_ICON_STOP = '⏹';
@@ -335,7 +338,7 @@ const MEDIA_VIEWER_MAX_SCALE = 4;
 const MEDIA_VIEWER_SWIPE_AXIS_LOCK = 12;
 const MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD = 90;
 const MEDIA_VIEWER_SWIPE_NAV_THRESHOLD = 80;
-const APP_BOOTSTRAP_FALLBACK_MS = 9000;
+const APP_BOOTSTRAP_FALLBACK_MS = 2500;
 
 // ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
@@ -455,6 +458,7 @@ let cameraRecorderChunks = [];
 let isCameraRecording = false;
 let cancelCameraRecording = false;
 let currentCameraFacing = 'environment';
+let isCameraTorchOn = false;
 const CAMERA_VIDEO_CONSTRAINTS = {
     width: { ideal: 1280 },
     height: { ideal: 720 },
@@ -1035,7 +1039,7 @@ function finishInitialBootstrap(screen = 'auth') {
         appLaunchSplash.classList.add('is-hiding');
         window.setTimeout(() => {
             appLaunchSplash.classList.add('hidden');
-        }, 420);
+        }, 140);
     }
 
     notifyAndroidAppReady(screen);
@@ -5516,6 +5520,7 @@ const ABOUT_CONTENT_HTML = `
         <li>Mensagens de texto com edicao, copia, resposta e exclusao.</li>
         <li>Envio e recebimento de imagens, videos, audios e documentos.</li>
         <li>Gravacao de audio e video diretamente no chat.</li>
+        <li>Flash da camera (quando suportado).</li>
         <li>Chamadas de voz e video com alternancia de camera.</li>
         <li>Indicador de digitando/gravando audio em tempo real.</li>
         <li>Selecao multipla de mensagens para excluir ou compartilhar.</li>
@@ -9532,14 +9537,52 @@ function resetCameraState() {
     isCameraRecording = false;
     cameraRecorderChunks = [];
     cancelCameraRecording = false;
+    isCameraTorchOn = false;
     syncCameraActionIcons();
+    updateCameraFlashButton();
 }
 
 function syncCameraActionIcons() {
     if (btnCameraSwitch) btnCameraSwitch.innerHTML = CAMERA_ICON_SWITCH;
+    if (btnCameraFlash) btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
     if (btnCameraCapture) btnCameraCapture.innerHTML = CAMERA_ICON_PHOTO;
     if (btnCameraRecord) btnCameraRecord.innerHTML = isCameraRecording ? CAMERA_ICON_STOP : CAMERA_ICON_VIDEO;
     if (btnCameraCancel) btnCameraCancel.innerHTML = CAMERA_ICON_CLOSE;
+}
+
+function getActiveCameraTrack() {
+    if (!cameraStream) return null;
+    return cameraStream.getVideoTracks()[0] || null;
+}
+
+function updateCameraFlashButton() {
+    if (!btnCameraFlash) return;
+    const track = getActiveCameraTrack();
+    const caps = track?.getCapabilities ? track.getCapabilities() : null;
+    const supportsTorch = !!caps?.torch;
+    btnCameraFlash.classList.toggle('hidden', !supportsTorch);
+    btnCameraFlash.disabled = !supportsTorch;
+    btnCameraFlash.classList.toggle('active', isCameraTorchOn);
+    btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
+}
+
+async function setCameraTorch(enabled) {
+    const track = getActiveCameraTrack();
+    const caps = track?.getCapabilities ? track.getCapabilities() : null;
+    if (!caps?.torch) {
+        updateCameraFlashButton();
+        return false;
+    }
+    try {
+        await track.applyConstraints({ advanced: [{ torch: enabled }] });
+        isCameraTorchOn = enabled;
+        updateCameraFlashButton();
+        return true;
+    } catch (error) {
+        console.warn('Falha ao ajustar o flash.', error);
+        updateCameraFlashButton();
+        return false;
+    }
 }
 
 function prepareVideoThumbnail(videoEl) {
@@ -9570,6 +9613,7 @@ function updateCameraSwitchVisibility() {
 async function switchCameraFacing() {
     if (isCameraRecording) return;
     currentCameraFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
+    isCameraTorchOn = false;
     stopCameraStream();
     if (cameraStatus) cameraStatus.textContent = 'Alternando câmera...';
     await startCameraStream();
@@ -9617,6 +9661,8 @@ async function startCameraStream() {
     if (cameraStatus && cameraStatus.textContent === 'Abrindo câmera...') {
         cameraStatus.textContent = 'Pronto para capturar.';
     }
+    isCameraTorchOn = false;
+    updateCameraFlashButton();
 }
 
 function stopCameraStream() {
@@ -9633,6 +9679,8 @@ function stopCameraStream() {
     }
     cameraRecorder = null;
     isCameraRecording = false;
+    isCameraTorchOn = false;
+    updateCameraFlashButton();
 }
 
 async function capturePhotoFromCamera() {
@@ -10491,6 +10539,15 @@ if (btnCameraSwitch) {
     });
 }
 
+if (btnCameraFlash) {
+    btnCameraFlash.addEventListener('click', async () => {
+        const success = await setCameraTorch(!isCameraTorchOn);
+        if (!success) {
+            alert('Flash indisponível para esta câmera.');
+        }
+    });
+}
+
 if (btnCameraCancel) {
     btnCameraCancel.addEventListener('click', () => {
         closeCameraModal();
@@ -11209,6 +11266,13 @@ if (btnSoundToggle) {
 if (btnMessageTone) {
     btnMessageTone.addEventListener('click', (event) => {
         event.stopPropagation();
+        if (messageToneDataUrl) {
+            const shouldReset = confirm('Deseja voltar ao toque padrão? Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
+            if (shouldReset) {
+                applyMessageToneSetting('', true);
+                return;
+            }
+        }
         if (messageToneInput) {
             messageToneInput.value = '';
             messageToneInput.click();
@@ -11233,6 +11297,13 @@ if (messageToneInput) {
 if (btnCallTone) {
     btnCallTone.addEventListener('click', (event) => {
         event.stopPropagation();
+        if (callToneDataUrl) {
+            const shouldReset = confirm('Deseja voltar ao toque padrão? Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
+            if (shouldReset) {
+                applyCallToneSetting('', true);
+                return;
+            }
+        }
         if (callToneInput) {
             callToneInput.value = '';
             callToneInput.click();
