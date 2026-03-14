@@ -3745,41 +3745,73 @@ async function switchCallCamera() {
     if (!currentTrack) return;
 
     const nextFacing = currentCallCameraFacing === 'user' ? 'environment' : 'user';
+
+    // Tenta trocar via applyConstraints primeiro (mais leve)
+    if (typeof currentTrack.applyConstraints === 'function') {
+        try {
+            await currentTrack.applyConstraints({ facingMode: { ideal: nextFacing } });
+            const facingFromTrack = currentTrack.getSettings ? currentTrack.getSettings().facingMode : '';
+            currentCallCameraFacing = facingFromTrack || nextFacing;
+            updateCallControls();
+            return;
+        } catch (error) {
+            // fallback para recriar track
+        }
+    }
+
     let nextDeviceId = '';
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoInputs = devices.filter(device => device.kind === 'videoinput');
-        if (videoInputs.length > 1) {
+        const uniqueInputs = videoInputs.filter((device, index, arr) =>
+            device.deviceId && arr.findIndex(d => d.deviceId === device.deviceId) === index
+        );
+        if (uniqueInputs.length > 1) {
             const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
             const currentId = currentSettings.deviceId || '';
-            let currentIndex = videoInputs.findIndex(device => device.deviceId === currentId);
+            let currentIndex = uniqueInputs.findIndex(device => device.deviceId === currentId);
             if (currentIndex < 0) currentIndex = 0;
-            const nextIndex = (currentIndex + 1) % videoInputs.length;
-            nextDeviceId = videoInputs[nextIndex].deviceId;
+            const nextIndex = (currentIndex + 1) % uniqueInputs.length;
+            nextDeviceId = uniqueInputs[nextIndex].deviceId;
+        } else if (uniqueInputs.length === 1) {
+            alert('Apenas uma câmera disponível no dispositivo.');
+            return;
         }
     } catch (error) {
         // ignore e tenta por facingMode
     }
 
     let newStream = null;
+    const tryGetStream = async (constraints) => {
+        return await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false });
+    };
+
     try {
-        newStream = await navigator.mediaDevices.getUserMedia({
-            video: nextDeviceId
+        newStream = await tryGetStream(
+            nextDeviceId
                 ? { deviceId: { exact: nextDeviceId } }
-                : { facingMode: { exact: nextFacing } },
-            audio: false
-        });
+                : { facingMode: { ideal: nextFacing } }
+        );
     } catch (error) {
+        // Última tentativa: parar o track atual e tentar de novo
         try {
-            newStream = await navigator.mediaDevices.getUserMedia({
-                video: nextDeviceId
+            currentTrack.stop();
+        } catch (stopError) {
+            // ignore
+        }
+        try {
+            newStream = await tryGetStream(
+                nextDeviceId
                     ? { deviceId: { exact: nextDeviceId } }
-                    : { facingMode: { ideal: nextFacing } },
-                audio: false
-            });
+                    : { facingMode: { ideal: nextFacing } }
+            );
         } catch (fallbackError) {
-            alert('Não foi possível alternar a câmera.');
-            return;
+            try {
+                newStream = await tryGetStream({ facingMode: { ideal: currentCallCameraFacing } });
+            } catch (restoreError) {
+                alert('Não foi possível alternar a câmera.');
+                return;
+            }
         }
     }
 
