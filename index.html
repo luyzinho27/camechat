@@ -188,6 +188,10 @@
                 <div id="settings-menu" class="settings-menu hidden">
                     <button id="btn-theme-toggle" class="settings-item" type="button" aria-pressed="false">Tema escuro</button>
                     <button id="btn-sound-toggle" class="settings-item" type="button" aria-pressed="true">Som: ligado</button>
+                    <button id="btn-message-tone" class="settings-item" type="button">Toque de mensagem: padrão</button>
+                    <input type="file" id="message-tone-input" accept="audio/mpeg,audio/mp3" class="hidden">
+                    <button id="btn-call-tone" class="settings-item" type="button">Toque de chamada: padrão</button>
+                    <input type="file" id="call-tone-input" accept="audio/mpeg,audio/mp3" class="hidden">
                     <button id="btn-desktop-notifications-toggle" class="settings-item" type="button" aria-pressed="false">Notificações: desligadas</button>
                     <button id="btn-read-receipts-toggle" class="settings-item" type="button" aria-pressed="true">Leitura: ligada</button>
                     <button id="btn-online-status-toggle" class="settings-item" type="button" aria-pressed="true">Status: visível</button>
@@ -199,6 +203,7 @@
                     <button id="btn-call-block-toggle" class="settings-item" type="button" aria-pressed="false">Chamadas: permitidas</button>
                     <button id="btn-last-seen-toggle" class="settings-item" type="button" aria-pressed="true">Visto por último: visível</button>
                     <button id="btn-language-toggle" class="settings-item" type="button" aria-pressed="false">Idioma: português</button>
+                    <button id="btn-about" class="settings-item" type="button">Sobre</button>
                     <button id="btn-logout" class="settings-item logout-btn" type="button">Sair</button>
                 </div>
                 <button id="btn-settings" class="settings-btn" type="button" title="Configurações" aria-label="Configurações">&#9881;</button>
@@ -442,6 +447,14 @@
             <div class="profile-actions">
                 <button id="friend-alias-save" class="btn-primary" type="button">Concluir</button>
             </div>
+        </div>
+    </div>
+
+    <div id="about-modal" class="modal">
+        <div class="modal-content about-modal-content">
+            <span id="about-close" class="close-modal">&times;</span>
+            <h3>Sobre</h3>
+            <div id="about-content" class="about-content"></div>
         </div>
     </div>
 
