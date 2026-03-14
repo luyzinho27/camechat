@@ -46,7 +46,7 @@ body.media-viewer-open {
         radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 34%),
         linear-gradient(180deg, #0a3ba4 0%, #002776 58%, #001a52 100%);
     color: #ffffff;
-    transition: opacity 0.38s ease, visibility 0.38s ease;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
 }
 
 .app-launch-splash.is-hiding {
@@ -2681,6 +2681,11 @@ body.media-viewer-open {
 
 .btn-camera-control:active {
     transform: scale(0.96);
+}
+
+.btn-camera-control.active {
+    background: #f6c343;
+    color: #1a1a1a;
 }
 
 .btn-camera-control.btn-camera-primary {
