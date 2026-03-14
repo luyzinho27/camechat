@@ -433,6 +433,80 @@ app.post('/api/call-notify', async (req, res) => {
     }
 });
 
+app.post('/api/message-notify', async (req, res) => {
+    try {
+        const tokens = Array.isArray(req.body?.tokens)
+            ? req.body.tokens.filter((token) => typeof token === 'string' && token.trim())
+            : [];
+        if (tokens.length === 0) {
+            return res.json({ ok: true, skipped: true });
+        }
+
+        const messaging = getFirebaseMessaging();
+        if (!messaging) {
+            return res.status(500).json({ message: firebaseInitError || 'Firebase Admin nao configurado.' });
+        }
+
+        const senderName = String(req.body?.senderName || 'Usuario');
+        const messageType = String(req.body?.messageType || 'text');
+        const messageText = String(req.body?.messageText || '');
+        const fileName = String(req.body?.fileName || '');
+        const notificationBody = String(req.body?.notificationBody || messageText || fileName || 'Nova mensagem');
+
+        const baseMessage = {
+            notification: {
+                title: senderName,
+                body: notificationBody
+            },
+            data: {
+                type: 'message',
+                messageType,
+                messageText,
+                fileName,
+                senderId: String(req.body?.senderId || ''),
+                senderName,
+                senderPhoto: String(req.body?.senderPhotoURL || ''),
+                conversationId: String(req.body?.conversationId || ''),
+                count: String(req.body?.count || '')
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    channelId: 'camechat_messages',
+                    visibility: 'PRIVATE',
+                    sound: 'default',
+                    defaultVibrateTimings: true
+                }
+            }
+        };
+
+        try {
+            const response = await messaging.sendMulticast({
+                ...baseMessage,
+                tokens
+            });
+            return res.json({
+                ok: true,
+                successCount: response.successCount,
+                failureCount: response.failureCount
+            });
+        } catch (error) {
+            const message = String(error?.message || '');
+            if (message.includes('/batch')) {
+                const results = await Promise.allSettled(
+                    tokens.map((token) => messaging.send({ ...baseMessage, token }))
+                );
+                const successCount = results.filter((result) => result.status === 'fulfilled').length;
+                const failureCount = tokens.length - successCount;
+                return res.json({ ok: true, successCount, failureCount, fallback: true });
+            }
+            throw error;
+        }
+    } catch (error) {
+        return res.status(500).json({ message: error.message || 'Falha ao notificar mensagem.' });
+    }
+});
+
 app.get('/api/health', (req, res) => {
     res.json({
         ok: true,
