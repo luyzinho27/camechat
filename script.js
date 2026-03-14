@@ -2085,6 +2085,11 @@ function isAndroidWebViewRuntime() {
     return /Android/i.test(ua) && /\bwv\b/i.test(ua);
 }
 
+function isAndroidDevice() {
+    const ua = navigator.userAgent || '';
+    return /Android/i.test(ua);
+}
+
 if (document.body && isAndroidWebViewRuntime()) {
     document.body.classList.add('android-app');
 }
@@ -3672,7 +3677,7 @@ function updateCallControls() {
         btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vídeo' : 'Desativar vídeo');
     }
     if (btnCallCameraSwitch) {
-        const showCameraSwitch = showControls && isVideoCall && isAndroidWebViewRuntime();
+        const showCameraSwitch = showControls && isVideoCall && isAndroidDevice();
         btnCallCameraSwitch.classList.toggle('hidden', !showCameraSwitch);
         btnCallCameraSwitch.disabled = !hasVideo || !isVideoCall;
         btnCallCameraSwitch.innerHTML = CALL_ICON_CAMERA_SWITCH;
@@ -3734,25 +3739,46 @@ function toggleLocalVideo() {
 }
 
 async function switchCallCamera() {
-    if (!isAndroidWebViewRuntime()) return;
+    if (!isAndroidDevice()) return;
     if (!localStream) return;
     const currentTrack = localStream.getVideoTracks()[0];
     if (!currentTrack) return;
 
     const nextFacing = currentCallCameraFacing === 'user' ? 'environment' : 'user';
+    let nextDeviceId = '';
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(device => device.kind === 'videoinput');
+        if (videoInputs.length > 1) {
+            const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
+            const currentId = currentSettings.deviceId || '';
+            let currentIndex = videoInputs.findIndex(device => device.deviceId === currentId);
+            if (currentIndex < 0) currentIndex = 0;
+            const nextIndex = (currentIndex + 1) % videoInputs.length;
+            nextDeviceId = videoInputs[nextIndex].deviceId;
+        }
+    } catch (error) {
+        // ignore e tenta por facingMode
+    }
+
     let newStream = null;
     try {
         newStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: nextFacing } },
+            video: nextDeviceId
+                ? { deviceId: { exact: nextDeviceId } }
+                : { facingMode: { exact: nextFacing } },
             audio: false
         });
     } catch (error) {
         try {
             newStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: nextFacing } },
+                video: nextDeviceId
+                    ? { deviceId: { exact: nextDeviceId } }
+                    : { facingMode: { ideal: nextFacing } },
                 audio: false
             });
         } catch (fallbackError) {
+            alert('Não foi possível alternar a câmera.');
             return;
         }
     }
@@ -3785,7 +3811,8 @@ async function switchCallCamera() {
     currentTrack.stop();
     localStream.addTrack(newTrack);
     if (localVideo) localVideo.srcObject = localStream;
-    currentCallCameraFacing = nextFacing;
+    const facingFromTrack = newTrack.getSettings ? newTrack.getSettings().facingMode : '';
+    currentCallCameraFacing = facingFromTrack || nextFacing;
     updateCallControls();
 }
 
