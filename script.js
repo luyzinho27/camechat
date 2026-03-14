@@ -271,6 +271,7 @@ const btnDeleteMessageCancel = document.getElementById('btn-delete-message-cance
 const shareMessageModal = document.getElementById('share-message-modal');
 const shareMessageFriendsList = document.getElementById('share-message-friends-list');
 const btnShareMessageCancel = document.getElementById('btn-share-message-cancel');
+const btnShareMessageConfirm = document.getElementById('btn-share-message-confirm');
 const mediaViewerModal = document.getElementById('media-viewer-modal');
 const mediaViewerContent = document.getElementById('media-viewer-content');
 const btnMediaViewerSave = document.getElementById('btn-media-viewer-save');
@@ -461,6 +462,7 @@ let editingMessage = null;
 let activeMessageActionTarget = null;
 let deleteMessageModalResolver = null;
 let shareMessageModalResolver = null;
+let shareMessageSelectedFriendIds = new Set();
 let pendingAndroidSharePayload = null;
 let isAndroidShareProcessing = false;
 const pendingAndroidShareUploads = new Map();
@@ -3738,13 +3740,33 @@ function toggleLocalVideo() {
     updateCallControls();
 }
 
+async function getCallCameraStreamForFacing(facingMode) {
+    if (!navigator.mediaDevices?.getUserMedia) return null;
+    const attempts = [
+        { video: { ...CAMERA_VIDEO_CONSTRAINTS, facingMode: { ideal: facingMode } }, audio: false },
+        { video: { facingMode: { ideal: facingMode } }, audio: false },
+        { video: { facingMode: facingMode }, audio: false },
+        { video: true, audio: false }
+    ];
+    for (const attempt of attempts) {
+        try {
+            return await navigator.mediaDevices.getUserMedia(attempt);
+        } catch (error) {
+            // tenta proximo constraint
+        }
+    }
+    return null;
+}
+
 async function switchCallCamera() {
     if (!isAndroidDevice()) return;
     if (!localStream) return;
     const currentTrack = localStream.getVideoTracks()[0];
     if (!currentTrack) return;
 
-    const nextFacing = currentCallCameraFacing === 'user' ? 'environment' : 'user';
+    const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
+    const activeFacing = currentSettings.facingMode || currentCallCameraFacing || 'user';
+    const nextFacing = activeFacing === 'environment' ? 'user' : 'environment';
 
     // Tenta trocar via applyConstraints primeiro (mais leve)
     if (typeof currentTrack.applyConstraints === 'function') {
@@ -3759,60 +3781,30 @@ async function switchCallCamera() {
         }
     }
 
-    let nextDeviceId = '';
+    const sender = peerConnection
+        ? peerConnection.getSenders().find(s => s.track && s.track.kind === 'video')
+        : null;
+
     try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoInputs = devices.filter(device => device.kind === 'videoinput');
-        const uniqueInputs = videoInputs.filter((device, index, arr) =>
-            device.deviceId && arr.findIndex(d => d.deviceId === device.deviceId) === index
-        );
-        if (uniqueInputs.length > 1) {
-            const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
-            const currentId = currentSettings.deviceId || '';
-            let currentIndex = uniqueInputs.findIndex(device => device.deviceId === currentId);
-            if (currentIndex < 0) currentIndex = 0;
-            const nextIndex = (currentIndex + 1) % uniqueInputs.length;
-            nextDeviceId = uniqueInputs[nextIndex].deviceId;
-        } else if (uniqueInputs.length === 1) {
-            alert('Apenas uma câmera disponível no dispositivo.');
-            return;
-        }
+        localStream.removeTrack(currentTrack);
     } catch (error) {
-        // ignore e tenta por facingMode
+        // ignore
+    }
+    try {
+        currentTrack.stop();
+    } catch (stopError) {
+        // ignore
     }
 
-    let newStream = null;
-    const tryGetStream = async (constraints) => {
-        return await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false });
-    };
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
-    try {
-        newStream = await tryGetStream(
-            nextDeviceId
-                ? { deviceId: { exact: nextDeviceId } }
-                : { facingMode: { ideal: nextFacing } }
-        );
-    } catch (error) {
-        // Última tentativa: parar o track atual e tentar de novo
-        try {
-            currentTrack.stop();
-        } catch (stopError) {
-            // ignore
-        }
-        try {
-            newStream = await tryGetStream(
-                nextDeviceId
-                    ? { deviceId: { exact: nextDeviceId } }
-                    : { facingMode: { ideal: nextFacing } }
-            );
-        } catch (fallbackError) {
-            try {
-                newStream = await tryGetStream({ facingMode: { ideal: currentCallCameraFacing } });
-            } catch (restoreError) {
-                alert('Não foi possível alternar a câmera.');
-                return;
-            }
-        }
+    let newStream = await getCallCameraStreamForFacing(nextFacing);
+    if (!newStream) {
+        newStream = await getCallCameraStreamForFacing(activeFacing);
+    }
+    if (!newStream) {
+        alert('Não foi possível alternar a câmera.');
+        return;
     }
 
     const newTrack = newStream.getVideoTracks()[0];
@@ -3821,26 +3813,27 @@ async function switchCallCamera() {
         return;
     }
 
-    if (peerConnection) {
-        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (sender && sender.replaceTrack) {
-            try {
-                await sender.replaceTrack(newTrack);
-            } catch (error) {
-                // ignore
-            }
-        } else if (sender) {
+    let replaced = false;
+    if (peerConnection && sender && sender.replaceTrack) {
+        try {
+            await sender.replaceTrack(newTrack);
+            replaced = true;
+        } catch (error) {
+            replaced = false;
+        }
+    }
+
+    if (peerConnection && !replaced) {
+        if (sender) {
             try {
                 peerConnection.removeTrack(sender);
             } catch (error) {
                 // ignore
             }
-            peerConnection.addTrack(newTrack, localStream);
         }
+        peerConnection.addTrack(newTrack, localStream);
     }
 
-    localStream.removeTrack(currentTrack);
-    currentTrack.stop();
     localStream.addTrack(newTrack);
     if (localVideo) localVideo.srcObject = localStream;
     const facingFromTrack = newTrack.getSettings ? newTrack.getSettings().facingMode : '';
@@ -4255,6 +4248,49 @@ async function notifyFriendIncomingCall(callId, callType, friend) {
         });
     } catch (error) {
         console.warn('Falha ao enviar notificação de chamada.', error);
+    }
+}
+
+function buildOutgoingMessageNotificationBody(messagePayload, count = 1) {
+    if (count > 1) {
+        return `Você recebeu ${count} itens`;
+    }
+    return buildIncomingNotificationBody(messagePayload);
+}
+
+async function notifyFriendIncomingMessage(friend, messagePayload, options = {}) {
+    if (!friend || !friend.uid || !currentUser) return;
+    const tokens = Array.isArray(friend.fcmTokens)
+        ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
+        : [];
+    if (!tokens.length) return;
+
+    const count = Number(options.count || 1) || 1;
+    const notificationBody = String(options.body || buildOutgoingMessageNotificationBody(messagePayload, count));
+    const messageType = String(messagePayload?.type || 'text');
+
+    const payload = {
+        tokens,
+        messageType,
+        messageText: String(messagePayload?.text || ''),
+        fileName: String(messagePayload?.fileName || ''),
+        senderId: currentUser.uid,
+        senderName: currentUserProfile?.name || currentUser.displayName || 'Usuário',
+        senderPhotoURL: currentUserProfile?.photoURL || null,
+        conversationId: getConversationId(currentUser.uid, friend.uid),
+        notificationBody,
+        count
+    };
+
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/message-notify` : '/api/message-notify';
+    try {
+        await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (error) {
+        console.warn('Falha ao enviar notificação de mensagem.', error);
     }
 }
 
@@ -7177,17 +7213,43 @@ function closeDeleteMessageModal() {
     }
 }
 
-function closeShareMessageModal() {
+function updateShareMessageConfirmButton() {
+    if (!btnShareMessageConfirm) return;
+    const count = shareMessageSelectedFriendIds.size;
+    btnShareMessageConfirm.disabled = count === 0;
+    btnShareMessageConfirm.textContent = count > 1 ? `Compartilhar (${count})` : 'Compartilhar';
+}
+
+function toggleShareMessageFriendSelection(uid, item) {
+    if (!uid || !item) return;
+    if (shareMessageSelectedFriendIds.has(uid)) {
+        shareMessageSelectedFriendIds.delete(uid);
+        item.classList.remove('selected');
+    } else {
+        shareMessageSelectedFriendIds.add(uid);
+        item.classList.add('selected');
+    }
+    updateShareMessageConfirmButton();
+}
+
+function resolveShareMessageModal(result) {
     if (shareMessageModal) {
         shareMessageModal.classList.remove('show');
     }
     if (shareMessageFriendsList) {
         shareMessageFriendsList.innerHTML = '';
     }
+    shareMessageSelectedFriendIds = new Set();
+    updateShareMessageConfirmButton();
     if (shareMessageModalResolver) {
-        shareMessageModalResolver(null);
+        const resolve = shareMessageModalResolver;
         shareMessageModalResolver = null;
+        resolve(result);
     }
+}
+
+function closeShareMessageModal() {
+    resolveShareMessageModal(null);
 }
 
 function getShareableFriends() {
@@ -7228,7 +7290,7 @@ function buildShareFriendItem(user) {
             <strong>${safeName}</strong>
             <small>${safeStatus}</small>
         </div>
-        <button type="button" class="btn-primary share-message-pick-btn">Selecionar</button>
+        <span class="share-message-friend-check" aria-hidden="true"></span>
     `;
 
     const avatar = li.querySelector('img');
@@ -7239,37 +7301,35 @@ function buildShareFriendItem(user) {
     return li;
 }
 
-async function askShareTargetUser() {
+async function askShareTargetUsers() {
     const shareableFriends = getShareableFriends();
     if (!shareableFriends.length) {
         alert('Você precisa ter outro amigo disponível para compartilhar.');
         return null;
     }
 
-    if (!shareMessageModal || !shareMessageFriendsList) {
-        return shareableFriends[0].uid;
+    if (!shareMessageModal || !shareMessageFriendsList || !btnShareMessageConfirm) {
+        return [shareableFriends[0].uid];
     }
 
     shareMessageFriendsList.innerHTML = '';
+    shareMessageSelectedFriendIds = new Set();
+
     shareableFriends.forEach((friend) => {
         const item = buildShareFriendItem(friend);
-        const choose = () => {
-            if (shareMessageModalResolver) {
-                const resolve = shareMessageModalResolver;
-                shareMessageModalResolver = null;
-                shareMessageModal.classList.remove('show');
-                shareMessageFriendsList.innerHTML = '';
-                resolve(friend.uid);
-            }
-        };
+        const toggle = () => toggleShareMessageFriendSelection(friend.uid, item);
         item.addEventListener('click', (event) => {
-            if (event.target.closest('.share-message-pick-btn') || event.target === item || event.target.closest('.share-message-friend-info') || event.target.tagName === 'IMG') {
-                choose();
+            if (event.target === item
+                || event.target.closest('.share-message-friend-info')
+                || event.target.closest('.share-message-friend-check')
+                || event.target.tagName === 'IMG') {
+                toggle();
             }
         });
         shareMessageFriendsList.appendChild(item);
     });
 
+    updateShareMessageConfirmButton();
     shareMessageModal.classList.add('show');
     return await new Promise((resolve) => {
         shareMessageModalResolver = resolve;
@@ -7301,8 +7361,14 @@ async function ensureShareableFriendsLoaded(timeoutMs = 8000) {
     return getShareableFriends().length > 0;
 }
 
-async function sendChatFileFromUrl(fileUrl, meta = {}) {
-    if (!fileUrl || !selectedUserId || !currentUser) return;
+async function sendChatFileFromUrl(fileUrl, meta = {}, targetUid = selectedUserId, targetFriend = selectedFriendData) {
+    if (!fileUrl || !targetUid || !currentUser) return;
+    if (isFriendBlocked(targetUid)) {
+        if (targetUid === selectedUserId) {
+            alert('Você bloqueou este usuário.');
+        }
+        return;
+    }
     const fileName = sanitizeDownloadFileName(meta.name || meta.fileName || inferAttachmentFileName({ type: 'file', fileName: '' }, fileUrl, meta.mimeType || ''));
     const fileType = String(meta.mimeType || meta.fileType || 'application/octet-stream');
     const fileSize = Number(meta.size || meta.fileSize || 0) || 0;
@@ -7312,9 +7378,10 @@ async function sendChatFileFromUrl(fileUrl, meta = {}) {
     if (fileType.startsWith('video/')) messageType = 'video';
     if (fileType.startsWith('audio/')) messageType = 'audio';
 
-    const conversationId = getConversationId(currentUser.uid, selectedUserId);
-    const delivered = isUserEffectivelyOnline(selectedFriendData);
-    const replyPayload = getPendingReplyPayload();
+    const conversationId = getConversationId(currentUser.uid, targetUid);
+    const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
+    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
+    const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
     const messagePayload = {
         fileUrl: fileUrl,
@@ -7323,7 +7390,7 @@ async function sendChatFileFromUrl(fileUrl, meta = {}) {
         fileSize: fileSize || null,
         imageUrl: messageType === 'image' ? fileUrl : null,
         senderId: currentUser.uid,
-        receiverId: selectedUserId,
+        receiverId: targetUid,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         type: messageType,
         read: false,
@@ -7337,11 +7404,14 @@ async function sendChatFileFromUrl(fileUrl, meta = {}) {
         .collection('messages')
         .add(messagePayload);
     await updateConversationLastMessage(conversationId, messagePayload);
-    clearReplyTargetMessage();
+    if (targetUid === selectedUserId) {
+        clearReplyTargetMessage();
+    }
+    await notifyFriendIncomingMessage(resolvedFriend, messagePayload);
 }
 
-async function shareAndroidFileItem(item) {
-    if (!item?.uri || !selectedUserId) return;
+async function shareAndroidFileItem(item, targetUid = selectedUserId, targetFriend = selectedFriendData) {
+    if (!item?.uri || !targetUid) return;
     if (item.size && item.size > MAX_CHAT_FILE_SIZE_BYTES) {
         alert(`O arquivo deve ter no máximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
         return;
@@ -7356,7 +7426,7 @@ async function shareAndroidFileItem(item) {
                     const name = sanitizeDownloadFileName(item.name || inferAttachmentFileName({ type: 'file', fileName: '' }, item.uri, item.mimeType || blob.type || ''));
                     const type = item.mimeType || blob.type || 'application/octet-stream';
                     const file = new File([blob], name, { type });
-                    await handleChatFile(file);
+                    await handleChatFile(file, targetUid, targetFriend);
                     return;
                 }
             }
@@ -7365,7 +7435,7 @@ async function shareAndroidFileItem(item) {
         }
 
         const requestId = `share_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-        pendingAndroidShareUploads.set(requestId, item);
+        pendingAndroidShareUploads.set(requestId, { ...item, targetUid });
         const invoked = callAndroidBridgeMethod('uploadSharedFile', requestId, item.uri, item.name || '', item.mimeType || '');
         if (!invoked) {
             pendingAndroidShareUploads.delete(requestId);
@@ -7383,23 +7453,34 @@ async function processPendingAndroidSharePayload() {
 
     try {
         await ensureShareableFriendsLoaded();
-        const targetUid = await askShareTargetUser();
-        if (!targetUid) return;
-        const friend = allUsersCache.find((user) => user.uid === targetUid);
-        if (friend) {
-            await selectUser(friend);
+        const targetUids = await askShareTargetUsers();
+        if (!Array.isArray(targetUids) || targetUids.length === 0) return;
+
+        const uniqueTargets = Array.from(new Set(targetUids.filter(Boolean)));
+        const validTargets = uniqueTargets.filter((uid) => !isFriendBlocked(uid));
+        if (validTargets.length === 0) {
+            alert('Você bloqueou todos os usuários selecionados.');
+            return;
+        }
+
+        if (validTargets.length === 1) {
+            const friend = getCachedUserByUid(validTargets[0]);
+            if (friend) {
+                await selectUser(friend);
+            }
         }
 
         if (payload.text) {
-            if (messageInput) {
-                messageInput.value = payload.text;
+            for (const uid of validTargets) {
+                await sendTextMessageToFriend(payload.text, uid, getCachedUserByUid(uid));
             }
-            await submitTextComposerMessage();
         }
 
         if (Array.isArray(payload.items)) {
             for (const item of payload.items) {
-                await shareAndroidFileItem(item);
+                for (const uid of validTargets) {
+                    await shareAndroidFileItem(item, uid, getCachedUserByUid(uid));
+                }
             }
         }
     } finally {
@@ -7445,11 +7526,15 @@ async function handleAndroidShareUploadResult(rawPayload) {
         return;
     }
 
+    const targetUid = meta?.targetUid || selectedUserId;
+    if (!targetUid) return;
+    const targetFriend = (targetUid === selectedUserId ? selectedFriendData : getCachedUserByUid(targetUid));
+
     await sendChatFileFromUrl(payload.url, {
         name: meta?.name || payload.fileName || '',
         mimeType: meta?.mimeType || payload.mimeType || '',
         size: meta?.size || payload.size || 0
-    });
+    }, targetUid, targetFriend);
 }
 
 async function handleAndroidCallAction(rawPayload) {
@@ -7679,24 +7764,43 @@ async function shareSelectedMessages() {
         return;
     }
 
-    const targetUid = await askShareTargetUser();
-    if (!targetUid) return;
-    if (isFriendBlocked(targetUid)) {
-        alert('Você bloqueou este usuário. Desbloqueie para compartilhar.');
+    const targetUids = await askShareTargetUsers();
+    if (!Array.isArray(targetUids) || targetUids.length === 0) return;
+
+    const uniqueTargets = Array.from(new Set(targetUids.filter(Boolean)));
+    const validTargets = uniqueTargets.filter((uid) => !isFriendBlocked(uid));
+    if (validTargets.length === 0) {
+        alert('Você bloqueou todos os usuários selecionados.');
         return;
     }
 
-    try {
-        const targetFriend = getCachedUserByUid(targetUid);
-        await forwardMessagesToFriend(selectedMessages, targetUid);
-        resetMessageSelectionState();
+    let hasFailure = false;
+    for (const targetUid of validTargets) {
+        try {
+            const targetFriend = getCachedUserByUid(targetUid);
+            await forwardMessagesToFriend(selectedMessages, targetUid);
+            await notifyFriendIncomingMessage(targetFriend, selectedMessages[selectedMessages.length - 1], {
+                count: selectedMessages.length
+            });
+        } catch (error) {
+            hasFailure = true;
+        }
+    }
+
+    resetMessageSelectionState();
+    if (validTargets.length === 1) {
+        const targetFriend = getCachedUserByUid(validTargets[0]);
         if (targetFriend) {
             await selectUser(targetFriend);
         } else {
             renderMessages(currentConversationMessages || []);
         }
-    } catch (error) {
-        alert('Não foi possível compartilhar as mensagens selecionadas.');
+    } else {
+        renderMessages(currentConversationMessages || []);
+    }
+
+    if (hasFailure) {
+        alert('Alguns compartilhamentos não puderam ser concluídos.');
     }
 }
 
@@ -8551,6 +8655,35 @@ async function updateConversationLastMessage(conversationId, payload) {
     await db.collection('conversations').doc(conversationId).set(update, { merge: true });
 }
 
+async function sendTextMessageToFriend(text, targetUid, targetFriend) {
+    const messageText = String(text || '').trim();
+    if (!messageText || !targetUid || !currentUser) return;
+    if (isFriendBlocked(targetUid)) return;
+
+    const conversationId = getConversationId(currentUser.uid, targetUid);
+    const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
+    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
+
+    const messagePayload = {
+        text: messageText,
+        senderId: currentUser.uid,
+        receiverId: targetUid,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        type: 'text',
+        read: false,
+        delivered: delivered,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        replyTo: null
+    };
+
+    await db.collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .add(messagePayload);
+    await updateConversationLastMessage(conversationId, messagePayload);
+    await notifyFriendIncomingMessage(resolvedFriend, messagePayload);
+}
+
 async function submitTextComposerMessage() {
     const text = messageInput.value.trim();
     if (!text || !selectedUserId) return;
@@ -8590,6 +8723,7 @@ async function submitTextComposerMessage() {
             .collection('messages')
             .add(messagePayload);
         await updateConversationLastMessage(conversationId, messagePayload);
+        await notifyFriendIncomingMessage(selectedFriendData, messagePayload);
 
         messageInput.value = '';
         clearReplyTargetMessage();
@@ -9312,9 +9446,9 @@ async function startAudioRecording() {
     startRecordingHeartbeat();
 }
 
-async function handleChatFile(file) {
-    if (!file || !selectedUserId) return;
-    if (isFriendBlocked(selectedUserId)) {
+async function handleChatFile(file, targetUid = selectedUserId, targetFriend = selectedFriendData) {
+    if (!file || !targetUid) return;
+    if (isFriendBlocked(targetUid)) {
         alert('Você bloqueou este usuário.');
         return;
     }
@@ -9333,13 +9467,13 @@ async function handleChatFile(file) {
     if (isImage) messageType = 'image';
     if (isVideo) messageType = 'video';
     if (isAudio) messageType = 'audio';
-    const delivered = isUserEffectivelyOnline(selectedFriendData);
-    const replyPayload = getPendingReplyPayload();
+    const delivered = targetFriend ? isUserEffectivelyOnline(targetFriend) : false;
+    const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
     try {
         const fileUrl = await uploadChatFile(file, { uid: currentUser.uid });
 
-        const conversationId = getConversationId(currentUser.uid, selectedUserId);
+        const conversationId = getConversationId(currentUser.uid, targetUid);
         const messageRef = db.collection('conversations')
             .doc(conversationId)
             .collection('messages')
@@ -9351,7 +9485,7 @@ async function handleChatFile(file) {
             fileSize: file.size,
             imageUrl: isImage ? fileUrl : null,
             senderId: currentUser.uid,
-            receiverId: selectedUserId,
+            receiverId: targetUid,
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             type: messageType,
             read: false,
@@ -9363,7 +9497,10 @@ async function handleChatFile(file) {
         await messageRef.set(messagePayload);
         await updateConversationLastMessage(conversationId, messagePayload);
         Promise.resolve().then(() => autoSaveOutgoingAttachment({ id: messageRef.id, ...messagePayload }, file));
-        clearReplyTargetMessage();
+        if (targetUid === selectedUserId) {
+            clearReplyTargetMessage();
+        }
+        await notifyFriendIncomingMessage(resolvedFriend, messagePayload);
     } catch (error) {
         alert('Erro ao enviar arquivo: ' + error.message);
     }
@@ -10122,6 +10259,15 @@ if (deleteMessageModal) {
 if (btnShareMessageCancel) {
     btnShareMessageCancel.addEventListener('click', () => {
         closeShareMessageModal();
+    });
+}
+
+if (btnShareMessageConfirm) {
+    btnShareMessageConfirm.addEventListener('click', () => {
+        if (!shareMessageModalResolver) return;
+        const selected = Array.from(shareMessageSelectedFriendIds || []);
+        if (selected.length === 0) return;
+        resolveShareMessageModal(selected);
     });
 }
 
