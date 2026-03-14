@@ -117,6 +117,10 @@ const btnLogout = document.getElementById('btn-logout');
 const btnSettings = document.getElementById('btn-settings');
 const btnThemeToggle = document.getElementById('btn-theme-toggle');
 const btnSoundToggle = document.getElementById('btn-sound-toggle');
+const btnMessageTone = document.getElementById('btn-message-tone');
+const messageToneInput = document.getElementById('message-tone-input');
+const btnCallTone = document.getElementById('btn-call-tone');
+const callToneInput = document.getElementById('call-tone-input');
 const btnReadReceiptsToggle = document.getElementById('btn-read-receipts-toggle');
 const btnDesktopNotificationsToggle = document.getElementById('btn-desktop-notifications-toggle');
 const btnOnlineStatusToggle = document.getElementById('btn-online-status-toggle');
@@ -128,13 +132,19 @@ const btnMediaFolderPc = document.getElementById('btn-media-folder-pc');
 const btnCallBlockToggle = document.getElementById('btn-call-block-toggle');
 const btnLastSeenToggle = document.getElementById('btn-last-seen-toggle');
 const btnLanguageToggle = document.getElementById('btn-language-toggle');
+const btnAbout = document.getElementById('btn-about');
 const settingsMenu = document.getElementById('settings-menu');
 const sidebarSettings = document.getElementById('sidebar-settings');
 const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
+const aboutModal = document.getElementById('about-modal');
+const aboutClose = document.getElementById('about-close');
+const aboutContent = document.getElementById('about-content');
 const ADMIN_TAB_STORAGE_KEY = 'camechat_admin_tab';
 const THEME_STORAGE_KEY = 'camechat_theme';
 const SOUND_NOTIFICATIONS_STORAGE_KEY = 'camechat_sound_notifications';
+const MESSAGE_TONE_STORAGE_KEY = 'camechat_message_tone';
+const CALL_TONE_STORAGE_KEY = 'camechat_call_tone';
 const READ_RECEIPTS_STORAGE_KEY = 'camechat_read_receipts';
 const DESKTOP_NOTIFICATIONS_STORAGE_KEY = 'camechat_desktop_notifications';
 const ONLINE_STATUS_VISIBILITY_STORAGE_KEY = 'camechat_online_status_visibility';
@@ -158,6 +168,9 @@ const USERS_CACHE_MAX_PHOTO_DATA_LENGTH = 30000;
 const ANDROID_FCM_TOKEN_STORAGE_KEY = 'camechat_android_fcm_token';
 
 let soundNotificationsEnabled = true;
+let messageToneDataUrl = '';
+let callToneDataUrl = '';
+let callToneAudio = null;
 let readReceiptsEnabled = true;
 let desktopNotificationsEnabled = false;
 let showOnlineStatusEnabled = true;
@@ -1470,6 +1483,17 @@ function sanitizeDownloadFileName(fileName) {
     return value.replace(/[\\/:*?"<>|]+/g, '_');
 }
 
+function normalizeVideoDownloadFileName(msg, fileName, mimeType = '') {
+    const safeName = sanitizeDownloadFileName(fileName);
+    const isVideo = (msg?.type === 'video')
+        || String(mimeType || '').toLowerCase().startsWith('video/');
+    if (!isVideo) return safeName;
+    if (safeName.toLowerCase().endsWith('.mp4')) return safeName;
+    const base = safeName.replace(/\.[^.]+$/, '');
+    const fallbackBase = base || `video_${msg?.id || Date.now()}`;
+    return `${fallbackBase}.mp4`;
+}
+
 function inferAttachmentFileName(msg, url, blobType = '') {
     const byMessage = sanitizeDownloadFileName(msg?.fileName || '');
     if (byMessage && !/^arquivo_\d+$/.test(byMessage)) return byMessage;
@@ -2308,7 +2332,7 @@ async function handleNativeGoogleSignInResult(payload = {}) {
 }
 
 function buildDeviceDownloadPath(msg, fileName, mimeType = '', options = {}) {
-    const safeName = sanitizeDownloadFileName(fileName);
+    const safeName = normalizeVideoDownloadFileName(msg, fileName, mimeType);
     const category = getDownloadCategory(msg, safeName, mimeType);
     const scope = resolveLocalMediaScope(msg, options.scope);
     const scopePrefix = scope === 'sent' ? 'Enviados/' : '';
@@ -3172,6 +3196,15 @@ function stopRingtone() {
     if (ringtoneContext) {
         ringtoneContext.close();
         ringtoneContext = null;
+    }
+    if (callToneAudio) {
+        try {
+            callToneAudio.pause();
+            callToneAudio.currentTime = 0;
+        } catch (error) {
+            // ignore
+        }
+        callToneAudio = null;
     }
 }
 
@@ -4107,6 +4140,20 @@ function stopCallPreviewDrag() {
 
 function startRingtone(mode = 'incoming') {
     stopRingtone();
+    if (callToneDataUrl) {
+        try {
+            callToneAudio = new Audio(callToneDataUrl);
+            callToneAudio.loop = true;
+            callToneAudio.volume = 1;
+            const playPromise = callToneAudio.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(() => {});
+            }
+            return;
+        } catch (error) {
+            callToneAudio = null;
+        }
+    }
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     try {
@@ -5065,6 +5112,16 @@ function getStoredChatBackground() {
     }
 }
 
+function getStoredAudioDataUrl(storageKey) {
+    try {
+        const value = localStorage.getItem(storageKey) || '';
+        if (!value.startsWith('data:audio/')) return '';
+        return value;
+    } catch (error) {
+        return '';
+    }
+}
+
 function isWindowsDesktopRuntime() {
     if (isAndroidWebViewRuntime()) return false;
     const ua = navigator.userAgent || '';
@@ -5357,6 +5414,10 @@ const UI_TEXT = {
         themeLight: 'Tema claro',
         soundOn: 'Som: ligado',
         soundOff: 'Som: desligado',
+        messageToneDefault: 'Toque de mensagem: padrão',
+        messageToneCustom: 'Toque de mensagem: personalizado',
+        callToneDefault: 'Toque de chamada: padrão',
+        callToneCustom: 'Toque de chamada: personalizado',
         notificationsOff: 'Notificações: desligadas',
         notificationsOn: 'Notificações: ligadas',
         notificationsBlocked: 'Notificações: bloqueadas',
@@ -5385,6 +5446,7 @@ const UI_TEXT = {
         languagePt: 'Idioma: português',
         languageEn: 'Idioma: inglês',
         settingsTitle: 'Configurações',
+        about: 'Sobre',
         logout: 'Sair',
         presenceHidden: 'Status oculto',
         presenceLastSeen: 'Visto por último às {time}',
@@ -5399,6 +5461,10 @@ const UI_TEXT = {
         themeLight: 'Light theme',
         soundOn: 'Sound: on',
         soundOff: 'Sound: off',
+        messageToneDefault: 'Message tone: default',
+        messageToneCustom: 'Message tone: custom',
+        callToneDefault: 'Call tone: default',
+        callToneCustom: 'Call tone: custom',
         notificationsOff: 'Notifications: off',
         notificationsOn: 'Notifications: on',
         notificationsBlocked: 'Notifications: blocked',
@@ -5427,6 +5493,7 @@ const UI_TEXT = {
         languagePt: 'Language: Portuguese',
         languageEn: 'Language: English',
         settingsTitle: 'Settings',
+        about: 'About',
         logout: 'Sign out',
         presenceHidden: 'Status hidden',
         presenceLastSeen: 'Last seen at {time}',
@@ -5438,6 +5505,36 @@ const UI_TEXT = {
     }
 };
 
+const ABOUT_CONTENT_HTML = `
+    <p>CameChat e uma aplicacao de mensagens em tempo real com suporte a texto, midias e chamadas.</p>
+    <h4>Principais recursos</h4>
+    <ul>
+        <li>Cadastro e login com e-mail/senha e Google.</li>
+        <li>Perfil com foto, corte/zoom e identificador @.</li>
+        <li>Lista de amigos com busca, bloqueio e silenciamento.</li>
+        <li>Contato proprio para anotacoes pessoais (Nome (Voce)).</li>
+        <li>Mensagens de texto com edicao, copia, resposta e exclusao.</li>
+        <li>Envio e recebimento de imagens, videos, audios e documentos.</li>
+        <li>Gravacao de audio e video diretamente no chat.</li>
+        <li>Chamadas de voz e video com alternancia de camera.</li>
+        <li>Indicador de digitando/gravando audio em tempo real.</li>
+        <li>Selecao multipla de mensagens para excluir ou compartilhar.</li>
+        <li>Compartilhamento de midias e links para outros contatos.</li>
+        <li>Notificacoes de mensagens e chamadas (Android).</li>
+        <li>Salvamento de midias com pastas locais e modo automatico/manual.</li>
+        <li>Personalizacao do chat: tema, fonte, idioma e plano de fundo.</li>
+        <li>Preferencias de privacidade: visto por ultimo, status online e bloqueios.</li>
+        <li>Toques personalizados para mensagens e chamadas (MP3).</li>
+    </ul>
+    <h4>Plataformas</h4>
+    <p>Versao Web e versao Android (WebView) com os mesmos recursos principais.</p>
+    <h4>Desenvolvedor</h4>
+    <p><strong>Luiz Sérgio Garcia Carvalho</strong></p>
+    <p>Formado em Sistemas de Informacao e Licenciatura em Matematica.</p>
+    <p>Contato: (91) 993064354 (WhatsApp)</p>
+    <p>E-mail: luizynho27@gmail.com</p>
+`;
+
 function getUiText(key) {
     const lang = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
     return UI_TEXT[lang]?.[key] || UI_TEXT['pt-BR']?.[key] || '';
@@ -5448,6 +5545,19 @@ function formatUiText(key, params = {}) {
     return template.replace(/\{(\w+)\}/g, (_, token) => String(params[token] ?? ''));
 }
 
+function openAboutModal() {
+    if (!aboutModal) return;
+    if (aboutContent) {
+        aboutContent.innerHTML = ABOUT_CONTENT_HTML;
+    }
+    aboutModal.classList.add('show');
+}
+
+function closeAboutModal() {
+    if (!aboutModal) return;
+    aboutModal.classList.remove('show');
+}
+
 function refreshSettingsMenuLabels() {
     if (btnThemeToggle) {
         const isDark = document.body.classList.contains('theme-dark');
@@ -5456,6 +5566,14 @@ function refreshSettingsMenuLabels() {
 
     if (btnSoundToggle) {
         btnSoundToggle.textContent = soundNotificationsEnabled ? getUiText('soundOn') : getUiText('soundOff');
+    }
+
+    if (btnMessageTone) {
+        btnMessageTone.textContent = messageToneDataUrl ? getUiText('messageToneCustom') : getUiText('messageToneDefault');
+    }
+
+    if (btnCallTone) {
+        btnCallTone.textContent = callToneDataUrl ? getUiText('callToneCustom') : getUiText('callToneDefault');
     }
 
     if (btnDesktopNotificationsToggle) {
@@ -5518,6 +5636,10 @@ function refreshSettingsMenuLabels() {
 
     if (btnLanguageToggle) {
         btnLanguageToggle.textContent = selectedLanguage === 'en-US' ? getUiText('languageEn') : getUiText('languagePt');
+    }
+
+    if (btnAbout) {
+        btnAbout.textContent = getUiText('about');
     }
 
     if (btnLogout) {
@@ -5612,6 +5734,63 @@ function applySoundNotificationsSetting(isEnabled, persist = false) {
     } catch (error) {
         // ignore
     }
+}
+
+function applyMessageToneSetting(dataUrl, persist = false) {
+    messageToneDataUrl = dataUrl || '';
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+    try {
+        if (messageToneDataUrl) {
+            localStorage.setItem(MESSAGE_TONE_STORAGE_KEY, messageToneDataUrl);
+        } else {
+            localStorage.removeItem(MESSAGE_TONE_STORAGE_KEY);
+        }
+    } catch (error) {
+        alert('Não foi possível salvar o toque de mensagem.');
+    }
+}
+
+function applyCallToneSetting(dataUrl, persist = false) {
+    callToneDataUrl = dataUrl || '';
+    refreshSettingsMenuLabels();
+
+    if (!persist) return;
+    try {
+        if (callToneDataUrl) {
+            localStorage.setItem(CALL_TONE_STORAGE_KEY, callToneDataUrl);
+        } else {
+            localStorage.removeItem(CALL_TONE_STORAGE_KEY);
+        }
+    } catch (error) {
+        alert('Não foi possível salvar o toque de chamada.');
+    }
+}
+
+function isValidToneFile(file) {
+    if (!file) return false;
+    if (!file.type) return false;
+    const isMp3 = file.type === 'audio/mpeg' || String(file.name || '').toLowerCase().endsWith('.mp3');
+    if (!isMp3) {
+        alert('Selecione apenas arquivos MP3.');
+        return false;
+    }
+    const sizeLimit = 5 * 1024 * 1024;
+    if (file.size > sizeLimit) {
+        alert('O arquivo de toque deve ter no máximo 5MB.');
+        return false;
+    }
+    return true;
+}
+
+function readToneFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('Falha ao ler arquivo.'));
+        reader.readAsDataURL(file);
+    });
 }
 
 function applyReadReceiptsSetting(isEnabled, persist = false) {
@@ -5779,6 +5958,8 @@ function initializeUserPreferences() {
     applyLanguageSetting(getStoredLanguage('pt-BR'), false);
     initializeTheme();
     applySoundNotificationsSetting(getStoredBooleanSetting(SOUND_NOTIFICATIONS_STORAGE_KEY, true), false);
+    applyMessageToneSetting(getStoredAudioDataUrl(MESSAGE_TONE_STORAGE_KEY), false);
+    applyCallToneSetting(getStoredAudioDataUrl(CALL_TONE_STORAGE_KEY), false);
     applyDesktopNotificationsSetting(getStoredBooleanSetting(DESKTOP_NOTIFICATIONS_STORAGE_KEY, false), false);
     applyReadReceiptsSetting(getStoredBooleanSetting(READ_RECEIPTS_STORAGE_KEY, true), false);
     applyOnlineStatusVisibilitySetting(getStoredBooleanSetting(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, true), false, false);
@@ -5794,6 +5975,20 @@ function initializeUserPreferences() {
 function playIncomingMessageTone(senderUid = '') {
     if (!soundNotificationsEnabled) return;
     if (senderUid && isFriendMuted(senderUid)) return;
+
+    if (messageToneDataUrl) {
+        try {
+            const audio = new Audio(messageToneDataUrl);
+            audio.volume = 0.7;
+            const playPromise = audio.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(() => {});
+            }
+        } catch (error) {
+            // ignore
+        }
+        return;
+    }
 
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
@@ -7404,9 +7599,24 @@ function getShareableFriends() {
         if (!friendSet.has(user.uid)) return false;
         if (user.disabled) return false;
         if (blockedSet.has(user.uid)) return false;
-        if (user.uid === selectedUserId) return false;
+        if (user.uid === selectedUserId && user.uid !== currentUser?.uid) return false;
         return true;
     });
+
+    if (currentUser && friendSet.has(currentUser.uid)) {
+        const selfUser = {
+            ...(currentUserProfile || {}),
+            uid: currentUser.uid,
+            id: currentUser.uid,
+            name: currentUserProfile?.name || currentUser.displayName || currentUser.email || 'Usuário',
+            email: currentUserProfile?.email || currentUser.email || '',
+            photoURL: currentUserProfile?.photoURL || currentUser.photoURL || null,
+            photoData: currentUserProfile?.photoData || null
+        };
+        if (!shareable.some((user) => user.uid === currentUser.uid)) {
+            shareable.unshift(selfUser);
+        }
+    }
 
     shareable.sort((a, b) => {
         const aOnline = isUserPresenceVisible(a) && isUserEffectivelyOnline(a);
@@ -9448,15 +9658,7 @@ async function toggleCameraRecording() {
         if (cameraRecorder) cameraRecorder.stop();
         return;
     }
-    const mimeTypeCandidates = [
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/webm'
-    ];
-    let mimeType = '';
-    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
-        mimeType = mimeTypeCandidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
-    }
+    const mimeType = getPreferredVideoMimeType();
     try {
         cameraRecorder = mimeType
             ? new MediaRecorder(cameraStream, { mimeType, ...CAMERA_RECORDING_OPTIONS })
@@ -9471,7 +9673,8 @@ async function toggleCameraRecording() {
         }
     };
     cameraRecorder.onstop = async () => {
-        const blob = new Blob(cameraRecorderChunks, { type: cameraRecorder.mimeType || mimeType || 'video/webm' });
+        const chosenMime = cameraRecorder.mimeType || mimeType || 'video/webm';
+        const blob = new Blob(cameraRecorderChunks, { type: chosenMime });
         cameraRecorderChunks = [];
         isCameraRecording = false;
         syncCameraActionIcons();
@@ -9481,7 +9684,8 @@ async function toggleCameraRecording() {
             return;
         }
         if (!blob.size) return;
-        const file = new File([blob], `video_${Date.now()}.webm`, { type: blob.type });
+        const extension = getVideoFileExtension(chosenMime);
+        const file = new File([blob], `video_${Date.now()}.${extension}`, { type: blob.type });
         await handleChatFile(file);
         closeCameraModal();
     };
@@ -9502,6 +9706,26 @@ function getPreferredAudioMimeType() {
     ];
     if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
     return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+}
+
+function getPreferredVideoMimeType() {
+    const candidates = [
+        'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+        'video/mp4',
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'
+    ];
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+    return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+}
+
+function getVideoFileExtension(mimeType) {
+    if (!mimeType) return 'webm';
+    if (mimeType.includes('mp4')) return 'mp4';
+    if (mimeType.includes('webm')) return 'webm';
+    if (mimeType.includes('ogg')) return 'ogg';
+    return 'webm';
 }
 
 function getAudioFileExtension(mimeType) {
@@ -10982,6 +11206,54 @@ if (btnSoundToggle) {
     });
 }
 
+if (btnMessageTone) {
+    btnMessageTone.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (messageToneInput) {
+            messageToneInput.value = '';
+            messageToneInput.click();
+        }
+    });
+}
+
+if (messageToneInput) {
+    messageToneInput.addEventListener('change', async () => {
+        const file = messageToneInput.files?.[0];
+        messageToneInput.value = '';
+        if (!file || !isValidToneFile(file)) return;
+        try {
+            const dataUrl = await readToneFileAsDataUrl(file);
+            applyMessageToneSetting(dataUrl, true);
+        } catch (error) {
+            alert('Não foi possível aplicar o toque de mensagem.');
+        }
+    });
+}
+
+if (btnCallTone) {
+    btnCallTone.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (callToneInput) {
+            callToneInput.value = '';
+            callToneInput.click();
+        }
+    });
+}
+
+if (callToneInput) {
+    callToneInput.addEventListener('change', async () => {
+        const file = callToneInput.files?.[0];
+        callToneInput.value = '';
+        if (!file || !isValidToneFile(file)) return;
+        try {
+            const dataUrl = await readToneFileAsDataUrl(file);
+            applyCallToneSetting(dataUrl, true);
+        } catch (error) {
+            alert('Não foi possível aplicar o toque de chamada.');
+        }
+    });
+}
+
 if (btnReadReceiptsToggle) {
     btnReadReceiptsToggle.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -11109,6 +11381,25 @@ if (btnLanguageToggle) {
         event.stopPropagation();
         const nextLanguage = selectedLanguage === 'en-US' ? 'pt-BR' : 'en-US';
         applyLanguageSetting(nextLanguage, true);
+    });
+}
+
+if (btnAbout) {
+    btnAbout.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openAboutModal();
+    });
+}
+
+if (aboutClose) {
+    aboutClose.addEventListener('click', closeAboutModal);
+}
+
+if (aboutModal) {
+    aboutModal.addEventListener('click', (event) => {
+        if (event.target === aboutModal) {
+            closeAboutModal();
+        }
     });
 }
 
