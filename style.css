@@ -1135,6 +1135,33 @@ body.media-viewer-open {
     font-size: 14px;
 }
 
+.about-modal-content {
+    max-width: 560px;
+}
+
+.about-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    font-size: 14px;
+    color: #555;
+    line-height: 1.5;
+}
+
+.about-content h4 {
+    margin: 16px 0 6px;
+    color: #002776;
+    font-size: 15px;
+}
+
+.about-content ul {
+    margin: 0 0 12px 18px;
+    padding: 0;
+}
+
+.about-content li {
+    margin-bottom: 6px;
+}
+
 .modal-input {
     width: 100%;
     padding: 12px;
