@@ -378,9 +378,10 @@ app.post('/api/call-notify', async (req, res) => {
 
         const isVideo = String(req.body?.callType || 'audio') === 'video';
         const callerName = String(req.body?.callerName || 'Usuario');
+        const callIcon = isVideo ? '📹' : '📞';
         const notificationBody = isVideo
-            ? 'Chamada de video recebida'
-            : 'Chamada de voz recebida';
+            ? `${callIcon} Chamada de video recebida`
+            : `${callIcon} Chamada de voz recebida`;
 
         const baseMessage = {
             notification: {
@@ -401,7 +402,8 @@ app.post('/api/call-notify', async (req, res) => {
                     channelId: 'camechat_calls',
                     visibility: 'PUBLIC',
                     sound: 'default',
-                    defaultVibrateTimings: true
+                    defaultVibrateTimings: true,
+                    icon: 'ic_launcher'
                 }
             }
         };
@@ -451,12 +453,22 @@ app.post('/api/message-notify', async (req, res) => {
         const messageType = String(req.body?.messageType || 'text');
         const messageText = String(req.body?.messageText || '');
         const fileName = String(req.body?.fileName || '');
+        const typeIcon = messageType === 'audio'
+            ? '🎤'
+            : messageType === 'video'
+                ? '📹'
+                : messageType === 'text'
+                    ? '💬'
+                    : messageType === 'image'
+                        ? '🖼️'
+                        : '📎';
         const notificationBody = String(req.body?.notificationBody || messageText || fileName || 'Nova mensagem');
+        const notificationBodyWithIcon = `${typeIcon} ${notificationBody}`;
 
         const baseMessage = {
             notification: {
                 title: senderName,
-                body: notificationBody
+                body: notificationBodyWithIcon
             },
             data: {
                 type: 'message',
@@ -475,7 +487,8 @@ app.post('/api/message-notify', async (req, res) => {
                     channelId: 'camechat_messages',
                     visibility: 'PRIVATE',
                     sound: 'default',
-                    defaultVibrateTimings: true
+                    defaultVibrateTimings: true,
+                    icon: 'ic_launcher'
                 }
             }
         };
