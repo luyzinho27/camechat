@@ -379,6 +379,8 @@ let callTimeout = null;
 let callPhase = null;
 let currentCallType = null;
 let currentCallCameraFacing = 'user';
+let currentCallCameraDeviceId = '';
+let lastCallCameraSwitchError = null;
 let ringtoneInterval = null;
 let ringtoneContext = null;
 let touchStartX = 0;
@@ -466,6 +468,8 @@ let shareMessageSelectedFriendIds = new Set();
 let pendingAndroidSharePayload = null;
 let isAndroidShareProcessing = false;
 const pendingAndroidShareUploads = new Map();
+const androidShareItemUploadCache = new Map();
+let pendingAndroidMessageOpen = null;
 let userTagMatchModalResolver = null;
 let mediaViewerImageEl = null;
 let mediaViewerImageScale = 1;
@@ -685,7 +689,11 @@ function getUserTagMatchOptionMeta(user) {
         return { selectable: true, buttonLabel: 'Escolher' };
     }
     if (user.uid === currentUser.uid) {
-        return { selectable: false, buttonLabel: 'Você' };
+        const alreadyAdded = Array.isArray(currentFriends) && currentFriends.includes(user.uid);
+        return {
+            selectable: !alreadyAdded,
+            buttonLabel: alreadyAdded ? 'Adicionado' : 'Adicionar você'
+        };
     }
     if (currentFriends.includes(user.uid)) {
         return { selectable: false, buttonLabel: 'Adicionado' };
@@ -2889,6 +2897,7 @@ auth.onAuthStateChanged(async (user) => {
             processPendingAndroidSharePayload();
         }, 300);
         processPendingAndroidCallAction();
+        processPendingAndroidMessageOpen();
         finishInitialBootstrap('app');
         
         // Atualizar lastSeen ao fechar a página
@@ -2939,6 +2948,7 @@ auth.onAuthStateChanged(async (user) => {
         isFriendSelectionMode = false;
         updateFriendSelectionUI();
         pendingAndroidCallAction = null;
+        pendingAndroidMessageOpen = null;
         if (btnEmoji) btnEmoji.disabled = true;
         if (btnVoice) btnVoice.disabled = true;
         if (btnCameraQuick) btnCameraQuick.disabled = true;
@@ -3422,6 +3432,11 @@ async function addLocalVideoTrack() {
     track.enabled = true;
     isVideoMuted = false;
     localStream.addTrack(track);
+    const settings = track.getSettings ? track.getSettings() : {};
+    currentCallCameraDeviceId = settings.deviceId || currentCallCameraDeviceId;
+    if (settings.facingMode) {
+        currentCallCameraFacing = settings.facingMode;
+    }
     if (peerConnection) {
         peerConnection.addTrack(track, localStream);
     }
@@ -3742,20 +3757,73 @@ function toggleLocalVideo() {
 
 async function getCallCameraStreamForFacing(facingMode) {
     if (!navigator.mediaDevices?.getUserMedia) return null;
-    const attempts = [
-        { video: { ...CAMERA_VIDEO_CONSTRAINTS, facingMode: { ideal: facingMode } }, audio: false },
-        { video: { facingMode: { ideal: facingMode } }, audio: false },
-        { video: { facingMode: facingMode }, audio: false },
-        { video: true, audio: false }
-    ];
+    const supported = navigator.mediaDevices.getSupportedConstraints
+        ? navigator.mediaDevices.getSupportedConstraints()
+        : {};
+    const supportsFacing = !!supported.facingMode;
+    const attempts = [];
+    const baseConstraints = { ...CAMERA_VIDEO_CONSTRAINTS };
+
+    if (supportsFacing && facingMode) {
+        attempts.push({ video: { ...baseConstraints, facingMode: { ideal: facingMode } }, audio: false });
+        attempts.push({ video: { facingMode: facingMode }, audio: false });
+    }
+    attempts.push({ video: true, audio: false });
+
+    lastCallCameraSwitchError = null;
     for (const attempt of attempts) {
         try {
             return await navigator.mediaDevices.getUserMedia(attempt);
         } catch (error) {
-            // tenta proximo constraint
+            lastCallCameraSwitchError = error;
         }
     }
     return null;
+}
+
+async function getCallCameraStreamForDevice(deviceId) {
+    if (!navigator.mediaDevices?.getUserMedia || !deviceId) return null;
+    const attempts = [];
+    const baseConstraints = {
+        ...CAMERA_VIDEO_CONSTRAINTS,
+        deviceId: { exact: deviceId }
+    };
+    attempts.push({ video: baseConstraints, audio: false });
+    attempts.push({ video: { deviceId: { exact: deviceId } }, audio: false });
+
+    lastCallCameraSwitchError = null;
+    for (const attempt of attempts) {
+        try {
+            return await navigator.mediaDevices.getUserMedia(attempt);
+        } catch (error) {
+            lastCallCameraSwitchError = error;
+        }
+    }
+    return null;
+}
+
+async function getNextCallCameraDeviceId(currentTrack, fallbackDeviceId = '') {
+    if (!navigator.mediaDevices?.enumerateDevices) {
+        return { nextDeviceId: '', hasMultiple: false, deviceCount: 0 };
+    }
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter((device) => device.kind === 'videoinput' && device.deviceId);
+        const uniqueInputs = videoInputs.filter((device, index, arr) =>
+            arr.findIndex((item) => item.deviceId === device.deviceId) === index
+        );
+        if (uniqueInputs.length <= 1) {
+            return { nextDeviceId: '', hasMultiple: false, deviceCount: uniqueInputs.length };
+        }
+        const currentId = currentTrack?.getSettings ? (currentTrack.getSettings().deviceId || '') : '';
+        const activeId = currentId || fallbackDeviceId;
+        let currentIndex = uniqueInputs.findIndex((device) => device.deviceId === activeId);
+        if (currentIndex < 0) currentIndex = 0;
+        const nextIndex = (currentIndex + 1) % uniqueInputs.length;
+        return { nextDeviceId: uniqueInputs[nextIndex].deviceId, hasMultiple: true, deviceCount: uniqueInputs.length };
+    } catch (error) {
+        return { nextDeviceId: '', hasMultiple: false, deviceCount: 0 };
+    }
 }
 
 async function switchCallCamera() {
@@ -3766,18 +3834,27 @@ async function switchCallCamera() {
 
     const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
     const activeFacing = currentSettings.facingMode || currentCallCameraFacing || 'user';
+    const currentDeviceId = currentSettings.deviceId || currentCallCameraDeviceId || '';
     const nextFacing = activeFacing === 'environment' ? 'user' : 'environment';
 
     // Tenta trocar via applyConstraints primeiro (mais leve)
     if (typeof currentTrack.applyConstraints === 'function') {
         try {
             await currentTrack.applyConstraints({ facingMode: { ideal: nextFacing } });
-            const facingFromTrack = currentTrack.getSettings ? currentTrack.getSettings().facingMode : '';
-            currentCallCameraFacing = facingFromTrack || nextFacing;
-            updateCallControls();
-            return;
+            const updatedSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
+            const facingFromTrack = updatedSettings.facingMode || '';
+            const deviceFromTrack = updatedSettings.deviceId || '';
+            const switchedDevice = deviceFromTrack && deviceFromTrack !== currentDeviceId;
+            if ((facingFromTrack && facingFromTrack !== activeFacing) || switchedDevice) {
+                currentCallCameraFacing = facingFromTrack || nextFacing;
+                if (deviceFromTrack) currentCallCameraDeviceId = deviceFromTrack;
+                lastCallCameraSwitchError = null;
+                updateCallControls();
+                return;
+            }
         } catch (error) {
             // fallback para recriar track
+            lastCallCameraSwitchError = error;
         }
     }
 
@@ -3785,25 +3862,47 @@ async function switchCallCamera() {
         ? peerConnection.getSenders().find(s => s.track && s.track.kind === 'video')
         : null;
 
-    try {
-        localStream.removeTrack(currentTrack);
-    } catch (error) {
-        // ignore
-    }
-    try {
-        currentTrack.stop();
-    } catch (stopError) {
-        // ignore
-    }
+    const { nextDeviceId, hasMultiple } = await getNextCallCameraDeviceId(currentTrack, currentDeviceId);
 
+    const stopOldTrack = () => {
+        try {
+            localStream.removeTrack(currentTrack);
+        } catch (error) {
+            // ignore
+        }
+        try {
+            currentTrack.stop();
+        } catch (stopError) {
+            // ignore
+        }
+    };
+
+    stopOldTrack();
     await new Promise((resolve) => setTimeout(resolve, 150));
 
-    let newStream = await getCallCameraStreamForFacing(nextFacing);
+    let newStream = null;
+    if (nextDeviceId && nextDeviceId !== currentDeviceId) {
+        newStream = await getCallCameraStreamForDevice(nextDeviceId);
+    }
+    if (!newStream) {
+        newStream = await getCallCameraStreamForFacing(nextFacing);
+    }
+    if (!newStream && currentDeviceId) {
+        newStream = await getCallCameraStreamForDevice(currentDeviceId);
+    }
     if (!newStream) {
         newStream = await getCallCameraStreamForFacing(activeFacing);
     }
     if (!newStream) {
-        alert('Não foi possível alternar a câmera.');
+        console.warn('Falha ao alternar câmera.', {
+            hasMultiple,
+            currentDeviceId,
+            nextDeviceId,
+            error: lastCallCameraSwitchError
+        });
+        const baseMessage = hasMultiple ? 'Não foi possível alternar a câmera.' : 'Apenas uma câmera disponível no dispositivo.';
+        const errorDetails = lastCallCameraSwitchError ? `${lastCallCameraSwitchError.name || 'Erro'}: ${lastCallCameraSwitchError.message || ''}`.trim() : '';
+        alert(errorDetails ? `${baseMessage}\n${errorDetails}` : baseMessage);
         return;
     }
 
@@ -3812,6 +3911,8 @@ async function switchCallCamera() {
         newStream.getTracks().forEach(track => track.stop());
         return;
     }
+
+    localStream.addTrack(newTrack);
 
     let replaced = false;
     if (peerConnection && sender && sender.replaceTrack) {
@@ -3833,11 +3934,13 @@ async function switchCallCamera() {
         }
         peerConnection.addTrack(newTrack, localStream);
     }
-
-    localStream.addTrack(newTrack);
     if (localVideo) localVideo.srcObject = localStream;
-    const facingFromTrack = newTrack.getSettings ? newTrack.getSettings().facingMode : '';
+    const settingsFromTrack = newTrack.getSettings ? newTrack.getSettings() : {};
+    const facingFromTrack = settingsFromTrack.facingMode || '';
+    const deviceFromTrack = settingsFromTrack.deviceId || '';
     currentCallCameraFacing = facingFromTrack || nextFacing;
+    currentCallCameraDeviceId = deviceFromTrack || nextDeviceId || currentDeviceId || '';
+    lastCallCameraSwitchError = null;
     updateCallControls();
 }
 
@@ -4072,6 +4175,7 @@ function resetCallState() {
     callPhase = null;
     currentCallType = null;
     currentCallCameraFacing = 'user';
+    currentCallCameraDeviceId = '';
 
     if (callTimeout) clearTimeout(callTimeout);
     callTimeout = null;
@@ -4079,12 +4183,7 @@ function resetCallState() {
 
     if (callModal) callModal.classList.remove('show');
 
-    if (btnCall) {
-        btnCall.disabled = !selectedFriendData || isFriendBlocked(selectedFriendData.uid);
-    }
-    if (btnVideoCall) {
-        btnVideoCall.disabled = !selectedFriendData || isFriendBlocked(selectedFriendData.uid);
-    }
+    updateCallButtonsAvailability();
 
     if (callMedia) callMedia.classList.add('hidden');
     if (callUserPhoto) callUserPhoto.classList.remove('hidden');
@@ -4219,6 +4318,14 @@ async function preparePeerConnection(options = {}) {
     localStream.getTracks().forEach(track => {
         peerConnection.addTrack(track, localStream);
     });
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+        const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+        currentCallCameraDeviceId = settings.deviceId || currentCallCameraDeviceId;
+        if (settings.facingMode) {
+            currentCallCameraFacing = settings.facingMode;
+        }
+    }
 
     updateCallMediaVisibility(wantsVideo ? 'video' : 'audio');
 }
@@ -4296,6 +4403,10 @@ async function notifyFriendIncomingMessage(friend, messagePayload, options = {})
 
 async function startCall(callType = 'audio') {
     if (!selectedFriendData || !currentUser) return;
+    if (selectedFriendData.uid === currentUser.uid) {
+        alert('Não é possível iniciar chamadas com o seu próprio contato.');
+        return;
+    }
     if (isFriendBlocked(selectedFriendData.uid)) {
         alert('Você bloqueou este usuário.');
         return;
@@ -4308,6 +4419,7 @@ async function startCall(callType = 'audio') {
     try {
         currentCallType = callType;
         currentCallCameraFacing = 'user';
+        currentCallCameraDeviceId = '';
         isAudioMuted = false;
         isVideoMuted = false;
         isCallMinimized = false;
@@ -4499,6 +4611,7 @@ async function acceptIncomingCall() {
 
     try {
         currentCallCameraFacing = 'user';
+        currentCallCameraDeviceId = '';
         const wantsVideo = (currentCallType || activeCallData.type) === 'video';
         await preparePeerConnection({ video: wantsVideo });
     } catch (error) {
@@ -4706,7 +4819,7 @@ async function addFriendByEmail(email) {
     const addableUsers = matchedUsers.filter((user) => getUserTagMatchOptionMeta(user).selectable);
     if (!addableUsers.length) {
         if (matchedUsers.some((user) => user.uid === currentUser.uid)) {
-            alert('Você já é este usuário.');
+            alert('Você já adicionou o seu próprio contato.');
             return;
         }
         alert('Os usuários encontrados já estão na sua lista de amigos.');
@@ -6594,8 +6707,7 @@ async function selectUser(user) {
     if (btnEmoji) btnEmoji.disabled = disableChat;
     if (btnVoice) btnVoice.disabled = disableChat;
     if (btnCameraQuick) btnCameraQuick.disabled = disableChat;
-    if (btnCall) btnCall.disabled = disableChat;
-    if (btnVideoCall) btnVideoCall.disabled = disableChat;
+    updateCallButtonsAvailability();
     if (!disableChat && shouldAutoFocusMessageInput()) {
         messageInput.focus();
     }
@@ -7361,6 +7473,59 @@ async function ensureShareableFriendsLoaded(timeoutMs = 8000) {
     return getShareableFriends().length > 0;
 }
 
+async function uploadAndroidSharedItem(item) {
+    if (!isAndroidWebViewRuntime() || !item?.uri || !currentUser) return null;
+    const cacheKey = item.uri;
+    const cached = androidShareItemUploadCache.get(cacheKey);
+    if (cached?.result) return cached.result;
+    if (cached?.promise) return await cached.promise;
+
+    const promise = (async () => {
+        try {
+            const response = await fetch(item.uri);
+            if (response.ok) {
+                const blob = await response.blob();
+                if (blob && blob.size) {
+                    const name = sanitizeDownloadFileName(
+                        item.name
+                        || inferAttachmentFileName({ type: 'file', fileName: '' }, item.uri, item.mimeType || blob.type || '')
+                    );
+                    const type = item.mimeType || blob.type || 'application/octet-stream';
+                    const file = new File([blob], name, { type });
+                    const url = await uploadChatFile(file, { uid: currentUser.uid });
+                    return {
+                        url,
+                        fileName: name,
+                        mimeType: type,
+                        size: blob.size
+                    };
+                }
+            }
+        } catch (error) {
+            // fallback para upload nativo
+        }
+
+        return await new Promise((resolve) => {
+            const requestId = `share_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+            pendingAndroidShareUploads.set(requestId, { resolve, item });
+            const invoked = callAndroidBridgeMethod('uploadSharedFile', requestId, item.uri, item.name || '', item.mimeType || '');
+            if (!invoked) {
+                pendingAndroidShareUploads.delete(requestId);
+                resolve(null);
+            }
+        });
+    })();
+
+    androidShareItemUploadCache.set(cacheKey, { promise });
+    const result = await promise;
+    if (result?.url) {
+        androidShareItemUploadCache.set(cacheKey, { result });
+    } else {
+        androidShareItemUploadCache.delete(cacheKey);
+    }
+    return result || null;
+}
+
 async function sendChatFileFromUrl(fileUrl, meta = {}, targetUid = selectedUserId, targetFriend = selectedFriendData) {
     if (!fileUrl || !targetUid || !currentUser) return;
     if (isFriendBlocked(targetUid)) {
@@ -7418,29 +7583,17 @@ async function shareAndroidFileItem(item, targetUid = selectedUserId, targetFrie
     }
 
     if (isAndroidWebViewRuntime()) {
-        try {
-            const response = await fetch(item.uri);
-            if (response.ok) {
-                const blob = await response.blob();
-                if (blob && blob.size) {
-                    const name = sanitizeDownloadFileName(item.name || inferAttachmentFileName({ type: 'file', fileName: '' }, item.uri, item.mimeType || blob.type || ''));
-                    const type = item.mimeType || blob.type || 'application/octet-stream';
-                    const file = new File([blob], name, { type });
-                    await handleChatFile(file, targetUid, targetFriend);
-                    return;
-                }
-            }
-        } catch (error) {
-            // fallback para upload nativo
+        const upload = await uploadAndroidSharedItem(item);
+        if (!upload?.url) {
+            alert('Não foi possível importar este arquivo agora.');
+            return;
         }
 
-        const requestId = `share_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-        pendingAndroidShareUploads.set(requestId, { ...item, targetUid });
-        const invoked = callAndroidBridgeMethod('uploadSharedFile', requestId, item.uri, item.name || '', item.mimeType || '');
-        if (!invoked) {
-            pendingAndroidShareUploads.delete(requestId);
-            alert('Não foi possível importar este arquivo agora.');
-        }
+        await sendChatFileFromUrl(upload.url, {
+            name: upload.fileName || item.name || '',
+            mimeType: upload.mimeType || item.mimeType || '',
+            size: upload.size || item.size || 0
+        }, targetUid, targetFriend);
         return;
     }
 }
@@ -7485,6 +7638,7 @@ async function processPendingAndroidSharePayload() {
         }
     } finally {
         isAndroidShareProcessing = false;
+        androidShareItemUploadCache.clear();
     }
 }
 
@@ -7521,20 +7675,24 @@ async function handleAndroidShareUploadResult(rawPayload) {
     const meta = pendingAndroidShareUploads.get(requestId);
     pendingAndroidShareUploads.delete(requestId);
 
+    if (typeof meta?.resolve === 'function') {
+        if (!payload.ok || !payload.url) {
+            meta.resolve(null);
+            return;
+        }
+        meta.resolve({
+            url: payload.url,
+            fileName: payload.fileName || meta?.item?.name || '',
+            mimeType: payload.mimeType || meta?.item?.mimeType || '',
+            size: payload.size || meta?.item?.size || 0
+        });
+        return;
+    }
+
     if (!payload.ok || !payload.url) {
         alert(payload.error || 'Falha ao compartilhar arquivo.');
         return;
     }
-
-    const targetUid = meta?.targetUid || selectedUserId;
-    if (!targetUid) return;
-    const targetFriend = (targetUid === selectedUserId ? selectedFriendData : getCachedUserByUid(targetUid));
-
-    await sendChatFileFromUrl(payload.url, {
-        name: meta?.name || payload.fileName || '',
-        mimeType: meta?.mimeType || payload.mimeType || '',
-        size: meta?.size || payload.size || 0
-    }, targetUid, targetFriend);
 }
 
 async function handleAndroidCallAction(rawPayload) {
@@ -7601,6 +7759,54 @@ function processPendingAndroidCallAction() {
     const payload = pendingAndroidCallAction;
     pendingAndroidCallAction = null;
     handleAndroidCallAction(payload);
+}
+
+async function handleAndroidMessageOpen(rawPayload) {
+    let payload = rawPayload;
+    if (typeof rawPayload === 'string') {
+        try {
+            payload = JSON.parse(rawPayload);
+        } catch (error) {
+            return;
+        }
+    }
+    if (!payload || typeof payload !== 'object') return;
+    if (!currentUser) {
+        pendingAndroidMessageOpen = payload;
+        alert('Faça login para abrir a conversa.');
+        return;
+    }
+
+    const senderId = String(payload.senderId || payload.sender_id || '').trim();
+    if (!senderId) return;
+
+    let friend = getCachedUserByUid(senderId);
+    if (!friend) {
+        try {
+            const doc = await db.collection('users').doc(senderId).get();
+            if (doc.exists) {
+                friend = { uid: doc.id, ...doc.data() };
+                if (!Array.isArray(allUsersCache)) {
+                    allUsersCache = [];
+                }
+                if (!allUsersCache.find((user) => user.uid === friend.uid)) {
+                    allUsersCache.push(friend);
+                }
+            }
+        } catch (error) {
+            return;
+        }
+    }
+
+    if (!friend || isFriendBlocked(friend.uid)) return;
+    await selectUser(friend);
+}
+
+function processPendingAndroidMessageOpen() {
+    if (!pendingAndroidMessageOpen || !currentUser) return;
+    const payload = pendingAndroidMessageOpen;
+    pendingAndroidMessageOpen = null;
+    handleAndroidMessageOpen(payload);
 }
 
 async function askDeleteScope(messagesToDelete) {
@@ -8783,6 +8989,22 @@ function renderChatPartnerStatus() {
     setOnlineStatusClass(chatPartnerStatus, defaultStatus === 'Online');
 }
 
+function updateCallButtonsAvailability() {
+    const hasFriend = !!selectedFriendData;
+    const isSelf = hasFriend && currentUser && selectedFriendData.uid === currentUser.uid;
+    const isBlocked = hasFriend && isFriendBlocked(selectedFriendData.uid);
+    const disabled = !hasFriend || isBlocked || isSelf;
+
+    if (btnCall) {
+        btnCall.disabled = disabled;
+        btnCall.classList.toggle('hidden', isSelf);
+    }
+    if (btnVideoCall) {
+        btnVideoCall.disabled = disabled;
+        btnVideoCall.classList.toggle('hidden', isSelf);
+    }
+}
+
 function setChatPartnerActivity(state) {
     remoteTypingState = state === 'typing' || state === 'recording' ? state : null;
     renderChatPartnerStatus();
@@ -9647,6 +9869,7 @@ window.CameChatApp.handleNativeGoogleSignInResult = handleNativeGoogleSignInResu
 window.CameChatApp.handleAndroidSharePayload = handleAndroidSharePayload;
 window.CameChatApp.handleAndroidShareUploadResult = handleAndroidShareUploadResult;
 window.CameChatApp.handleAndroidCallAction = handleAndroidCallAction;
+window.CameChatApp.handleAndroidMessageOpen = handleAndroidMessageOpen;
 window.CameChatApp.handleAndroidFcmToken = handleAndroidFcmToken;
 
 function resetChatUI() {
@@ -10160,8 +10383,7 @@ if (friendUnblockBtn) {
                 if (btnEmoji) btnEmoji.disabled = false;
                 if (btnVoice) btnVoice.disabled = false;
                 if (btnCameraQuick) btnCameraQuick.disabled = false;
-                if (btnCall) btnCall.disabled = false;
-                if (btnVideoCall) btnVideoCall.disabled = false;
+                updateCallButtonsAvailability();
                 updateComposerPrimaryAction();
             }
         } catch (error) {
