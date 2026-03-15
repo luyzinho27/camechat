@@ -185,6 +185,24 @@ let selectedLanguage = 'pt-BR';
 let pendingAndroidCallAction = null;
 let lastAndroidFcmToken = '';
 
+async function getAuthBearerToken(forceRefresh = false) {
+    const activeUser = currentUser || auth?.currentUser;
+    if (!activeUser) return '';
+    try {
+        return await activeUser.getIdToken(!!forceRefresh);
+    } catch (error) {
+        return '';
+    }
+}
+
+function buildAuthHeaders(token, extra = {}) {
+    const headers = { ...extra };
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+}
+
 // Admin panel
 const chatPanel = document.getElementById('chat-panel');
 const adminPanel = document.getElementById('admin-panel');
@@ -1277,9 +1295,11 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
     if (options.uid) formData.append('uid', options.uid);
 
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-profile` : '/api/upload-profile';
+    const authToken = await getAuthBearerToken();
     const response = await fetch(apiUrl, {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: buildAuthHeaders(authToken)
     });
 
     if (!response.ok) {
@@ -1311,7 +1331,12 @@ async function uploadChatFileViaBackend(file, options = {}) {
         : Math.max(120000, Math.ceil((Number(file?.size || 0) / (1024 * 1024)) * 5000));
     let response;
     try {
-        response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, { ...options, timeoutMs });
+        const authToken = await getAuthBearerToken();
+        response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, {
+            ...options,
+            timeoutMs,
+            authToken
+        });
     } catch (error) {
         throw new Error('Não foi possível conectar ao backend de upload.');
     }
@@ -2576,6 +2601,9 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
         const item = createUploadProgressItem(file.name || 'arquivo');
         xhr.timeout = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000;
         xhr.open('POST', apiUrl, true);
+        if (options.authToken) {
+            xhr.setRequestHeader('Authorization', `Bearer ${options.authToken}`);
+        }
         xhr.upload.onprogress = (event) => {
             if (!event.lengthComputable) return;
             const percent = Math.round((event.loaded / event.total) * 100);
@@ -4441,9 +4469,10 @@ async function notifyFriendIncomingCall(callId, callType, friend) {
 
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/call-notify` : '/api/call-notify';
     try {
+        const authToken = await getAuthBearerToken();
         await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: buildAuthHeaders(authToken, { 'Content-Type': 'application/json' }),
             body: JSON.stringify(payload)
         });
     } catch (error) {
@@ -4484,9 +4513,10 @@ async function notifyFriendIncomingMessage(friend, messagePayload, options = {})
 
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/message-notify` : '/api/message-notify';
     try {
+        const authToken = await getAuthBearerToken();
         await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: buildAuthHeaders(authToken, { 'Content-Type': 'application/json' }),
             body: JSON.stringify(payload)
         });
     } catch (error) {
@@ -7795,11 +7825,20 @@ async function uploadAndroidSharedItem(item) {
         return await new Promise((resolve) => {
             const requestId = `share_${Date.now()}_${Math.random().toString(16).slice(2)}`;
             pendingAndroidShareUploads.set(requestId, { resolve, item });
-            const invoked = callAndroidBridgeMethod('uploadSharedFile', requestId, item.uri, item.name || '', item.mimeType || '');
-            if (!invoked) {
-                pendingAndroidShareUploads.delete(requestId);
-                resolve(null);
-            }
+            getAuthBearerToken().then((authToken) => {
+                const invoked = callAndroidBridgeMethod(
+                    'uploadSharedFile',
+                    requestId,
+                    item.uri,
+                    item.name || '',
+                    item.mimeType || '',
+                    authToken || ''
+                );
+                if (!invoked) {
+                    pendingAndroidShareUploads.delete(requestId);
+                    resolve(null);
+                }
+            });
         });
     })();
 
