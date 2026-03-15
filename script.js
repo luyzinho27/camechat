@@ -9756,6 +9756,7 @@ async function toggleCameraRecording() {
     } catch (error) {
         cameraRecorder = new MediaRecorder(cameraStream);
     }
+    const recorder = cameraRecorder;
     cameraRecorderChunks = [];
     cameraRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -9763,7 +9764,8 @@ async function toggleCameraRecording() {
         }
     };
     cameraRecorder.onstop = async () => {
-        const chosenMime = cameraRecorder.mimeType || mimeType || 'video/webm';
+        cameraRecorder = null;
+        const chosenMime = recorder?.mimeType || mimeType || 'video/webm';
         const blob = new Blob(cameraRecorderChunks, { type: chosenMime });
         cameraRecorderChunks = [];
         isCameraRecording = false;
@@ -9776,10 +9778,23 @@ async function toggleCameraRecording() {
         if (!blob.size) return;
         const extension = getVideoFileExtension(chosenMime);
         const file = new File([blob], `video_${Date.now()}.${extension}`, { type: blob.type });
-        await handleChatFile(file);
+        try {
+            await handleChatFile(file);
+        } catch (error) {
+            console.warn('Falha ao enviar vídeo gravado.', error);
+            alert('Não foi possível enviar o vídeo gravado.');
+        }
         closeCameraModal();
     };
-    cameraRecorder.start();
+    try {
+        cameraRecorder.start();
+    } catch (error) {
+        console.warn('Falha ao iniciar gravação de vídeo.', error);
+        cameraRecorder = null;
+        cameraRecorderChunks = [];
+        alert('Não foi possível iniciar a gravação de vídeo.');
+        return;
+    }
     isCameraRecording = true;
     syncCameraActionIcons();
     if (cameraStatus) cameraStatus.textContent = 'Gravando vídeo...';
@@ -9993,7 +10008,12 @@ async function startAudioRecording() {
         if (!blob.size) return;
         const extension = getAudioFileExtension(blob.type);
         const file = new File([blob], `voz_${Date.now()}.${extension}`, { type: blob.type });
-        await handleChatFile(file);
+        try {
+            await handleChatFile(file);
+        } catch (error) {
+            console.warn('Falha ao enviar áudio gravado.', error);
+            alert('Não foi possível enviar o áudio gravado.');
+        }
     };
     try {
         audioRecorder.start();
