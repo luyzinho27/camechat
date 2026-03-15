@@ -1595,8 +1595,27 @@ async function uploadChatFileViaBackend(file, options = {}) {
         response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, {
             ...options,
             timeoutMs,
-            authToken
+            authToken,
+            silentError: true
         });
+        if (!response.ok && (response.status === 401 || response.status === 403)) {
+            const refreshed = await getAuthBearerToken(true);
+            if (refreshed) {
+                response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, {
+                    ...options,
+                    timeoutMs,
+                    authToken: refreshed,
+                    progressItem: response.progressItem
+                });
+            }
+        }
+        if (!response.ok && response.progressItem && !response.errorMarked) {
+            if (response.status === 401 || response.status === 403) {
+                markUploadError(response.progressItem, 'Sessão expirada. Faça login novamente.');
+            } else {
+                markUploadError(response.progressItem, (await response.text()) || 'Falha no upload');
+            }
+        }
     } catch (error) {
         throw new Error('Não foi possível conectar ao backend de upload.');
     }
@@ -2909,7 +2928,7 @@ async function autoSaveOutgoingAttachment(msg, file) {
 function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = {}) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        const item = createUploadProgressItem(file.name || 'arquivo');
+        const item = options.progressItem || createUploadProgressItem(file.name || 'arquivo');
         xhr.timeout = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000;
         xhr.open('POST', apiUrl, true);
         if (options.authToken) {
@@ -2927,28 +2946,41 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
                     ok: true,
                     status: xhr.status,
                     json: async () => JSON.parse(xhr.responseText || '{}'),
-                    text: async () => xhr.responseText || ''
+                    text: async () => xhr.responseText || '',
+                    progressItem: item,
+                    errorMarked: false
                 });
                 finalizeUploadItem(item);
             } else {
-                markUploadError(item, xhr.responseText || 'Falha no upload');
+                const shouldMark = !options.silentError;
+                if (!options.silentError) {
+                    markUploadError(item, xhr.responseText || 'Falha no upload');
+                }
                 resolve({
                     ok: false,
                     status: xhr.status,
-                    text: async () => xhr.responseText || ''
+                    text: async () => xhr.responseText || '',
+                    progressItem: item,
+                    errorMarked: shouldMark
                 });
             }
         };
         xhr.onerror = () => {
-            markUploadError(item, 'Falha na conexão');
+            if (!options.silentError) {
+                markUploadError(item, 'Falha na conexão');
+            }
             reject(new Error('Não foi possível conectar ao backend de upload.'));
         };
         xhr.ontimeout = () => {
-            markUploadError(item, 'Tempo esgotado');
+            if (!options.silentError) {
+                markUploadError(item, 'Tempo esgotado');
+            }
             reject(new Error('Tempo esgotado ao enviar arquivo.'));
         };
         xhr.onabort = () => {
-            markUploadError(item, 'Upload cancelado');
+            if (!options.silentError) {
+                markUploadError(item, 'Upload cancelado');
+            }
             reject(new Error('Upload cancelado.'));
         };
         xhr.send(formData);
