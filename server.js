@@ -6,8 +6,9 @@ const fs = require('fs');
 
 let S3Client = null;
 let PutObjectCommand = null;
+let GetObjectCommand = null;
 try {
-    ({ S3Client, PutObjectCommand } = require('@aws-sdk/client-s3'));
+    ({ S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3'));
 } catch (error) {
     console.warn('SDK S3 nao encontrado. Upload em bucket externo desativado; usando disco local.');
 }
@@ -141,6 +142,12 @@ function buildPublicObjectUrl(baseUrl, key) {
     return `${normalizedBase}/${encodedKey}`;
 }
 
+function buildProtectedMediaPath(category, filename) {
+    const safeName = sanitizeMediaFilename(filename);
+    if (!safeName) return '';
+    return `/api/media/${category}/${encodeURIComponent(safeName)}`;
+}
+
 const r2AccountId = (process.env.R2_ACCOUNT_ID || '').trim();
 const r2Endpoint = trimTrailingSlash(
     process.env.R2_ENDPOINT
@@ -158,7 +165,6 @@ const canUseObjectStorage = Boolean(
     && r2AccessKeyId
     && r2SecretAccessKey
     && r2Bucket
-    && r2PublicBaseUrl
 );
 
 const objectStorageClient = canUseObjectStorage
@@ -241,7 +247,7 @@ async function uploadBufferToObjectStorage(file, keyPrefix, generatedName) {
         CacheControl: 'public, max-age=31536000, immutable'
     }));
 
-    return buildPublicObjectUrl(r2PublicBaseUrl, key);
+    return buildProtectedMediaPath(keyPrefix, generatedName);
 }
 
 function runMulter(middleware, req, res) {
@@ -351,14 +357,18 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json({ limit: '1mb' }));
-app.use('/images', express.static(imagesRoot, {
-    etag: true,
-    maxAge: '365d',
-    immutable: true,
-    dotfiles: 'ignore'
-}));
 
 const publicRoot = __dirname;
+const publicImages = new Set(['camechat_logo.png', 'img1.jpg']);
+
+app.get('/images/:file', (req, res) => {
+    const fileName = path.basename(req.params.file || '');
+    if (!publicImages.has(fileName)) {
+        return res.status(404).end();
+    }
+    return res.sendFile(path.join(imagesRoot, fileName));
+});
+
 app.get(['/', '/index.html'], (req, res) => {
     res.sendFile(path.join(publicRoot, 'index.html'));
 });
@@ -421,6 +431,70 @@ async function requireAuth(req, res, next) {
 const uploadRateLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 60 });
 const notifyRateLimit = rateLimit({ windowMs: 60 * 1000, max: 120 });
 
+function sanitizeMediaFilename(value) {
+    const fileName = path.basename((value || '').toString().trim());
+    if (!fileName || fileName.includes('..')) return '';
+    if (!/^[a-zA-Z0-9._-]+$/.test(fileName)) return '';
+    return fileName;
+}
+
+async function streamObjectStorageFile(res, key) {
+    if (!objectStorageClient || !GetObjectCommand) {
+        throw new Error('Bucket externo nao configurado.');
+    }
+    const result = await objectStorageClient.send(new GetObjectCommand({
+        Bucket: r2Bucket,
+        Key: key
+    }));
+    if (!result || !result.Body) {
+        throw new Error('Arquivo indisponivel.');
+    }
+    if (result.ContentType) {
+        res.setHeader('Content-Type', result.ContentType);
+    }
+    if (result.ContentLength) {
+        res.setHeader('Content-Length', String(result.ContentLength));
+    }
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    return new Promise((resolve, reject) => {
+        result.Body.on('error', reject);
+        result.Body.on('end', resolve);
+        result.Body.pipe(res);
+    });
+}
+
+app.get('/api/media/:category/:filename', requireAuth, async (req, res) => {
+    try {
+        const category = String(req.params.category || '').toLowerCase();
+        if (!['uploads', 'profile'].includes(category)) {
+            return res.status(404).end();
+        }
+        const fileName = sanitizeMediaFilename(req.params.filename);
+        if (!fileName) {
+            return res.status(400).json({ message: 'Arquivo invalido.' });
+        }
+
+        if (objectStorageClient) {
+            const key = `${category}/${fileName}`;
+            await streamObjectStorageFile(res, key);
+            return;
+        }
+
+        const baseDir = category === 'profile' ? profileDir : chatUploadsDir;
+        const filePath = path.join(baseDir, fileName);
+        if (!filePath.startsWith(baseDir)) {
+            return res.status(400).json({ message: 'Arquivo invalido.' });
+        }
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).end();
+        }
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        return res.sendFile(filePath);
+    } catch (error) {
+        return res.status(404).end();
+    }
+});
+
 app.post('/api/upload-profile', uploadRateLimit, requireAuth, async (req, res, next) => {
     try {
         const uploadMiddleware = canUseObjectStorage
@@ -445,7 +519,7 @@ app.post('/api/upload-profile', uploadRateLimit, requireAuth, async (req, res, n
             const filename = buildProfileFilename(req, req.file);
             url = await uploadBufferToObjectStorage(req.file, 'profile', filename);
         } else {
-            url = `/images/profile/${req.file.filename}`;
+            url = buildProtectedMediaPath('profile', req.file.filename);
         }
 
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
@@ -479,7 +553,7 @@ app.post('/api/upload-chat', uploadRateLimit, requireAuth, async (req, res, next
             const filename = buildChatFilename(req, req.file);
             url = await uploadBufferToObjectStorage(req.file, 'uploads', filename);
         } else {
-            url = `/images/uploads/${req.file.filename}`;
+            url = buildProtectedMediaPath('uploads', req.file.filename);
         }
 
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
