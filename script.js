@@ -167,6 +167,8 @@ const FRIENDS_CACHE_STORAGE_KEY_PREFIX = 'camechat_friends_cache_';
 const USERS_CACHE_STORAGE_KEY_PREFIX = 'camechat_users_cache_';
 const USERS_CACHE_MAX_PHOTO_DATA_LENGTH = 30000;
 const ANDROID_FCM_TOKEN_STORAGE_KEY = 'camechat_android_fcm_token';
+const PROTECTED_MEDIA_RETRY_MS = 1500;
+const PROTECTED_MEDIA_MAX_RETRIES = 3;
 
 let soundNotificationsEnabled = true;
 let messageToneDataUrl = '';
@@ -316,6 +318,8 @@ function revokeElementObjectUrl(mediaEl) {
         }
     }
     delete mediaEl.dataset.objectUrl;
+    delete mediaEl.dataset.protectedRetry;
+    delete mediaEl.dataset.protectedLoading;
 }
 
 async function loadProtectedMediaElement(mediaEl, url, fallback = '', options = {}) {
@@ -325,15 +329,28 @@ async function loadProtectedMediaElement(mediaEl, url, fallback = '', options = 
         mediaEl.src = url;
         return;
     }
+    if (mediaEl.dataset.protectedLoading === '1') return;
+    mediaEl.dataset.protectedLoading = '1';
     const blob = await fetchProtectedMediaBlob(protectedUrl);
+    mediaEl.dataset.protectedLoading = '';
     if (blob && blob.size) {
         revokeElementObjectUrl(mediaEl);
         const objectUrl = URL.createObjectURL(blob);
         mediaEl.dataset.objectUrl = objectUrl;
+        mediaEl.dataset.protectedRetry = '0';
         mediaEl.src = objectUrl;
         if (typeof mediaEl.load === 'function') {
             mediaEl.load();
         }
+        return;
+    }
+    const retryCount = Number(mediaEl.dataset.protectedRetry || 0);
+    if (retryCount < PROTECTED_MEDIA_MAX_RETRIES) {
+        mediaEl.dataset.protectedRetry = String(retryCount + 1);
+        setTimeout(() => {
+            if (!document.body.contains(mediaEl)) return;
+            loadProtectedMediaElement(mediaEl, url, fallback, options);
+        }, PROTECTED_MEDIA_RETRY_MS * (retryCount + 1));
         return;
     }
     if (fallback) {
