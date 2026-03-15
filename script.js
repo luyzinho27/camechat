@@ -170,6 +170,7 @@ const ANDROID_FCM_TOKEN_STORAGE_KEY = 'camechat_android_fcm_token';
 const PROTECTED_MEDIA_RETRY_MS = 1500;
 const PROTECTED_MEDIA_MAX_RETRIES = 3;
 const LOCAL_MEDIA_PREVIEW_TTL_MS = 10 * 60 * 1000;
+const PROTECTED_MEDIA_CACHE_TTL_MS = 10 * 60 * 1000;
 
 let soundNotificationsEnabled = true;
 let messageToneDataUrl = '';
@@ -188,6 +189,7 @@ let selectedLanguage = 'pt-BR';
 let pendingAndroidCallAction = null;
 let lastAndroidFcmToken = '';
 const localMediaPreviewByMessageId = new Map();
+const protectedMediaObjectUrlCache = new Map();
 
 function cleanupLocalMediaPreviews() {
     const now = Date.now();
@@ -205,14 +207,47 @@ function cleanupLocalMediaPreviews() {
     });
 }
 
+function cleanupProtectedMediaCache() {
+    const now = Date.now();
+    protectedMediaObjectUrlCache.forEach((entry, key) => {
+        if (!entry || !entry.url || now - entry.createdAt > PROTECTED_MEDIA_CACHE_TTL_MS) {
+            if (entry?.url) {
+                try {
+                    URL.revokeObjectURL(entry.url);
+                } catch (error) {
+                    // ignore
+                }
+            }
+            protectedMediaObjectUrlCache.delete(key);
+        }
+    });
+}
+
+function getCachedProtectedMediaUrl(url) {
+    if (!url) return '';
+    cleanupProtectedMediaCache();
+    const entry = protectedMediaObjectUrlCache.get(url);
+    return entry?.url || '';
+}
+
+function setCachedProtectedMediaUrl(url, objectUrl) {
+    if (!url || !objectUrl) return;
+    cleanupProtectedMediaCache();
+    protectedMediaObjectUrlCache.set(url, {
+        url: objectUrl,
+        createdAt: Date.now()
+    });
+}
+
 function registerLocalMediaPreview(messageId, file) {
-    if (!messageId || !file) return;
+    if (!messageId || !file) return '';
     cleanupLocalMediaPreviews();
     const url = URL.createObjectURL(file);
     localMediaPreviewByMessageId.set(messageId, {
         url,
         createdAt: Date.now()
     });
+    return url;
 }
 
 function consumeLocalMediaPreview(messageId) {
@@ -344,14 +379,27 @@ async function fetchProtectedMediaBlob(url) {
     return await response.blob();
 }
 
+function isObjectUrlCached(url) {
+    if (!url) return false;
+    for (const entry of protectedMediaObjectUrlCache.values()) {
+        if (entry?.url === url) return true;
+    }
+    for (const cachedUrl of attachmentCacheObjectUrls.values()) {
+        if (cachedUrl === url) return true;
+    }
+    return false;
+}
+
 function revokeElementObjectUrl(mediaEl) {
     if (!mediaEl) return;
     const previous = mediaEl.dataset.objectUrl || '';
     if (previous.startsWith('blob:')) {
-        try {
-            URL.revokeObjectURL(previous);
-        } catch (error) {
-            // ignore
+        if (!isObjectUrlCached(previous)) {
+            try {
+                URL.revokeObjectURL(previous);
+            } catch (error) {
+                // ignore
+            }
         }
     }
     delete mediaEl.dataset.objectUrl;
@@ -366,6 +414,19 @@ async function loadProtectedMediaElement(mediaEl, url, fallback = '', options = 
         mediaEl.src = url;
         return;
     }
+    const cachedUrl = getCachedProtectedMediaUrl(protectedUrl);
+    if (cachedUrl) {
+        if (mediaEl.dataset.objectUrl && mediaEl.dataset.objectUrl !== cachedUrl) {
+            revokeElementObjectUrl(mediaEl);
+        }
+        mediaEl.dataset.objectUrl = cachedUrl;
+        mediaEl.dataset.protectedRetry = '0';
+        mediaEl.src = cachedUrl;
+        if (typeof mediaEl.load === 'function') {
+            mediaEl.load();
+        }
+        return;
+    }
     if (mediaEl.dataset.protectedLoading === '1') return;
     mediaEl.dataset.protectedLoading = '1';
     const blob = await fetchProtectedMediaBlob(protectedUrl);
@@ -374,6 +435,7 @@ async function loadProtectedMediaElement(mediaEl, url, fallback = '', options = 
         revokeElementObjectUrl(mediaEl);
         const objectUrl = URL.createObjectURL(blob);
         mediaEl.dataset.objectUrl = objectUrl;
+        setCachedProtectedMediaUrl(protectedUrl, objectUrl);
         mediaEl.dataset.protectedRetry = '0';
         mediaEl.src = objectUrl;
         if (typeof mediaEl.load === 'function') {
@@ -2268,9 +2330,13 @@ function buildMediaViewerFallback(fileName, resolvedUrl) {
 async function resolveAttachmentDisplayUrl(msg, resolvedUrl) {
     if (!resolvedUrl) return '';
     if (isProtectedMediaUrl(resolvedUrl)) {
+        const cachedUrl = getCachedProtectedMediaUrl(resolvedUrl);
+        if (cachedUrl) return cachedUrl;
         const blob = await fetchProtectedMediaBlob(resolvedUrl);
         if (blob && blob.size) {
-            return URL.createObjectURL(blob);
+            const objectUrl = URL.createObjectURL(blob);
+            setCachedProtectedMediaUrl(resolvedUrl, objectUrl);
+            return objectUrl;
         }
         return '';
     }
@@ -9213,7 +9279,10 @@ function renderMessages(messages, options = {}) {
             const imageUrl = getAttachmentDownloadUrl(msg);
             if (imageUrl) {
                 const previewUrl = consumeLocalMediaPreview(msg.id);
-                const imageSrc = previewUrl || (isProtectedMediaUrl(imageUrl) ? '' : imageUrl);
+                const cachedUrl = !previewUrl && isProtectedMediaUrl(imageUrl)
+                    ? getCachedProtectedMediaUrl(imageUrl)
+                    : '';
+                const imageSrc = previewUrl || cachedUrl || (isProtectedMediaUrl(imageUrl) ? '' : imageUrl);
                 div.innerHTML = `
                     ${replyReference}
                     <img class="chat-media-image" src="${imageSrc}" alt="imagem" style="max-width: 200px;">
@@ -9221,8 +9290,8 @@ function renderMessages(messages, options = {}) {
                 `;
                 const imageEl = div.querySelector('.chat-media-image');
                 if (imageEl) {
-                    if (previewUrl) {
-                        imageEl.dataset.objectUrl = previewUrl;
+                    if (previewUrl || cachedUrl) {
+                        imageEl.dataset.objectUrl = previewUrl || cachedUrl;
                     }
                     attachMediaFallbackHandlers(imageEl, msg);
                     if (!previewUrl) {
@@ -9246,7 +9315,10 @@ function renderMessages(messages, options = {}) {
             const videoUrl = getAttachmentDownloadUrl(msg);
             if (videoUrl) {
                 const previewUrl = consumeLocalMediaPreview(msg.id);
-                const videoSrc = previewUrl || (isProtectedMediaUrl(videoUrl) ? '' : videoUrl);
+                const cachedUrl = !previewUrl && isProtectedMediaUrl(videoUrl)
+                    ? getCachedProtectedMediaUrl(videoUrl)
+                    : '';
+                const videoSrc = previewUrl || cachedUrl || (isProtectedMediaUrl(videoUrl) ? '' : videoUrl);
                 div.innerHTML = `
                     ${replyReference}
                     <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vídeo">
@@ -9257,8 +9329,8 @@ function renderMessages(messages, options = {}) {
                 `;
                 const videoEl = div.querySelector('.chat-media-video');
                 if (videoEl) {
-                    if (previewUrl) {
-                        videoEl.dataset.objectUrl = previewUrl;
+                    if (previewUrl || cachedUrl) {
+                        videoEl.dataset.objectUrl = previewUrl || cachedUrl;
                     }
                     attachMediaFallbackHandlers(videoEl, msg);
                     if (!previewUrl) {
@@ -9291,7 +9363,10 @@ function renderMessages(messages, options = {}) {
             const audioUrl = getAttachmentDownloadUrl(msg);
             if (audioUrl) {
                 const previewUrl = consumeLocalMediaPreview(msg.id);
-                const audioSrc = previewUrl || (isProtectedMediaUrl(audioUrl) ? '' : audioUrl);
+                const cachedUrl = !previewUrl && isProtectedMediaUrl(audioUrl)
+                    ? getCachedProtectedMediaUrl(audioUrl)
+                    : '';
+                const audioSrc = previewUrl || cachedUrl || (isProtectedMediaUrl(audioUrl) ? '' : audioUrl);
                 div.innerHTML = `
                     ${replyReference}
                     <audio class="chat-media-audio" src="${audioSrc}" controls preload="metadata" style="width: 220px;"></audio>
@@ -9299,8 +9374,8 @@ function renderMessages(messages, options = {}) {
                 `;
                 const audioEl = div.querySelector('.chat-media-audio');
                 if (audioEl) {
-                    if (previewUrl) {
-                        audioEl.dataset.objectUrl = previewUrl;
+                    if (previewUrl || cachedUrl) {
+                        audioEl.dataset.objectUrl = previewUrl || cachedUrl;
                     }
                     attachMediaFallbackHandlers(audioEl, msg);
                     if (!previewUrl) {
@@ -10376,14 +10451,15 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
     const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
     const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
+    const conversationId = getConversationId(currentUser.uid, targetUid);
+    const messageRef = db.collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc();
+    const previewUrl = registerLocalMediaPreview(messageRef.id, file);
+
     try {
         const fileUrl = await uploadChatFile(file, { uid: currentUser.uid });
-
-        const conversationId = getConversationId(currentUser.uid, targetUid);
-        const messageRef = db.collection('conversations')
-            .doc(conversationId)
-            .collection('messages')
-            .doc();
         const messagePayload = {
             fileUrl: fileUrl,
             fileName: file.name,
@@ -10401,7 +10477,6 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
         };
 
         await messageRef.set(messagePayload);
-        registerLocalMediaPreview(messageRef.id, file);
         await updateConversationLastMessage(conversationId, messagePayload);
         Promise.resolve().then(() => autoSaveOutgoingAttachment({ id: messageRef.id, ...messagePayload }, file));
         if (targetUid === selectedUserId) {
@@ -10409,6 +10484,14 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
         }
         await notifyFriendIncomingMessage(resolvedFriend, messagePayload);
     } catch (error) {
+        if (previewUrl) {
+            try {
+                URL.revokeObjectURL(previewUrl);
+            } catch (revokeError) {
+                // ignore
+            }
+            consumeLocalMediaPreview(messageRef.id);
+        }
         alert('Erro ao enviar arquivo: ' + error.message);
     }
 }
