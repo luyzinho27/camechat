@@ -1487,15 +1487,56 @@ function sanitizeDownloadFileName(fileName) {
     return value.replace(/[\\/:*?"<>|]+/g, '_');
 }
 
-function normalizeVideoDownloadFileName(msg, fileName, mimeType = '') {
+let downloadNameCounter = 0;
+
+function formatDownloadTimestamp(value) {
+    const date = value instanceof Date ? value : new Date();
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
+function buildCctDownloadFileName(msg, fileName, mimeType = '') {
     const safeName = sanitizeDownloadFileName(fileName);
-    const isVideo = (msg?.type === 'video')
-        || String(mimeType || '').toLowerCase().startsWith('video/');
-    if (!isVideo) return safeName;
-    if (safeName.toLowerCase().endsWith('.mp4')) return safeName;
-    const base = safeName.replace(/\.[^.]+$/, '');
-    const fallbackBase = base || `video_${msg?.id || Date.now()}`;
-    return `${fallbackBase}.mp4`;
+    const mime = String(mimeType || '').toLowerCase();
+    const baseType = msg?.type
+        || (mime.startsWith('image/') ? 'image' : '')
+        || (mime.startsWith('video/') ? 'video' : '')
+        || (mime.startsWith('audio/') ? 'audio' : '')
+        || 'file';
+
+    if (!['image', 'video', 'audio'].includes(baseType)) {
+        return safeName;
+    }
+
+    if (safeName && safeName.includes('-CCT')) {
+        return safeName;
+    }
+
+    const ts = timestampToDate(msg?.timestamp) || new Date();
+    const stamp = formatDownloadTimestamp(ts);
+    downloadNameCounter += 1;
+    const counter = String(downloadNameCounter).padStart(3, '0');
+    const originalExt = safeName.toLowerCase().split('.').pop() || '';
+
+    let ext = '';
+    if (baseType === 'video') {
+        ext = 'mp4';
+    } else if (baseType === 'audio') {
+        ext = 'mp3';
+    } else {
+        if (mime.includes('png')) ext = 'png';
+        else if (mime.includes('webp')) ext = 'webp';
+        else if (mime.includes('gif')) ext = 'gif';
+        else if (mime.includes('bmp')) ext = 'bmp';
+        else if (mime.includes('heic')) ext = 'heic';
+        else if (mime.includes('heif')) ext = 'heif';
+        else if (mime.includes('avif')) ext = 'avif';
+        else if (originalExt && originalExt.length <= 5) ext = originalExt;
+        else ext = 'jpg';
+    }
+
+    const prefix = baseType === 'image' ? 'imagem' : baseType;
+    return `${prefix}-${stamp}-CCT${counter}.${ext}`;
 }
 
 function inferAttachmentFileName(msg, url, blobType = '') {
@@ -2053,13 +2094,14 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
     const allowInteractiveFolderSetup = !!options.allowInteractiveFolderSetup;
     const scope = resolveLocalMediaScope(msg, options.scope);
     const mimeType = msg?.fileType || '';
-    const fileName = inferAttachmentFileName(msg, resolvedUrl, mimeType);
+    const inferredName = inferAttachmentFileName(msg, resolvedUrl, mimeType);
+    const downloadName = buildCctDownloadFileName(msg, inferredName, mimeType);
     const isLargeFile = Number(msg?.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
-    const progressItem = isLargeFile ? createDownloadProgressItem(fileName || 'arquivo') : null;
+    const progressItem = isLargeFile ? createDownloadProgressItem(downloadName || 'arquivo') : null;
 
     try {
         if (isAndroidWebViewRuntime() && !String(resolvedUrl).startsWith('blob:')) {
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope });
+            triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope });
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
         }
@@ -2070,11 +2112,11 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
             });
             if (blob && blob.size) {
                 await saveAttachmentBlobToCache(msg, blob);
-                if (await trySaveBlobToPcLocalFolder(msg, fileName, blob, blob.type || mimeType, allowInteractiveFolderSetup, { scope })) {
+                if (await trySaveBlobToPcLocalFolder(msg, downloadName, blob, blob.type || mimeType, allowInteractiveFolderSetup, { scope })) {
                     if (progressItem) finalizeDownloadItem(progressItem);
                     return;
                 }
-                triggerBlobDownload(blob, fileName, msg, blob.type || mimeType, { scope });
+                triggerBlobDownload(blob, downloadName, msg, blob.type || mimeType, { scope });
                 if (progressItem) finalizeDownloadItem(progressItem);
                 return;
             }
@@ -2082,7 +2124,7 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
             // fallback para download direto
         }
 
-        triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope });
+        triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope });
         if (progressItem) finalizeDownloadItem(progressItem);
     } catch (error) {
         if (progressItem) markDownloadError(progressItem, 'Falha no download');
@@ -2336,7 +2378,7 @@ async function handleNativeGoogleSignInResult(payload = {}) {
 }
 
 function buildDeviceDownloadPath(msg, fileName, mimeType = '', options = {}) {
-    const safeName = normalizeVideoDownloadFileName(msg, fileName, mimeType);
+    const safeName = buildCctDownloadFileName(msg, fileName, mimeType);
     const category = getDownloadCategory(msg, safeName, mimeType);
     const scope = resolveLocalMediaScope(msg, options.scope);
     const scopePrefix = scope === 'sent' ? 'Enviados/' : '';
@@ -9991,7 +10033,8 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
     if (isImage) messageType = 'image';
     if (isVideo) messageType = 'video';
     if (isAudio) messageType = 'audio';
-    const delivered = targetFriend ? isUserEffectivelyOnline(targetFriend) : false;
+    const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
+    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
     const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
     try {
