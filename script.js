@@ -203,6 +203,146 @@ function buildAuthHeaders(token, extra = {}) {
     return headers;
 }
 
+let mediaAuthTokenCache = {
+    token: '',
+    exp: 0
+};
+
+function parseJwtPayload(token) {
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    try {
+        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = payload.padEnd(payload.length + (4 - (payload.length % 4)) % 4, '=');
+        const decoded = atob(padded);
+        return JSON.parse(decoded);
+    } catch (error) {
+        return null;
+    }
+}
+
+function getJwtExpiryMs(token) {
+    const payload = parseJwtPayload(token);
+    if (!payload?.exp) return 0;
+    return Number(payload.exp) * 1000;
+}
+
+async function getMediaAuthToken(forceRefresh = false) {
+    if (!currentUser && !auth?.currentUser) return '';
+    const now = Date.now();
+    if (!forceRefresh && mediaAuthTokenCache.token && mediaAuthTokenCache.exp > now + 120000) {
+        return mediaAuthTokenCache.token;
+    }
+    const token = await getAuthBearerToken(forceRefresh);
+    const exp = getJwtExpiryMs(token);
+    mediaAuthTokenCache = {
+        token,
+        exp: exp || (now + 55 * 60 * 1000)
+    };
+    return token;
+}
+
+function isProtectedMediaUrl(url) {
+    if (!url) return false;
+    return /\/api\/media\//i.test(String(url));
+}
+
+function isLikelyAppMediaUrl(url) {
+    if (!url) return false;
+    const raw = String(url);
+    if (raw.startsWith('/images/') || raw.startsWith('images/')) return true;
+    if (raw.includes('/uploads/') || raw.includes('/profile/')) return true;
+    try {
+        const parsed = new URL(raw, window.location.href);
+        const backendOrigin = BACKEND_BASE_URL
+            ? new URL(BACKEND_BASE_URL).origin
+            : window.location.origin;
+        return parsed.origin === backendOrigin;
+    } catch (error) {
+        return false;
+    }
+}
+
+function detectMediaCategoryFromUrl(url, fallback = 'uploads') {
+    const lower = String(url || '').toLowerCase();
+    if (lower.includes('/profile/')) return 'profile';
+    if (lower.includes('/uploads/')) return 'uploads';
+    return fallback;
+}
+
+function buildProtectedMediaUrl(url, fallbackCategory = 'uploads') {
+    if (!url) return '';
+    const raw = String(url).trim();
+    if (!raw || raw.startsWith('data:') || raw.startsWith('blob:')) return '';
+    if (!isLikelyAppMediaUrl(raw)) return '';
+    if (isProtectedMediaUrl(raw)) {
+        return normalizeBackendUrl(raw);
+    }
+    const filename = extractFileNameFromUrl(raw);
+    if (!filename) return '';
+    const category = detectMediaCategoryFromUrl(raw, fallbackCategory);
+    const base = BACKEND_BASE_URL || '';
+    return `${base}/api/media/${category}/${encodeURIComponent(filename)}`;
+}
+
+async function fetchProtectedMediaBlob(url) {
+    if (!url) return null;
+    const token = await getMediaAuthToken();
+    if (!token) return null;
+    let response = await fetch(url, {
+        headers: buildAuthHeaders(token)
+    });
+    if (response.status === 401) {
+        const refreshed = await getMediaAuthToken(true);
+        if (refreshed) {
+            response = await fetch(url, {
+                headers: buildAuthHeaders(refreshed)
+            });
+        }
+    }
+    if (!response.ok) return null;
+    return await response.blob();
+}
+
+function revokeElementObjectUrl(mediaEl) {
+    if (!mediaEl) return;
+    const previous = mediaEl.dataset.objectUrl || '';
+    if (previous.startsWith('blob:')) {
+        try {
+            URL.revokeObjectURL(previous);
+        } catch (error) {
+            // ignore
+        }
+    }
+    delete mediaEl.dataset.objectUrl;
+}
+
+async function loadProtectedMediaElement(mediaEl, url, fallback = '', options = {}) {
+    if (!mediaEl || !url) return;
+    const protectedUrl = options.protectedUrl || buildProtectedMediaUrl(url, options.category || 'uploads');
+    if (!protectedUrl) {
+        mediaEl.src = url;
+        return;
+    }
+    const blob = await fetchProtectedMediaBlob(protectedUrl);
+    if (blob && blob.size) {
+        revokeElementObjectUrl(mediaEl);
+        const objectUrl = URL.createObjectURL(blob);
+        mediaEl.dataset.objectUrl = objectUrl;
+        mediaEl.src = objectUrl;
+        if (typeof mediaEl.load === 'function') {
+            mediaEl.load();
+        }
+        return;
+    }
+    if (fallback) {
+        mediaEl.src = fallback;
+    } else if (!isProtectedMediaUrl(url)) {
+        mediaEl.src = url;
+    }
+}
+
 // Admin panel
 const chatPanel = document.getElementById('chat-panel');
 const adminPanel = document.getElementById('admin-panel');
@@ -515,6 +655,7 @@ let mediaViewerImagePinchDistance = 0;
 let mediaViewerImageStartScale = 1;
 let mediaViewerActiveMessage = null;
 let mediaViewerActiveUrl = '';
+let mediaViewerActiveObjectUrl = '';
 let mediaViewerSwipePointerId = null;
 let mediaViewerSwipeStartX = 0;
 let mediaViewerSwipeStartY = 0;
@@ -1224,6 +1365,9 @@ function getSafePhotoUrl(value) {
     if (/^https?:\/\//i.test(normalized)) return normalized;
     if (normalized.startsWith('blob:')) return normalized;
     if (normalized.startsWith('data:image/')) return normalized;
+    if (normalized.startsWith('/')) return normalized;
+    if (normalized.startsWith('images/')) return `/${normalized}`;
+    if (normalized.startsWith('api/')) return `/${normalized}`;
     return '';
 }
 
@@ -1634,6 +1778,10 @@ function getAttachmentDownloadCandidates(msg) {
 
     const filename = extractFileNameFromUrl(primary || basePath);
     if (filename) {
+        const protectedUrl = buildProtectedMediaUrl(primary || basePath, 'uploads');
+        if (protectedUrl && !candidates.some(item => normalizeUrlForCompare(item) === normalizeUrlForCompare(protectedUrl))) {
+            candidates.unshift(protectedUrl);
+        }
         addUniqueUrl(candidates, normalizeBackendUrl(`/images/uploads/${filename}`));
         addUniqueUrl(candidates, normalizeBackendUrl(`/uploads/${filename}`));
         addUniqueUrl(candidates, normalizeBackendUrl(`uploads/${filename}`));
@@ -1683,6 +1831,9 @@ async function resolveAttachmentUrl(msg, preferredUrl = '') {
     }
 
     for (const url of candidates) {
+        if (isProtectedMediaUrl(url)) {
+            return url;
+        }
         const ok = await canAccessAttachmentUrl(url);
         if (ok) return url;
     }
@@ -1987,6 +2138,14 @@ function bindMediaViewerImageInteractions(img) {
 
 function clearMediaViewerContent() {
     if (!mediaViewerContent) return;
+    if (mediaViewerActiveObjectUrl && mediaViewerActiveObjectUrl.startsWith('blob:')) {
+        try {
+            URL.revokeObjectURL(mediaViewerActiveObjectUrl);
+        } catch (error) {
+            // ignore
+        }
+    }
+    mediaViewerActiveObjectUrl = '';
     const mediaNodes = mediaViewerContent.querySelectorAll('video, audio, iframe');
     mediaNodes.forEach((node) => {
         try {
@@ -2042,38 +2201,54 @@ function isAttachmentAudio(msg) {
 function buildMediaViewerFallback(fileName, resolvedUrl) {
     const safeName = escapeHtml(fileName || 'Arquivo');
     const safeUrl = escapeHtml(resolvedUrl);
+    const canOpenDirectly = resolvedUrl && !isProtectedMediaUrl(resolvedUrl);
     return `
         <div class="media-viewer-file-fallback">
             <h3>${safeName}</h3>
-            <p>Não foi possível visualizar este arquivo diretamente. Toque no botão para abrir na mesma aba.</p>
-            <a href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
+            <p>Não foi possível visualizar este arquivo diretamente. Use o botão de baixar para abrir.</p>
+            ${canOpenDirectly ? `<a href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>` : ''}
         </div>
     `;
 }
 
-function openMediaViewer(msg, resolvedUrl) {
+async function resolveAttachmentDisplayUrl(msg, resolvedUrl) {
+    if (!resolvedUrl) return '';
+    if (isProtectedMediaUrl(resolvedUrl)) {
+        const blob = await fetchProtectedMediaBlob(resolvedUrl);
+        if (blob && blob.size) {
+            return URL.createObjectURL(blob);
+        }
+        return '';
+    }
+    return resolvedUrl;
+}
+
+function openMediaViewer(msg, resolvedUrl, displayUrl = '') {
     if (!mediaViewerModal || !mediaViewerContent) {
-        window.location.href = resolvedUrl;
+        window.location.href = displayUrl || resolvedUrl;
         return;
     }
 
     clearMediaViewerContent();
     mediaViewerActiveMessage = msg || null;
     mediaViewerActiveUrl = resolvedUrl || '';
+    mediaViewerActiveObjectUrl = displayUrl && displayUrl.startsWith('blob:') ? displayUrl : '';
     syncMediaViewerSaveButton();
+
+    const viewUrl = displayUrl || resolvedUrl;
 
     if (isAttachmentImage(msg)) {
         if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         mediaViewerContent.classList.add('media-viewer-image-mode');
         const img = document.createElement('img');
-        img.src = resolvedUrl;
+        img.src = viewUrl;
         img.alt = msg?.fileName || 'Imagem';
         mediaViewerContent.appendChild(img);
         bindMediaViewerImageInteractions(img);
     } else if (isAttachmentVideo(msg)) {
         if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         const video = document.createElement('video');
-        video.src = resolvedUrl;
+        video.src = viewUrl;
         video.controls = true;
         video.autoplay = true;
         video.playsInline = true;
@@ -2081,18 +2256,18 @@ function openMediaViewer(msg, resolvedUrl) {
     } else if (isAttachmentAudio(msg)) {
         if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         const audio = document.createElement('audio');
-        audio.src = resolvedUrl;
+        audio.src = viewUrl;
         audio.controls = true;
         audio.autoplay = true;
         mediaViewerContent.appendChild(audio);
-    } else if (isPdfFile(msg, resolvedUrl)) {
+    } else if (isPdfFile(msg, viewUrl)) {
         const iframe = document.createElement('iframe');
-        iframe.src = resolvedUrl;
+        iframe.src = viewUrl;
         iframe.title = msg?.fileName || 'Documento PDF';
         mediaViewerContent.appendChild(iframe);
     } else {
         const iframe = document.createElement('iframe');
-        iframe.src = resolvedUrl;
+        iframe.src = viewUrl;
         iframe.title = msg?.fileName || 'Documento';
         mediaViewerContent.appendChild(iframe);
     }
@@ -2107,7 +2282,12 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         alert('Arquivo de mídia indisponível. Peça para o contato reenviar.');
         return;
     }
-    openMediaViewer(msg, resolvedUrl);
+    const displayUrl = await resolveAttachmentDisplayUrl(msg, resolvedUrl);
+    if (!displayUrl) {
+        alert('Não foi possível carregar esta mídia agora. Tente novamente.');
+        return;
+    }
+    openMediaViewer(msg, resolvedUrl, displayUrl);
 }
 
 async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
@@ -2115,6 +2295,7 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
     if (!resolvedUrl) {
         throw new Error('Arquivo indisponível');
     }
+    const authToken = isProtectedMediaUrl(resolvedUrl) ? await getMediaAuthToken() : '';
 
     const allowInteractiveFolderSetup = !!options.allowInteractiveFolderSetup;
     const scope = resolveLocalMediaScope(msg, options.scope);
@@ -2126,7 +2307,7 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
 
     try {
         if (isAndroidWebViewRuntime() && !String(resolvedUrl).startsWith('blob:')) {
-            triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope });
+            triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope, authToken });
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
         }
@@ -2134,6 +2315,8 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
         try {
             const blob = await fetchBlobWithProgress(resolvedUrl, (loaded, total) => {
                 if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
+            }, {
+                headers: authToken ? buildAuthHeaders(authToken) : undefined
             });
             if (blob && blob.size) {
                 await saveAttachmentBlobToCache(msg, blob);
@@ -2149,7 +2332,7 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
             // fallback para download direto
         }
 
-        triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope });
+        triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope, authToken });
         if (progressItem) finalizeDownloadItem(progressItem);
     } catch (error) {
         if (progressItem) markDownloadError(progressItem, 'Falha no download');
@@ -2446,7 +2629,8 @@ function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '', opti
     const anchor = document.createElement('a');
     const scope = resolveLocalMediaScope(msg, options.scope);
     const scopedUrl = appendDownloadScopeParam(url, scope);
-    if (isAndroidWebViewRuntime() && callAndroidBridgeMethod('downloadMedia', scopedUrl, fileName, mimeType, scope)) {
+    const authToken = options.authToken || '';
+    if (isAndroidWebViewRuntime() && callAndroidBridgeMethod('downloadMedia', scopedUrl, fileName, mimeType, scope, authToken)) {
         return;
     }
     anchor.href = scopedUrl;
@@ -2458,8 +2642,10 @@ function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '', opti
     anchor.remove();
 }
 
-async function fetchBlobWithProgress(url, onProgress) {
-    const response = await fetch(url);
+async function fetchBlobWithProgress(url, onProgress, options = {}) {
+    const response = await fetch(url, {
+        headers: options.headers || undefined
+    });
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
@@ -2513,7 +2699,8 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
                 throw new Error('Arquivo indisponível');
             }
             const fileName = inferAttachmentFileName(msg, resolvedUrl, msg?.fileType || '');
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '', { scope: 'received' });
+            const authToken = isProtectedMediaUrl(resolvedUrl) ? await getMediaAuthToken() : '';
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '', { scope: 'received', authToken });
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
@@ -2524,8 +2711,11 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
 
         for (const candidate of candidates) {
             try {
+                const authToken = isProtectedMediaUrl(candidate) ? await getMediaAuthToken() : '';
                 const blob = await fetchBlobWithProgress(candidate, (loaded, total) => {
                     if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
+                }, {
+                    headers: authToken ? buildAuthHeaders(authToken) : undefined
                 });
                 if (!blob || !blob.size) continue;
                 resolvedBlob = blob;
@@ -2583,7 +2773,8 @@ async function autoSaveOutgoingAttachment(msg, file) {
         if (isAndroidWebViewRuntime()) {
             const resolvedUrl = await resolveAttachmentUrl(msg, msg.fileUrl || msg.imageUrl || '');
             if (!resolvedUrl) return false;
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope: 'sent' });
+            const authToken = isProtectedMediaUrl(resolvedUrl) ? await getMediaAuthToken() : '';
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope: 'sent', authToken });
             return true;
         }
 
@@ -2900,6 +3091,7 @@ function handleAuthError(error) {
 
 // ========== ESTADO DE AUTENTICACAO ==========
 auth.onAuthStateChanged(async (user) => {
+    mediaAuthTokenCache = { token: '', exp: 0 };
     if (user) {
         resetChatUI();
         autoDownloadedAttachmentKeys = new Set();
@@ -3149,6 +3341,11 @@ function subscribeToCurrentUserDoc() {
 
 function hydratePhotoFromUrl(imgEl, url, fallback) {
     if (!imgEl || !url) return;
+    const protectedUrl = buildProtectedMediaUrl(url, 'profile');
+    if (protectedUrl) {
+        loadProtectedMediaElement(imgEl, protectedUrl, fallback, { protectedUrl, category: 'profile' });
+        return;
+    }
     const image = new Image();
     image.onload = () => {
         imgEl.src = url;
@@ -8919,6 +9116,9 @@ function renderMessages(messages, options = {}) {
     const previousScrollTop = messagesContainer.scrollTop;
     const previousScrollHeight = messagesContainer.scrollHeight;
     const preserveScroll = !!options.preserveScroll;
+    messagesContainer.querySelectorAll('[data-object-url]').forEach((el) => {
+        revokeElementObjectUrl(el);
+    });
     messagesContainer.innerHTML = '';
     
     if (messages.length === 0) {
@@ -8957,18 +9157,20 @@ function renderMessages(messages, options = {}) {
         if (messageType === 'image') {
             const imageUrl = getAttachmentDownloadUrl(msg);
             if (imageUrl) {
+                const imageSrc = isProtectedMediaUrl(imageUrl) ? '' : imageUrl;
                 div.innerHTML = `
                     ${replyReference}
-                    <img class="chat-media-image" src="${imageUrl}" alt="imagem" style="max-width: 200px;">
+                    <img class="chat-media-image" src="${imageSrc}" alt="imagem" style="max-width: 200px;">
                     ${meta}
                 `;
                 const imageEl = div.querySelector('.chat-media-image');
                 if (imageEl) {
                     attachMediaFallbackHandlers(imageEl, msg);
+                    loadProtectedMediaElement(imageEl, imageUrl, '', { category: 'uploads' });
                     if (!isSelectionMode) {
                         imageEl.addEventListener('click', (event) => {
                             if (shouldBlockMessagePrimaryAction(event)) return;
-                            openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
+                            openAttachmentInNewTab(msg);
                         });
                     }
                 }
@@ -8982,10 +9184,11 @@ function renderMessages(messages, options = {}) {
         } else if (messageType === 'video') {
             const videoUrl = getAttachmentDownloadUrl(msg);
             if (videoUrl) {
+                const videoSrc = isProtectedMediaUrl(videoUrl) ? '' : videoUrl;
                 div.innerHTML = `
                     ${replyReference}
                     <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vídeo">
-                        <video class="chat-media-video" src="${videoUrl}" playsinline preload="metadata" muted></video>
+                        <video class="chat-media-video" src="${videoSrc}" playsinline preload="metadata" muted></video>
                         <span class="chat-media-video-play" aria-hidden="true">&#9658;</span>
                     </div>
                     ${meta}
@@ -8993,13 +9196,14 @@ function renderMessages(messages, options = {}) {
                 const videoEl = div.querySelector('.chat-media-video');
                 if (videoEl) {
                     attachMediaFallbackHandlers(videoEl, msg);
+                    loadProtectedMediaElement(videoEl, videoUrl, '', { category: 'uploads' });
                     prepareVideoThumbnail(videoEl);
                 }
                 const videoThumb = div.querySelector('.chat-media-video-thumb');
                 if (videoThumb && !isSelectionMode) {
                     const openVideo = (event) => {
                         if (shouldBlockMessagePrimaryAction(event)) return;
-                        openAttachmentInNewTab(msg, videoEl?.currentSrc || videoEl?.src || videoUrl);
+                        openAttachmentInNewTab(msg);
                     };
                     videoThumb.addEventListener('click', openVideo);
                     videoThumb.addEventListener('keydown', (event) => {
@@ -9019,14 +9223,16 @@ function renderMessages(messages, options = {}) {
         } else if (messageType === 'audio') {
             const audioUrl = getAttachmentDownloadUrl(msg);
             if (audioUrl) {
+                const audioSrc = isProtectedMediaUrl(audioUrl) ? '' : audioUrl;
                 div.innerHTML = `
                     ${replyReference}
-                    <audio class="chat-media-audio" src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
+                    <audio class="chat-media-audio" src="${audioSrc}" controls preload="metadata" style="width: 220px;"></audio>
                     ${meta}
                 `;
                 const audioEl = div.querySelector('.chat-media-audio');
                 if (audioEl) {
                     attachMediaFallbackHandlers(audioEl, msg);
+                    loadProtectedMediaElement(audioEl, audioUrl, '', { category: 'uploads' });
                 }
             } else {
                 div.innerHTML = `
@@ -9037,6 +9243,7 @@ function renderMessages(messages, options = {}) {
             }
         } else if (messageType === 'file') {
             const fileUrl = getAttachmentDownloadUrl(msg) || '#';
+            const safeFileUrl = isProtectedMediaUrl(fileUrl) ? '#' : fileUrl;
             const fileName = escapeHtml(msg.fileName || 'Arquivo');
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
@@ -9044,7 +9251,7 @@ function renderMessages(messages, options = {}) {
                 <div class="file-attachment">
                     <span class="file-icon">&#128206;</span>
                     <div class="file-info">
-                        <a class="chat-media-file-link" href="${fileUrl}" target="_self" rel="noopener">${fileName}</a>
+                        <a class="chat-media-file-link" href="${safeFileUrl}" target="_self" rel="noopener">${fileName}</a>
                         <small>${fileSize}</small>
                     </div>
                 </div>
@@ -9056,7 +9263,7 @@ function renderMessages(messages, options = {}) {
                     fileLink.addEventListener('click', (event) => {
                         if (shouldBlockMessagePrimaryAction(event)) return;
                         event.preventDefault();
-                        openAttachmentInNewTab(msg, fileLink.href);
+                        openAttachmentInNewTab(msg);
                     });
                 }
             }
