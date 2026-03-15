@@ -71,6 +71,11 @@ function parseServiceAccountJson(rawValue) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const REQUIRE_AUTH = String(process.env.REQUIRE_AUTH || 'true').toLowerCase() !== 'false';
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
 const imagesRoot = path.join(__dirname, 'images');
 const profileDir = path.join(imagesRoot, 'profile');
@@ -259,6 +264,29 @@ const profileFileFilter = (req, file, cb) => {
     }
 };
 
+const blockedExtensions = new Set([
+    '.exe', '.apk', '.bat', '.cmd', '.com', '.scr', '.msi', '.ps1',
+    '.jar', '.js', '.vbs', '.sh', '.php', '.py', '.rb', '.pl'
+]);
+const blockedMimeTypes = new Set([
+    'application/x-msdownload',
+    'application/x-msdos-program',
+    'application/x-msinstaller',
+    'application/x-sh',
+    'text/x-shellscript'
+]);
+
+const chatFileFilter = (req, file, cb) => {
+    const ext = safeExtFromName(file.originalname);
+    if (ext && blockedExtensions.has(ext)) {
+        return cb(new Error('Tipo de arquivo nao permitido.'));
+    }
+    if (file.mimetype && blockedMimeTypes.has(file.mimetype.toLowerCase())) {
+        return cb(new Error('Tipo de arquivo nao permitido.'));
+    }
+    cb(null, true);
+};
+
 const profileStorageDisk = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, profileDir);
@@ -291,30 +319,122 @@ const uploadProfileMemory = multer({
 
 const uploadChatDisk = multer({
     storage: chatStorageDisk,
-    limits: { fileSize: 60 * 1024 * 1024 }
+    limits: { fileSize: 60 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => chatFileFilter(req, file, cb)
 });
 
 const uploadChatMemory = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 60 * 1024 * 1024 }
+    limits: { fileSize: 60 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => chatFileFilter(req, file, cb)
 });
 
-app.use(cors());
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self)');
+    next();
+});
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (!allowedOrigins.length) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error('Origin nao permitido.'), false);
+    },
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use('/images', express.static(imagesRoot, {
     etag: true,
     maxAge: '365d',
-    immutable: true
+    immutable: true,
+    dotfiles: 'ignore'
 }));
-app.use(express.static(__dirname));
 
-app.post('/api/upload-profile', async (req, res, next) => {
+const publicRoot = __dirname;
+app.get(['/', '/index.html'], (req, res) => {
+    res.sendFile(path.join(publicRoot, 'index.html'));
+});
+app.get('/style.css', (req, res) => {
+    res.sendFile(path.join(publicRoot, 'style.css'));
+});
+app.get('/script.js', (req, res) => {
+    res.sendFile(path.join(publicRoot, 'script.js'));
+});
+
+function getClientIp(req) {
+    const forwarded = (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim();
+    return forwarded || req.ip || req.connection?.remoteAddress || 'unknown';
+}
+
+function rateLimit({ windowMs, max }) {
+    const hits = new Map();
+    return (req, res, next) => {
+        const now = Date.now();
+        const key = getClientIp(req);
+        const entry = hits.get(key) || { count: 0, resetAt: now + windowMs };
+        if (now > entry.resetAt) {
+            entry.count = 0;
+            entry.resetAt = now + windowMs;
+        }
+        entry.count += 1;
+        hits.set(key, entry);
+        if (entry.count > max) {
+            return res.status(429).json({ message: 'Muitas requisicoes. Tente novamente.' });
+        }
+        return next();
+    };
+}
+
+async function requireAuth(req, res, next) {
+    if (!REQUIRE_AUTH) return next();
+    if (!firebaseAdmin) {
+        return res.status(503).json({ message: 'Autenticacao indisponivel no momento.' });
+    }
+    const authHeader = String(req.headers.authorization || '');
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    if (!token) {
+        return res.status(401).json({ message: 'Token de acesso ausente.' });
+    }
+    try {
+        if (!firebaseAdmin.apps.length) {
+            getFirebaseMessaging();
+        }
+        if (!firebaseAdmin.apps.length) {
+            return res.status(503).json({ message: firebaseInitError || 'Autenticacao indisponivel.' });
+        }
+        const decoded = await firebaseAdmin.auth().verifyIdToken(token);
+        req.user = decoded;
+        return next();
+    } catch (error) {
+        return res.status(401).json({ message: 'Token invalido ou expirado.' });
+    }
+}
+
+const uploadRateLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 60 });
+const notifyRateLimit = rateLimit({ windowMs: 60 * 1000, max: 120 });
+
+app.post('/api/upload-profile', uploadRateLimit, requireAuth, async (req, res, next) => {
     try {
         const uploadMiddleware = canUseObjectStorage
             ? uploadProfileMemory.single('photo')
             : uploadProfileDisk.single('photo');
 
         await runMulter(uploadMiddleware, req, res);
+        const authUid = req.user?.uid || '';
+        if (authUid && req.body?.uid && req.body.uid !== authUid) {
+            return res.status(403).json({ message: 'Operacao nao autorizada.' });
+        }
+        if (authUid) {
+            req.body.uid = authUid;
+        }
 
         if (!req.file) {
             return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
@@ -335,13 +455,20 @@ app.post('/api/upload-profile', async (req, res, next) => {
     }
 });
 
-app.post('/api/upload-chat', async (req, res, next) => {
+app.post('/api/upload-chat', uploadRateLimit, requireAuth, async (req, res, next) => {
     try {
         const uploadMiddleware = canUseObjectStorage
             ? uploadChatMemory.single('file')
             : uploadChatDisk.single('file');
 
         await runMulter(uploadMiddleware, req, res);
+        const authUid = req.user?.uid || '';
+        if (authUid && req.body?.uid && req.body.uid !== authUid) {
+            return res.status(403).json({ message: 'Operacao nao autorizada.' });
+        }
+        if (authUid) {
+            req.body.uid = authUid;
+        }
 
         if (!req.file) {
             return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
@@ -362,8 +489,13 @@ app.post('/api/upload-chat', async (req, res, next) => {
     }
 });
 
-app.post('/api/call-notify', async (req, res) => {
+app.post('/api/call-notify', notifyRateLimit, requireAuth, async (req, res) => {
     try {
+        const authUid = req.user?.uid || '';
+        if (authUid && String(req.body?.callerId || '') !== authUid) {
+            return res.status(403).json({ message: 'Operacao nao autorizada.' });
+        }
+
         const tokens = Array.isArray(req.body?.tokens)
             ? req.body.tokens.filter((token) => typeof token === 'string' && token.trim())
             : [];
@@ -435,8 +567,13 @@ app.post('/api/call-notify', async (req, res) => {
     }
 });
 
-app.post('/api/message-notify', async (req, res) => {
+app.post('/api/message-notify', notifyRateLimit, requireAuth, async (req, res) => {
     try {
+        const authUid = req.user?.uid || '';
+        if (authUid && String(req.body?.senderId || '') !== authUid) {
+            return res.status(403).json({ message: 'Operacao nao autorizada.' });
+        }
+
         const tokens = Array.isArray(req.body?.tokens)
             ? req.body.tokens.filter((token) => typeof token === 'string' && token.trim())
             : [];
