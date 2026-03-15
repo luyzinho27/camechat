@@ -169,6 +169,7 @@ const USERS_CACHE_MAX_PHOTO_DATA_LENGTH = 30000;
 const ANDROID_FCM_TOKEN_STORAGE_KEY = 'camechat_android_fcm_token';
 const PROTECTED_MEDIA_RETRY_MS = 1500;
 const PROTECTED_MEDIA_MAX_RETRIES = 3;
+const LOCAL_MEDIA_PREVIEW_TTL_MS = 10 * 60 * 1000;
 
 let soundNotificationsEnabled = true;
 let messageToneDataUrl = '';
@@ -186,6 +187,42 @@ let showLastSeenEnabled = true;
 let selectedLanguage = 'pt-BR';
 let pendingAndroidCallAction = null;
 let lastAndroidFcmToken = '';
+const localMediaPreviewByMessageId = new Map();
+
+function cleanupLocalMediaPreviews() {
+    const now = Date.now();
+    localMediaPreviewByMessageId.forEach((entry, key) => {
+        if (!entry || !entry.url || now - entry.createdAt > LOCAL_MEDIA_PREVIEW_TTL_MS) {
+            if (entry?.url) {
+                try {
+                    URL.revokeObjectURL(entry.url);
+                } catch (error) {
+                    // ignore
+                }
+            }
+            localMediaPreviewByMessageId.delete(key);
+        }
+    });
+}
+
+function registerLocalMediaPreview(messageId, file) {
+    if (!messageId || !file) return;
+    cleanupLocalMediaPreviews();
+    const url = URL.createObjectURL(file);
+    localMediaPreviewByMessageId.set(messageId, {
+        url,
+        createdAt: Date.now()
+    });
+}
+
+function consumeLocalMediaPreview(messageId) {
+    if (!messageId) return '';
+    cleanupLocalMediaPreviews();
+    const entry = localMediaPreviewByMessageId.get(messageId);
+    if (!entry) return '';
+    localMediaPreviewByMessageId.delete(messageId);
+    return entry.url || '';
+}
 
 async function getAuthBearerToken(forceRefresh = false) {
     const activeUser = currentUser || auth?.currentUser;
@@ -9133,6 +9170,7 @@ function renderMessages(messages, options = {}) {
     const previousScrollTop = messagesContainer.scrollTop;
     const previousScrollHeight = messagesContainer.scrollHeight;
     const preserveScroll = !!options.preserveScroll;
+    cleanupLocalMediaPreviews();
     messagesContainer.querySelectorAll('[data-object-url]').forEach((el) => {
         revokeElementObjectUrl(el);
     });
@@ -9174,7 +9212,8 @@ function renderMessages(messages, options = {}) {
         if (messageType === 'image') {
             const imageUrl = getAttachmentDownloadUrl(msg);
             if (imageUrl) {
-                const imageSrc = isProtectedMediaUrl(imageUrl) ? '' : imageUrl;
+                const previewUrl = consumeLocalMediaPreview(msg.id);
+                const imageSrc = previewUrl || (isProtectedMediaUrl(imageUrl) ? '' : imageUrl);
                 div.innerHTML = `
                     ${replyReference}
                     <img class="chat-media-image" src="${imageSrc}" alt="imagem" style="max-width: 200px;">
@@ -9182,8 +9221,13 @@ function renderMessages(messages, options = {}) {
                 `;
                 const imageEl = div.querySelector('.chat-media-image');
                 if (imageEl) {
+                    if (previewUrl) {
+                        imageEl.dataset.objectUrl = previewUrl;
+                    }
                     attachMediaFallbackHandlers(imageEl, msg);
-                    loadProtectedMediaElement(imageEl, imageUrl, '', { category: 'uploads' });
+                    if (!previewUrl) {
+                        loadProtectedMediaElement(imageEl, imageUrl, '', { category: 'uploads' });
+                    }
                     if (!isSelectionMode) {
                         imageEl.addEventListener('click', (event) => {
                             if (shouldBlockMessagePrimaryAction(event)) return;
@@ -9201,7 +9245,8 @@ function renderMessages(messages, options = {}) {
         } else if (messageType === 'video') {
             const videoUrl = getAttachmentDownloadUrl(msg);
             if (videoUrl) {
-                const videoSrc = isProtectedMediaUrl(videoUrl) ? '' : videoUrl;
+                const previewUrl = consumeLocalMediaPreview(msg.id);
+                const videoSrc = previewUrl || (isProtectedMediaUrl(videoUrl) ? '' : videoUrl);
                 div.innerHTML = `
                     ${replyReference}
                     <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vídeo">
@@ -9212,8 +9257,13 @@ function renderMessages(messages, options = {}) {
                 `;
                 const videoEl = div.querySelector('.chat-media-video');
                 if (videoEl) {
+                    if (previewUrl) {
+                        videoEl.dataset.objectUrl = previewUrl;
+                    }
                     attachMediaFallbackHandlers(videoEl, msg);
-                    loadProtectedMediaElement(videoEl, videoUrl, '', { category: 'uploads' });
+                    if (!previewUrl) {
+                        loadProtectedMediaElement(videoEl, videoUrl, '', { category: 'uploads' });
+                    }
                     prepareVideoThumbnail(videoEl);
                 }
                 const videoThumb = div.querySelector('.chat-media-video-thumb');
@@ -9240,7 +9290,8 @@ function renderMessages(messages, options = {}) {
         } else if (messageType === 'audio') {
             const audioUrl = getAttachmentDownloadUrl(msg);
             if (audioUrl) {
-                const audioSrc = isProtectedMediaUrl(audioUrl) ? '' : audioUrl;
+                const previewUrl = consumeLocalMediaPreview(msg.id);
+                const audioSrc = previewUrl || (isProtectedMediaUrl(audioUrl) ? '' : audioUrl);
                 div.innerHTML = `
                     ${replyReference}
                     <audio class="chat-media-audio" src="${audioSrc}" controls preload="metadata" style="width: 220px;"></audio>
@@ -9248,8 +9299,13 @@ function renderMessages(messages, options = {}) {
                 `;
                 const audioEl = div.querySelector('.chat-media-audio');
                 if (audioEl) {
+                    if (previewUrl) {
+                        audioEl.dataset.objectUrl = previewUrl;
+                    }
                     attachMediaFallbackHandlers(audioEl, msg);
-                    loadProtectedMediaElement(audioEl, audioUrl, '', { category: 'uploads' });
+                    if (!previewUrl) {
+                        loadProtectedMediaElement(audioEl, audioUrl, '', { category: 'uploads' });
+                    }
                 }
             } else {
                 div.innerHTML = `
@@ -10345,6 +10401,7 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
         };
 
         await messageRef.set(messagePayload);
+        registerLocalMediaPreview(messageRef.id, file);
         await updateConversationLastMessage(conversationId, messagePayload);
         Promise.resolve().then(() => autoSaveOutgoingAttachment({ id: messageRef.id, ...messagePayload }, file));
         if (targetUid === selectedUserId) {
@@ -10368,6 +10425,7 @@ function clearActiveConversation() {
     clearEditingMessage();
     clearReplyTargetMessage();
     closeMessageActionMenu();
+    cleanupLocalMediaPreviews();
 
     if (messagesUnsubscribe) {
         messagesUnsubscribe();
@@ -10503,6 +10561,7 @@ window.CameChatApp.handleAndroidFcmToken = handleAndroidFcmToken;
 function resetChatUI() {
     selectedUserId = null;
     selectedFriendData = null;
+    cleanupLocalMediaPreviews();
     if (messagesContainer) {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
