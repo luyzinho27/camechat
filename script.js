@@ -1893,6 +1893,35 @@ function extractFileNameFromUrl(url) {
     }
 }
 
+function inferMimeTypeFromFileName(fileName = '') {
+    const ext = String(fileName || '').split('.').pop()?.toLowerCase() || '';
+    if (!ext) return '';
+    if (['jpg', 'jpeg', 'jpe', 'jfif'].includes(ext)) return 'image/jpeg';
+    if (ext === 'png') return 'image/png';
+    if (ext === 'webp') return 'image/webp';
+    if (ext === 'gif') return 'image/gif';
+    if (ext === 'bmp') return 'image/bmp';
+    if (ext === 'heic') return 'image/heic';
+    if (ext === 'heif') return 'image/heif';
+    if (ext === 'avif') return 'image/avif';
+    if (ext === 'mp4') return 'video/mp4';
+    if (ext === 'webm') return 'video/webm';
+    if (ext === 'mov') return 'video/quicktime';
+    if (ext === 'mkv') return 'video/x-matroska';
+    if (ext === 'm4v') return 'video/mp4';
+    if (ext === '3gp') return 'video/3gpp';
+    if (ext === 'avi') return 'video/x-msvideo';
+    if (ext === 'mp3') return 'audio/mpeg';
+    if (ext === 'm4a') return 'audio/mp4';
+    if (ext === 'wav') return 'audio/wav';
+    if (ext === 'ogg') return 'audio/ogg';
+    if (ext === 'opus') return 'audio/ogg';
+    if (ext === 'amr') return 'audio/amr';
+    if (ext === 'pdf') return 'application/pdf';
+    if (ext === 'txt') return 'text/plain';
+    return '';
+}
+
 function buildFirebaseMediaUrl(storagePath) {
     const bucket = firebaseConfig?.storageBucket;
     if (!bucket || !storagePath) return '';
@@ -7588,11 +7617,38 @@ function updateMessageAttachmentUrls(conversationId, messages) {
     messages.forEach(msg => {
         if (!msg?.id) return;
         const patch = {};
-        if (msg.fileUrl && msg.fileUrl.startsWith('/')) {
-            patch.fileUrl = normalizeBackendUrl(msg.fileUrl);
+        const derivedFileUrl = getMessageFileUrl(msg);
+        const derivedImageUrl = getMessageImageUrl(msg);
+        if (!msg.fileUrl && derivedFileUrl) {
+            patch.fileUrl = derivedFileUrl;
         }
-        if (msg.imageUrl && msg.imageUrl.startsWith('/')) {
-            patch.imageUrl = normalizeBackendUrl(msg.imageUrl);
+        if (!msg.imageUrl && derivedImageUrl) {
+            patch.imageUrl = derivedImageUrl;
+        }
+        const normalizedFileUrl = (patch.fileUrl || msg.fileUrl || '').trim();
+        if (normalizedFileUrl && normalizedFileUrl.startsWith('/')) {
+            patch.fileUrl = normalizeBackendUrl(normalizedFileUrl);
+        }
+        const normalizedImageUrl = (patch.imageUrl || msg.imageUrl || '').trim();
+        if (normalizedImageUrl && normalizedImageUrl.startsWith('/')) {
+            patch.imageUrl = normalizeBackendUrl(normalizedImageUrl);
+        }
+        const resolvedType = resolveMessageType({ ...msg, ...patch });
+        if (!msg.type && resolvedType) {
+            patch.type = resolvedType;
+        }
+        const hasAttachmentUrl = !!(patch.fileUrl || patch.imageUrl || msg.fileUrl || msg.imageUrl);
+        if ((!msg.fileName || !String(msg.fileName).trim()) && hasAttachmentUrl) {
+            const baseUrl = patch.fileUrl || patch.imageUrl || msg.fileUrl || msg.imageUrl || '';
+            const inferredName = inferAttachmentFileName(msg, baseUrl, msg.fileType || '');
+            if (inferredName) {
+                patch.fileName = inferredName;
+            }
+        }
+        if ((!msg.fileType || !String(msg.fileType).trim()) && resolvedType !== 'text' && hasAttachmentUrl) {
+            const inferredName = patch.fileName || msg.fileName || extractFileNameFromUrl(patch.fileUrl || msg.fileUrl || patch.imageUrl || msg.imageUrl || '');
+            const inferredMime = inferMimeTypeFromFileName(inferredName);
+            patch.fileType = inferredMime || 'application/octet-stream';
         }
         if (Object.keys(patch).length) {
             const ref = db.collection('conversations')
