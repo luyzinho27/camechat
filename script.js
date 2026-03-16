@@ -167,10 +167,6 @@ const FRIENDS_CACHE_STORAGE_KEY_PREFIX = 'camechat_friends_cache_';
 const USERS_CACHE_STORAGE_KEY_PREFIX = 'camechat_users_cache_';
 const USERS_CACHE_MAX_PHOTO_DATA_LENGTH = 30000;
 const ANDROID_FCM_TOKEN_STORAGE_KEY = 'camechat_android_fcm_token';
-const PROTECTED_MEDIA_RETRY_MS = 1500;
-const PROTECTED_MEDIA_MAX_RETRIES = 3;
-const LOCAL_MEDIA_PREVIEW_TTL_MS = 10 * 60 * 1000;
-const PROTECTED_MEDIA_CACHE_TTL_MS = 10 * 60 * 1000;
 
 let soundNotificationsEnabled = true;
 let messageToneDataUrl = '';
@@ -188,276 +184,6 @@ let showLastSeenEnabled = true;
 let selectedLanguage = 'pt-BR';
 let pendingAndroidCallAction = null;
 let lastAndroidFcmToken = '';
-const localMediaPreviewByMessageId = new Map();
-const protectedMediaObjectUrlCache = new Map();
-
-function cleanupLocalMediaPreviews() {
-    const now = Date.now();
-    localMediaPreviewByMessageId.forEach((entry, key) => {
-        if (!entry || !entry.url || now - entry.createdAt > LOCAL_MEDIA_PREVIEW_TTL_MS) {
-            if (entry?.url) {
-                try {
-                    URL.revokeObjectURL(entry.url);
-                } catch (error) {
-                    // ignore
-                }
-            }
-            localMediaPreviewByMessageId.delete(key);
-        }
-    });
-}
-
-function cleanupProtectedMediaCache() {
-    const now = Date.now();
-    protectedMediaObjectUrlCache.forEach((entry, key) => {
-        if (!entry || !entry.url || now - entry.createdAt > PROTECTED_MEDIA_CACHE_TTL_MS) {
-            if (entry?.url) {
-                try {
-                    URL.revokeObjectURL(entry.url);
-                } catch (error) {
-                    // ignore
-                }
-            }
-            protectedMediaObjectUrlCache.delete(key);
-        }
-    });
-}
-
-function getCachedProtectedMediaUrl(url) {
-    if (!url) return '';
-    cleanupProtectedMediaCache();
-    const entry = protectedMediaObjectUrlCache.get(url);
-    return entry?.url || '';
-}
-
-function setCachedProtectedMediaUrl(url, objectUrl) {
-    if (!url || !objectUrl) return;
-    cleanupProtectedMediaCache();
-    protectedMediaObjectUrlCache.set(url, {
-        url: objectUrl,
-        createdAt: Date.now()
-    });
-}
-
-function registerLocalMediaPreview(messageId, file) {
-    if (!messageId || !file) return '';
-    cleanupLocalMediaPreviews();
-    const url = URL.createObjectURL(file);
-    localMediaPreviewByMessageId.set(messageId, {
-        url,
-        createdAt: Date.now()
-    });
-    return url;
-}
-
-function consumeLocalMediaPreview(messageId) {
-    if (!messageId) return '';
-    cleanupLocalMediaPreviews();
-    const entry = localMediaPreviewByMessageId.get(messageId);
-    if (!entry) return '';
-    localMediaPreviewByMessageId.delete(messageId);
-    return entry.url || '';
-}
-
-async function getAuthBearerToken(forceRefresh = false) {
-    const activeUser = currentUser || auth?.currentUser;
-    if (!activeUser) return '';
-    try {
-        return await activeUser.getIdToken(!!forceRefresh);
-    } catch (error) {
-        return '';
-    }
-}
-
-function buildAuthHeaders(token, extra = {}) {
-    const headers = { ...extra };
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-    return headers;
-}
-
-let mediaAuthTokenCache = {
-    token: '',
-    exp: 0
-};
-
-function parseJwtPayload(token) {
-    if (!token) return null;
-    const parts = token.split('.');
-    if (parts.length < 2) return null;
-    try {
-        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padded = payload.padEnd(payload.length + (4 - (payload.length % 4)) % 4, '=');
-        const decoded = atob(padded);
-        return JSON.parse(decoded);
-    } catch (error) {
-        return null;
-    }
-}
-
-function getJwtExpiryMs(token) {
-    const payload = parseJwtPayload(token);
-    if (!payload?.exp) return 0;
-    return Number(payload.exp) * 1000;
-}
-
-async function getMediaAuthToken(forceRefresh = false) {
-    if (!currentUser && !auth?.currentUser) return '';
-    const now = Date.now();
-    if (!forceRefresh && mediaAuthTokenCache.token && mediaAuthTokenCache.exp > now + 120000) {
-        return mediaAuthTokenCache.token;
-    }
-    const token = await getAuthBearerToken(forceRefresh);
-    const exp = getJwtExpiryMs(token);
-    mediaAuthTokenCache = {
-        token,
-        exp: exp || (now + 55 * 60 * 1000)
-    };
-    return token;
-}
-
-function isProtectedMediaUrl(url) {
-    if (!url) return false;
-    return /\/api\/media\//i.test(String(url));
-}
-
-function isLikelyAppMediaUrl(url) {
-    if (!url) return false;
-    const raw = String(url);
-    if (raw.startsWith('/images/') || raw.startsWith('images/')) return true;
-    if (raw.includes('/uploads/') || raw.includes('/profile/')) return true;
-    try {
-        const parsed = new URL(raw, window.location.href);
-        const backendOrigin = BACKEND_BASE_URL
-            ? new URL(BACKEND_BASE_URL).origin
-            : window.location.origin;
-        return parsed.origin === backendOrigin;
-    } catch (error) {
-        return false;
-    }
-}
-
-function detectMediaCategoryFromUrl(url, fallback = 'uploads') {
-    const lower = String(url || '').toLowerCase();
-    if (lower.includes('/profile/')) return 'profile';
-    if (lower.includes('/uploads/')) return 'uploads';
-    return fallback;
-}
-
-function buildProtectedMediaUrl(url, fallbackCategory = 'uploads') {
-    if (!url) return '';
-    const raw = String(url).trim();
-    if (!raw || raw.startsWith('data:') || raw.startsWith('blob:')) return '';
-    if (!isLikelyAppMediaUrl(raw)) return '';
-    if (isProtectedMediaUrl(raw)) {
-        return normalizeBackendUrl(raw);
-    }
-    const filename = extractFileNameFromUrl(raw);
-    if (!filename) return '';
-    const category = detectMediaCategoryFromUrl(raw, fallbackCategory);
-    const base = BACKEND_BASE_URL || '';
-    return `${base}/api/media/${category}/${encodeURIComponent(filename)}`;
-}
-
-async function fetchProtectedMediaBlob(url) {
-    if (!url) return null;
-    const token = await getMediaAuthToken();
-    if (!token) return null;
-    let response = await fetch(url, {
-        headers: buildAuthHeaders(token)
-    });
-    if (response.status === 401) {
-        const refreshed = await getMediaAuthToken(true);
-        if (refreshed) {
-            response = await fetch(url, {
-                headers: buildAuthHeaders(refreshed)
-            });
-        }
-    }
-    if (!response.ok) return null;
-    return await response.blob();
-}
-
-function isObjectUrlCached(url) {
-    if (!url) return false;
-    for (const entry of protectedMediaObjectUrlCache.values()) {
-        if (entry?.url === url) return true;
-    }
-    for (const cachedUrl of attachmentCacheObjectUrls.values()) {
-        if (cachedUrl === url) return true;
-    }
-    return false;
-}
-
-function revokeElementObjectUrl(mediaEl) {
-    if (!mediaEl) return;
-    const previous = mediaEl.dataset.objectUrl || '';
-    if (previous.startsWith('blob:')) {
-        if (!isObjectUrlCached(previous)) {
-            try {
-                URL.revokeObjectURL(previous);
-            } catch (error) {
-                // ignore
-            }
-        }
-    }
-    delete mediaEl.dataset.objectUrl;
-    delete mediaEl.dataset.protectedRetry;
-    delete mediaEl.dataset.protectedLoading;
-}
-
-async function loadProtectedMediaElement(mediaEl, url, fallback = '', options = {}) {
-    if (!mediaEl || !url) return;
-    const protectedUrl = options.protectedUrl || buildProtectedMediaUrl(url, options.category || 'uploads');
-    if (!protectedUrl) {
-        mediaEl.src = url;
-        return;
-    }
-    const cachedUrl = getCachedProtectedMediaUrl(protectedUrl);
-    if (cachedUrl) {
-        if (mediaEl.dataset.objectUrl && mediaEl.dataset.objectUrl !== cachedUrl) {
-            revokeElementObjectUrl(mediaEl);
-        }
-        mediaEl.dataset.objectUrl = cachedUrl;
-        mediaEl.dataset.protectedRetry = '0';
-        mediaEl.src = cachedUrl;
-        if (typeof mediaEl.load === 'function') {
-            mediaEl.load();
-        }
-        return;
-    }
-    if (mediaEl.dataset.protectedLoading === '1') return;
-    mediaEl.dataset.protectedLoading = '1';
-    const blob = await fetchProtectedMediaBlob(protectedUrl);
-    mediaEl.dataset.protectedLoading = '';
-    if (blob && blob.size) {
-        revokeElementObjectUrl(mediaEl);
-        const objectUrl = URL.createObjectURL(blob);
-        mediaEl.dataset.objectUrl = objectUrl;
-        setCachedProtectedMediaUrl(protectedUrl, objectUrl);
-        mediaEl.dataset.protectedRetry = '0';
-        mediaEl.src = objectUrl;
-        if (typeof mediaEl.load === 'function') {
-            mediaEl.load();
-        }
-        return;
-    }
-    const retryCount = Number(mediaEl.dataset.protectedRetry || 0);
-    if (retryCount < PROTECTED_MEDIA_MAX_RETRIES) {
-        mediaEl.dataset.protectedRetry = String(retryCount + 1);
-        setTimeout(() => {
-            if (!document.body.contains(mediaEl)) return;
-            loadProtectedMediaElement(mediaEl, url, fallback, options);
-        }, PROTECTED_MEDIA_RETRY_MS * (retryCount + 1));
-        return;
-    }
-    if (fallback) {
-        mediaEl.src = fallback;
-    } else if (!isProtectedMediaUrl(url)) {
-        mediaEl.src = url;
-    }
-}
 
 // Admin panel
 const chatPanel = document.getElementById('chat-panel');
@@ -771,7 +497,6 @@ let mediaViewerImagePinchDistance = 0;
 let mediaViewerImageStartScale = 1;
 let mediaViewerActiveMessage = null;
 let mediaViewerActiveUrl = '';
-let mediaViewerActiveObjectUrl = '';
 let mediaViewerSwipePointerId = null;
 let mediaViewerSwipeStartX = 0;
 let mediaViewerSwipeStartY = 0;
@@ -1481,9 +1206,6 @@ function getSafePhotoUrl(value) {
     if (/^https?:\/\//i.test(normalized)) return normalized;
     if (normalized.startsWith('blob:')) return normalized;
     if (normalized.startsWith('data:image/')) return normalized;
-    if (normalized.startsWith('/')) return normalized;
-    if (normalized.startsWith('images/')) return `/${normalized}`;
-    if (normalized.startsWith('api/')) return `/${normalized}`;
     return '';
 }
 
@@ -1555,11 +1277,9 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
     if (options.uid) formData.append('uid', options.uid);
 
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-profile` : '/api/upload-profile';
-    const authToken = await getAuthBearerToken();
     const response = await fetch(apiUrl, {
         method: 'POST',
-        body: formData,
-        headers: buildAuthHeaders(authToken)
+        body: formData
     });
 
     if (!response.ok) {
@@ -1591,31 +1311,7 @@ async function uploadChatFileViaBackend(file, options = {}) {
         : Math.max(120000, Math.ceil((Number(file?.size || 0) / (1024 * 1024)) * 5000));
     let response;
     try {
-        const authToken = await getAuthBearerToken();
-        response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, {
-            ...options,
-            timeoutMs,
-            authToken,
-            silentError: true
-        });
-        if (!response.ok && (response.status === 401 || response.status === 403)) {
-            const refreshed = await getAuthBearerToken(true);
-            if (refreshed) {
-                response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, {
-                    ...options,
-                    timeoutMs,
-                    authToken: refreshed,
-                    progressItem: response.progressItem
-                });
-            }
-        }
-        if (!response.ok && response.progressItem && !response.errorMarked) {
-            if (response.status === 401 || response.status === 403) {
-                markUploadError(response.progressItem, 'Sessão expirada. Faça login novamente.');
-            } else {
-                markUploadError(response.progressItem, (await response.text()) || 'Falha no upload');
-            }
-        }
+        response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, { ...options, timeoutMs });
     } catch (error) {
         throw new Error('Não foi possível conectar ao backend de upload.');
     }
@@ -1893,103 +1589,26 @@ function extractFileNameFromUrl(url) {
     }
 }
 
-function inferMimeTypeFromFileName(fileName = '') {
-    const ext = String(fileName || '').split('.').pop()?.toLowerCase() || '';
-    if (!ext) return '';
-    if (['jpg', 'jpeg', 'jpe', 'jfif'].includes(ext)) return 'image/jpeg';
-    if (ext === 'png') return 'image/png';
-    if (ext === 'webp') return 'image/webp';
-    if (ext === 'gif') return 'image/gif';
-    if (ext === 'bmp') return 'image/bmp';
-    if (ext === 'heic') return 'image/heic';
-    if (ext === 'heif') return 'image/heif';
-    if (ext === 'avif') return 'image/avif';
-    if (ext === 'mp4') return 'video/mp4';
-    if (ext === 'webm') return 'video/webm';
-    if (ext === 'mov') return 'video/quicktime';
-    if (ext === 'mkv') return 'video/x-matroska';
-    if (ext === 'm4v') return 'video/mp4';
-    if (ext === '3gp') return 'video/3gpp';
-    if (ext === 'avi') return 'video/x-msvideo';
-    if (ext === 'mp3') return 'audio/mpeg';
-    if (ext === 'm4a') return 'audio/mp4';
-    if (ext === 'wav') return 'audio/wav';
-    if (ext === 'ogg') return 'audio/ogg';
-    if (ext === 'opus') return 'audio/ogg';
-    if (ext === 'amr') return 'audio/amr';
-    if (ext === 'pdf') return 'application/pdf';
-    if (ext === 'txt') return 'text/plain';
-    return '';
-}
-
 function buildFirebaseMediaUrl(storagePath) {
     const bucket = firebaseConfig?.storageBucket;
     if (!bucket || !storagePath) return '';
     return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media`;
 }
 
-function getMessageFileUrl(msg) {
-    if (!msg) return '';
-    return String(
-        msg.fileUrl
-        || msg.fileURL
-        || msg.downloadURL
-        || msg.downloadUrl
-        || msg.mediaUrl
-        || msg.mediaURL
-        || msg.url
-        || msg.attachmentUrl
-        || msg.attachmentURL
-        || ''
-    ).trim();
-}
-
-function getMessageImageUrl(msg) {
-    if (!msg) return '';
-    return String(
-        msg.imageUrl
-        || msg.imageURL
-        || msg.photoUrl
-        || msg.photoURL
-        || msg.thumbnailUrl
-        || msg.thumbnailURL
-        || ''
-    ).trim();
-}
-
-function resolveMessageType(msg) {
-    if (!msg) return 'text';
-    const explicitType = typeof msg.type === 'string' ? msg.type.trim() : '';
-    if (explicitType) return explicitType;
-    if (getMessageImageUrl(msg)) return 'image';
-    const fileType = String(msg.fileType || '').toLowerCase();
-    if (fileType.startsWith('image/')) return 'image';
-    if (fileType.startsWith('video/')) return 'video';
-    if (fileType.startsWith('audio/')) return 'audio';
-    if (getMessageFileUrl(msg)) return 'file';
-    return 'text';
-}
-
 function getAttachmentDownloadCandidates(msg) {
     if (!msg) return [];
-    const type = resolveMessageType(msg);
+    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
     if (!['image', 'video', 'audio', 'file'].includes(type)) return [];
 
-    const fileUrl = getMessageFileUrl(msg);
-    const imageUrl = getMessageImageUrl(msg);
     const basePath = type === 'image'
-        ? (imageUrl || fileUrl || '')
-        : (fileUrl || imageUrl || '');
+        ? (msg.imageUrl || msg.fileUrl || '')
+        : (msg.fileUrl || msg.imageUrl || '');
     const primary = normalizeBackendUrl(basePath);
     const candidates = [];
     addUniqueUrl(candidates, primary);
 
     const filename = extractFileNameFromUrl(primary || basePath);
     if (filename) {
-        const protectedUrl = buildProtectedMediaUrl(primary || basePath, 'uploads');
-        if (protectedUrl && !candidates.some(item => normalizeUrlForCompare(item) === normalizeUrlForCompare(protectedUrl))) {
-            candidates.unshift(protectedUrl);
-        }
         addUniqueUrl(candidates, normalizeBackendUrl(`/images/uploads/${filename}`));
         addUniqueUrl(candidates, normalizeBackendUrl(`/uploads/${filename}`));
         addUniqueUrl(candidates, normalizeBackendUrl(`uploads/${filename}`));
@@ -2039,9 +1658,6 @@ async function resolveAttachmentUrl(msg, preferredUrl = '') {
     }
 
     for (const url of candidates) {
-        if (isProtectedMediaUrl(url)) {
-            return url;
-        }
         const ok = await canAccessAttachmentUrl(url);
         if (ok) return url;
     }
@@ -2346,14 +1962,6 @@ function bindMediaViewerImageInteractions(img) {
 
 function clearMediaViewerContent() {
     if (!mediaViewerContent) return;
-    if (mediaViewerActiveObjectUrl && mediaViewerActiveObjectUrl.startsWith('blob:')) {
-        try {
-            URL.revokeObjectURL(mediaViewerActiveObjectUrl);
-        } catch (error) {
-            // ignore
-        }
-    }
-    mediaViewerActiveObjectUrl = '';
     const mediaNodes = mediaViewerContent.querySelectorAll('video, audio, iframe');
     mediaNodes.forEach((node) => {
         try {
@@ -2392,72 +2000,55 @@ function isPdfFile(msg, resolvedUrl) {
 }
 
 function isAttachmentImage(msg) {
-    return resolveMessageType(msg) === 'image';
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    return messageType === 'image';
 }
 
 function isAttachmentVideo(msg) {
-    return resolveMessageType(msg) === 'video';
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    return messageType === 'video';
 }
 
 function isAttachmentAudio(msg) {
-    return resolveMessageType(msg) === 'audio';
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    return messageType === 'audio';
 }
 
 function buildMediaViewerFallback(fileName, resolvedUrl) {
     const safeName = escapeHtml(fileName || 'Arquivo');
     const safeUrl = escapeHtml(resolvedUrl);
-    const canOpenDirectly = resolvedUrl && !isProtectedMediaUrl(resolvedUrl);
     return `
         <div class="media-viewer-file-fallback">
             <h3>${safeName}</h3>
-            <p>Não foi possível visualizar este arquivo diretamente. Use o botão de baixar para abrir.</p>
-            ${canOpenDirectly ? `<a href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>` : ''}
+            <p>Não foi possível visualizar este arquivo diretamente. Toque no botão para abrir na mesma aba.</p>
+            <a href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
         </div>
     `;
 }
 
-async function resolveAttachmentDisplayUrl(msg, resolvedUrl) {
-    if (!resolvedUrl) return '';
-    if (isProtectedMediaUrl(resolvedUrl)) {
-        const cachedUrl = getCachedProtectedMediaUrl(resolvedUrl);
-        if (cachedUrl) return cachedUrl;
-        const blob = await fetchProtectedMediaBlob(resolvedUrl);
-        if (blob && blob.size) {
-            const objectUrl = URL.createObjectURL(blob);
-            setCachedProtectedMediaUrl(resolvedUrl, objectUrl);
-            return objectUrl;
-        }
-        return '';
-    }
-    return resolvedUrl;
-}
-
-function openMediaViewer(msg, resolvedUrl, displayUrl = '') {
+function openMediaViewer(msg, resolvedUrl) {
     if (!mediaViewerModal || !mediaViewerContent) {
-        window.location.href = displayUrl || resolvedUrl;
+        window.location.href = resolvedUrl;
         return;
     }
 
     clearMediaViewerContent();
     mediaViewerActiveMessage = msg || null;
     mediaViewerActiveUrl = resolvedUrl || '';
-    mediaViewerActiveObjectUrl = displayUrl && displayUrl.startsWith('blob:') ? displayUrl : '';
     syncMediaViewerSaveButton();
-
-    const viewUrl = displayUrl || resolvedUrl;
 
     if (isAttachmentImage(msg)) {
         if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         mediaViewerContent.classList.add('media-viewer-image-mode');
         const img = document.createElement('img');
-        img.src = viewUrl;
+        img.src = resolvedUrl;
         img.alt = msg?.fileName || 'Imagem';
         mediaViewerContent.appendChild(img);
         bindMediaViewerImageInteractions(img);
     } else if (isAttachmentVideo(msg)) {
         if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         const video = document.createElement('video');
-        video.src = viewUrl;
+        video.src = resolvedUrl;
         video.controls = true;
         video.autoplay = true;
         video.playsInline = true;
@@ -2465,18 +2056,18 @@ function openMediaViewer(msg, resolvedUrl, displayUrl = '') {
     } else if (isAttachmentAudio(msg)) {
         if (mediaViewerModal) mediaViewerModal.classList.add('media-viewer-fullscreen');
         const audio = document.createElement('audio');
-        audio.src = viewUrl;
+        audio.src = resolvedUrl;
         audio.controls = true;
         audio.autoplay = true;
         mediaViewerContent.appendChild(audio);
-    } else if (isPdfFile(msg, viewUrl)) {
+    } else if (isPdfFile(msg, resolvedUrl)) {
         const iframe = document.createElement('iframe');
-        iframe.src = viewUrl;
+        iframe.src = resolvedUrl;
         iframe.title = msg?.fileName || 'Documento PDF';
         mediaViewerContent.appendChild(iframe);
     } else {
         const iframe = document.createElement('iframe');
-        iframe.src = viewUrl;
+        iframe.src = resolvedUrl;
         iframe.title = msg?.fileName || 'Documento';
         mediaViewerContent.appendChild(iframe);
     }
@@ -2491,12 +2082,7 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         alert('Arquivo de mídia indisponível. Peça para o contato reenviar.');
         return;
     }
-    const displayUrl = await resolveAttachmentDisplayUrl(msg, resolvedUrl);
-    if (!displayUrl) {
-        alert('Não foi possível carregar esta mídia agora. Tente novamente.');
-        return;
-    }
-    openMediaViewer(msg, resolvedUrl, displayUrl);
+    openMediaViewer(msg, resolvedUrl);
 }
 
 async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
@@ -2504,7 +2090,6 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
     if (!resolvedUrl) {
         throw new Error('Arquivo indisponível');
     }
-    const authToken = isProtectedMediaUrl(resolvedUrl) ? await getMediaAuthToken() : '';
 
     const allowInteractiveFolderSetup = !!options.allowInteractiveFolderSetup;
     const scope = resolveLocalMediaScope(msg, options.scope);
@@ -2516,7 +2101,7 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
 
     try {
         if (isAndroidWebViewRuntime() && !String(resolvedUrl).startsWith('blob:')) {
-            triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope, authToken });
+            triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope });
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
         }
@@ -2524,8 +2109,6 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
         try {
             const blob = await fetchBlobWithProgress(resolvedUrl, (loaded, total) => {
                 if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
-            }, {
-                headers: authToken ? buildAuthHeaders(authToken) : undefined
             });
             if (blob && blob.size) {
                 await saveAttachmentBlobToCache(msg, blob);
@@ -2541,7 +2124,7 @@ async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
             // fallback para download direto
         }
 
-        triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope, authToken });
+        triggerDirectUrlDownload(resolvedUrl, downloadName, msg, mimeType, { scope });
         if (progressItem) finalizeDownloadItem(progressItem);
     } catch (error) {
         if (progressItem) markDownloadError(progressItem, 'Falha no download');
@@ -2571,7 +2154,7 @@ function shouldAutoDownloadIncomingAttachment(msg) {
     if (!msg || !currentUser) return false;
     if (!autoMediaSaveEnabled) return false;
     if (msg.senderId === currentUser.uid) return false;
-    const type = resolveMessageType(msg);
+    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
     if (!['image', 'video', 'audio', 'file'].includes(type)) return false;
     return !!getAttachmentDownloadUrl(msg);
 }
@@ -2838,8 +2421,7 @@ function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '', opti
     const anchor = document.createElement('a');
     const scope = resolveLocalMediaScope(msg, options.scope);
     const scopedUrl = appendDownloadScopeParam(url, scope);
-    const authToken = options.authToken || '';
-    if (isAndroidWebViewRuntime() && callAndroidBridgeMethod('downloadMedia', scopedUrl, fileName, mimeType, scope, authToken)) {
+    if (isAndroidWebViewRuntime() && callAndroidBridgeMethod('downloadMedia', scopedUrl, fileName, mimeType, scope)) {
         return;
     }
     anchor.href = scopedUrl;
@@ -2851,10 +2433,8 @@ function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '', opti
     anchor.remove();
 }
 
-async function fetchBlobWithProgress(url, onProgress, options = {}) {
-    const response = await fetch(url, {
-        headers: options.headers || undefined
-    });
+async function fetchBlobWithProgress(url, onProgress) {
+    const response = await fetch(url);
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
@@ -2908,8 +2488,7 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
                 throw new Error('Arquivo indisponível');
             }
             const fileName = inferAttachmentFileName(msg, resolvedUrl, msg?.fileType || '');
-            const authToken = isProtectedMediaUrl(resolvedUrl) ? await getMediaAuthToken() : '';
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '', { scope: 'received', authToken });
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '', { scope: 'received' });
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
@@ -2920,11 +2499,8 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
 
         for (const candidate of candidates) {
             try {
-                const authToken = isProtectedMediaUrl(candidate) ? await getMediaAuthToken() : '';
                 const blob = await fetchBlobWithProgress(candidate, (loaded, total) => {
                     if (progressItem) updateDownloadProgressItem(progressItem, loaded, total);
-                }, {
-                    headers: authToken ? buildAuthHeaders(authToken) : undefined
                 });
                 if (!blob || !blob.size) continue;
                 resolvedBlob = blob;
@@ -2982,8 +2558,7 @@ async function autoSaveOutgoingAttachment(msg, file) {
         if (isAndroidWebViewRuntime()) {
             const resolvedUrl = await resolveAttachmentUrl(msg, msg.fileUrl || msg.imageUrl || '');
             if (!resolvedUrl) return false;
-            const authToken = isProtectedMediaUrl(resolvedUrl) ? await getMediaAuthToken() : '';
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope: 'sent', authToken });
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, mimeType, { scope: 'sent' });
             return true;
         }
 
@@ -2998,12 +2573,9 @@ async function autoSaveOutgoingAttachment(msg, file) {
 function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = {}) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        const item = options.progressItem || createUploadProgressItem(file.name || 'arquivo');
+        const item = createUploadProgressItem(file.name || 'arquivo');
         xhr.timeout = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000;
         xhr.open('POST', apiUrl, true);
-        if (options.authToken) {
-            xhr.setRequestHeader('Authorization', `Bearer ${options.authToken}`);
-        }
         xhr.upload.onprogress = (event) => {
             if (!event.lengthComputable) return;
             const percent = Math.round((event.loaded / event.total) * 100);
@@ -3016,41 +2588,28 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
                     ok: true,
                     status: xhr.status,
                     json: async () => JSON.parse(xhr.responseText || '{}'),
-                    text: async () => xhr.responseText || '',
-                    progressItem: item,
-                    errorMarked: false
+                    text: async () => xhr.responseText || ''
                 });
                 finalizeUploadItem(item);
             } else {
-                const shouldMark = !options.silentError;
-                if (!options.silentError) {
-                    markUploadError(item, xhr.responseText || 'Falha no upload');
-                }
+                markUploadError(item, xhr.responseText || 'Falha no upload');
                 resolve({
                     ok: false,
                     status: xhr.status,
-                    text: async () => xhr.responseText || '',
-                    progressItem: item,
-                    errorMarked: shouldMark
+                    text: async () => xhr.responseText || ''
                 });
             }
         };
         xhr.onerror = () => {
-            if (!options.silentError) {
-                markUploadError(item, 'Falha na conexão');
-            }
+            markUploadError(item, 'Falha na conexão');
             reject(new Error('Não foi possível conectar ao backend de upload.'));
         };
         xhr.ontimeout = () => {
-            if (!options.silentError) {
-                markUploadError(item, 'Tempo esgotado');
-            }
+            markUploadError(item, 'Tempo esgotado');
             reject(new Error('Tempo esgotado ao enviar arquivo.'));
         };
         xhr.onabort = () => {
-            if (!options.silentError) {
-                markUploadError(item, 'Upload cancelado');
-            }
+            markUploadError(item, 'Upload cancelado');
             reject(new Error('Upload cancelado.'));
         };
         xhr.send(formData);
@@ -3313,7 +2872,6 @@ function handleAuthError(error) {
 
 // ========== ESTADO DE AUTENTICACAO ==========
 auth.onAuthStateChanged(async (user) => {
-    mediaAuthTokenCache = { token: '', exp: 0 };
     if (user) {
         resetChatUI();
         autoDownloadedAttachmentKeys = new Set();
@@ -3563,11 +3121,6 @@ function subscribeToCurrentUserDoc() {
 
 function hydratePhotoFromUrl(imgEl, url, fallback) {
     if (!imgEl || !url) return;
-    const protectedUrl = buildProtectedMediaUrl(url, 'profile');
-    if (protectedUrl) {
-        loadProtectedMediaElement(imgEl, protectedUrl, fallback, { protectedUrl, category: 'profile' });
-        return;
-    }
     const image = new Image();
     image.onload = () => {
         imgEl.src = url;
@@ -4888,10 +4441,9 @@ async function notifyFriendIncomingCall(callId, callType, friend) {
 
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/call-notify` : '/api/call-notify';
     try {
-        const authToken = await getAuthBearerToken();
         await fetch(apiUrl, {
             method: 'POST',
-            headers: buildAuthHeaders(authToken, { 'Content-Type': 'application/json' }),
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
     } catch (error) {
@@ -4932,10 +4484,9 @@ async function notifyFriendIncomingMessage(friend, messagePayload, options = {})
 
     const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/message-notify` : '/api/message-notify';
     try {
-        const authToken = await getAuthBearerToken();
         await fetch(apiUrl, {
             method: 'POST',
-            headers: buildAuthHeaders(authToken, { 'Content-Type': 'application/json' }),
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
     } catch (error) {
@@ -7617,38 +7168,11 @@ function updateMessageAttachmentUrls(conversationId, messages) {
     messages.forEach(msg => {
         if (!msg?.id) return;
         const patch = {};
-        const derivedFileUrl = getMessageFileUrl(msg);
-        const derivedImageUrl = getMessageImageUrl(msg);
-        if (!msg.fileUrl && derivedFileUrl) {
-            patch.fileUrl = derivedFileUrl;
+        if (msg.fileUrl && msg.fileUrl.startsWith('/')) {
+            patch.fileUrl = normalizeBackendUrl(msg.fileUrl);
         }
-        if (!msg.imageUrl && derivedImageUrl) {
-            patch.imageUrl = derivedImageUrl;
-        }
-        const normalizedFileUrl = (patch.fileUrl || msg.fileUrl || '').trim();
-        if (normalizedFileUrl && normalizedFileUrl.startsWith('/')) {
-            patch.fileUrl = normalizeBackendUrl(normalizedFileUrl);
-        }
-        const normalizedImageUrl = (patch.imageUrl || msg.imageUrl || '').trim();
-        if (normalizedImageUrl && normalizedImageUrl.startsWith('/')) {
-            patch.imageUrl = normalizeBackendUrl(normalizedImageUrl);
-        }
-        const resolvedType = resolveMessageType({ ...msg, ...patch });
-        if (!msg.type && resolvedType) {
-            patch.type = resolvedType;
-        }
-        const hasAttachmentUrl = !!(patch.fileUrl || patch.imageUrl || msg.fileUrl || msg.imageUrl);
-        if ((!msg.fileName || !String(msg.fileName).trim()) && hasAttachmentUrl) {
-            const baseUrl = patch.fileUrl || patch.imageUrl || msg.fileUrl || msg.imageUrl || '';
-            const inferredName = inferAttachmentFileName(msg, baseUrl, msg.fileType || '');
-            if (inferredName) {
-                patch.fileName = inferredName;
-            }
-        }
-        if ((!msg.fileType || !String(msg.fileType).trim()) && resolvedType !== 'text' && hasAttachmentUrl) {
-            const inferredName = patch.fileName || msg.fileName || extractFileNameFromUrl(patch.fileUrl || msg.fileUrl || patch.imageUrl || msg.imageUrl || '');
-            const inferredMime = inferMimeTypeFromFileName(inferredName);
-            patch.fileType = inferredMime || 'application/octet-stream';
+        if (msg.imageUrl && msg.imageUrl.startsWith('/')) {
+            patch.imageUrl = normalizeBackendUrl(msg.imageUrl);
         }
         if (Object.keys(patch).length) {
             const ref = db.collection('conversations')
@@ -7741,7 +7265,7 @@ function resetMessageSelectionState() {
 }
 
 function getMessageType(msg) {
-    return resolveMessageType(msg);
+    return msg?.type || (msg?.imageUrl ? 'image' : 'text');
 }
 
 function getSelectedTextMessagesData() {
@@ -8271,20 +7795,11 @@ async function uploadAndroidSharedItem(item) {
         return await new Promise((resolve) => {
             const requestId = `share_${Date.now()}_${Math.random().toString(16).slice(2)}`;
             pendingAndroidShareUploads.set(requestId, { resolve, item });
-            getAuthBearerToken().then((authToken) => {
-                const invoked = callAndroidBridgeMethod(
-                    'uploadSharedFile',
-                    requestId,
-                    item.uri,
-                    item.name || '',
-                    item.mimeType || '',
-                    authToken || ''
-                );
-                if (!invoked) {
-                    pendingAndroidShareUploads.delete(requestId);
-                    resolve(null);
-                }
-            });
+            const invoked = callAndroidBridgeMethod('uploadSharedFile', requestId, item.uri, item.name || '', item.mimeType || '');
+            if (!invoked) {
+                pendingAndroidShareUploads.delete(requestId);
+                resolve(null);
+            }
         });
     })();
 
@@ -8678,7 +8193,7 @@ function getMessageTimestampMs(message) {
 }
 
 function buildForwardMessagePayload(msg, targetUid, delivered) {
-    const messageType = resolveMessageType(msg);
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
     const payload = {
         senderId: currentUser.uid,
         receiverId: targetUid,
@@ -9365,10 +8880,6 @@ function renderMessages(messages, options = {}) {
     const previousScrollTop = messagesContainer.scrollTop;
     const previousScrollHeight = messagesContainer.scrollHeight;
     const preserveScroll = !!options.preserveScroll;
-    cleanupLocalMediaPreviews();
-    messagesContainer.querySelectorAll('[data-object-url]').forEach((el) => {
-        revokeElementObjectUrl(el);
-    });
     messagesContainer.innerHTML = '';
     
     if (messages.length === 0) {
@@ -9407,29 +8918,18 @@ function renderMessages(messages, options = {}) {
         if (messageType === 'image') {
             const imageUrl = getAttachmentDownloadUrl(msg);
             if (imageUrl) {
-                const previewUrl = consumeLocalMediaPreview(msg.id);
-                const cachedUrl = !previewUrl && isProtectedMediaUrl(imageUrl)
-                    ? getCachedProtectedMediaUrl(imageUrl)
-                    : '';
-                const imageSrc = previewUrl || cachedUrl || (isProtectedMediaUrl(imageUrl) ? '' : imageUrl);
                 div.innerHTML = `
                     ${replyReference}
-                    <img class="chat-media-image" src="${imageSrc}" alt="imagem" style="max-width: 200px;">
+                    <img class="chat-media-image" src="${imageUrl}" alt="imagem" style="max-width: 200px;">
                     ${meta}
                 `;
                 const imageEl = div.querySelector('.chat-media-image');
                 if (imageEl) {
-                    if (previewUrl || cachedUrl) {
-                        imageEl.dataset.objectUrl = previewUrl || cachedUrl;
-                    }
                     attachMediaFallbackHandlers(imageEl, msg);
-                    if (!previewUrl) {
-                        loadProtectedMediaElement(imageEl, imageUrl, '', { category: 'uploads' });
-                    }
                     if (!isSelectionMode) {
                         imageEl.addEventListener('click', (event) => {
                             if (shouldBlockMessagePrimaryAction(event)) return;
-                            openAttachmentInNewTab(msg);
+                            openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
                         });
                     }
                 }
@@ -9443,35 +8943,24 @@ function renderMessages(messages, options = {}) {
         } else if (messageType === 'video') {
             const videoUrl = getAttachmentDownloadUrl(msg);
             if (videoUrl) {
-                const previewUrl = consumeLocalMediaPreview(msg.id);
-                const cachedUrl = !previewUrl && isProtectedMediaUrl(videoUrl)
-                    ? getCachedProtectedMediaUrl(videoUrl)
-                    : '';
-                const videoSrc = previewUrl || cachedUrl || (isProtectedMediaUrl(videoUrl) ? '' : videoUrl);
                 div.innerHTML = `
                     ${replyReference}
                     <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vídeo">
-                        <video class="chat-media-video" src="${videoSrc}" playsinline preload="metadata" muted></video>
+                        <video class="chat-media-video" src="${videoUrl}" playsinline preload="metadata" muted></video>
                         <span class="chat-media-video-play" aria-hidden="true">&#9658;</span>
                     </div>
                     ${meta}
                 `;
                 const videoEl = div.querySelector('.chat-media-video');
                 if (videoEl) {
-                    if (previewUrl || cachedUrl) {
-                        videoEl.dataset.objectUrl = previewUrl || cachedUrl;
-                    }
                     attachMediaFallbackHandlers(videoEl, msg);
-                    if (!previewUrl) {
-                        loadProtectedMediaElement(videoEl, videoUrl, '', { category: 'uploads' });
-                    }
                     prepareVideoThumbnail(videoEl);
                 }
                 const videoThumb = div.querySelector('.chat-media-video-thumb');
                 if (videoThumb && !isSelectionMode) {
                     const openVideo = (event) => {
                         if (shouldBlockMessagePrimaryAction(event)) return;
-                        openAttachmentInNewTab(msg);
+                        openAttachmentInNewTab(msg, videoEl?.currentSrc || videoEl?.src || videoUrl);
                     };
                     videoThumb.addEventListener('click', openVideo);
                     videoThumb.addEventListener('keydown', (event) => {
@@ -9491,25 +8980,14 @@ function renderMessages(messages, options = {}) {
         } else if (messageType === 'audio') {
             const audioUrl = getAttachmentDownloadUrl(msg);
             if (audioUrl) {
-                const previewUrl = consumeLocalMediaPreview(msg.id);
-                const cachedUrl = !previewUrl && isProtectedMediaUrl(audioUrl)
-                    ? getCachedProtectedMediaUrl(audioUrl)
-                    : '';
-                const audioSrc = previewUrl || cachedUrl || (isProtectedMediaUrl(audioUrl) ? '' : audioUrl);
                 div.innerHTML = `
                     ${replyReference}
-                    <audio class="chat-media-audio" src="${audioSrc}" controls preload="metadata" style="width: 220px;"></audio>
+                    <audio class="chat-media-audio" src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
                     ${meta}
                 `;
                 const audioEl = div.querySelector('.chat-media-audio');
                 if (audioEl) {
-                    if (previewUrl || cachedUrl) {
-                        audioEl.dataset.objectUrl = previewUrl || cachedUrl;
-                    }
                     attachMediaFallbackHandlers(audioEl, msg);
-                    if (!previewUrl) {
-                        loadProtectedMediaElement(audioEl, audioUrl, '', { category: 'uploads' });
-                    }
                 }
             } else {
                 div.innerHTML = `
@@ -9520,16 +8998,14 @@ function renderMessages(messages, options = {}) {
             }
         } else if (messageType === 'file') {
             const fileUrl = getAttachmentDownloadUrl(msg) || '#';
-            const safeFileUrl = isProtectedMediaUrl(fileUrl) ? '#' : fileUrl;
-            const inferredName = inferAttachmentFileName(msg, fileUrl, msg.fileType || '');
-            const fileName = escapeHtml(msg.fileName || inferredName || 'Arquivo');
+            const fileName = escapeHtml(msg.fileName || 'Arquivo');
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
                 ${replyReference}
                 <div class="file-attachment">
                     <span class="file-icon">&#128206;</span>
                     <div class="file-info">
-                        <a class="chat-media-file-link" href="${safeFileUrl}" target="_self" rel="noopener">${fileName}</a>
+                        <a class="chat-media-file-link" href="${fileUrl}" target="_self" rel="noopener">${fileName}</a>
                         <small>${fileSize}</small>
                     </div>
                 </div>
@@ -9541,7 +9017,7 @@ function renderMessages(messages, options = {}) {
                     fileLink.addEventListener('click', (event) => {
                         if (shouldBlockMessagePrimaryAction(event)) return;
                         event.preventDefault();
-                        openAttachmentInNewTab(msg);
+                        openAttachmentInNewTab(msg, fileLink.href);
                     });
                 }
             }
@@ -10581,15 +10057,14 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
     const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
     const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
-    const conversationId = getConversationId(currentUser.uid, targetUid);
-    const messageRef = db.collection('conversations')
-        .doc(conversationId)
-        .collection('messages')
-        .doc();
-    const previewUrl = registerLocalMediaPreview(messageRef.id, file);
-
     try {
         const fileUrl = await uploadChatFile(file, { uid: currentUser.uid });
+
+        const conversationId = getConversationId(currentUser.uid, targetUid);
+        const messageRef = db.collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .doc();
         const messagePayload = {
             fileUrl: fileUrl,
             fileName: file.name,
@@ -10614,14 +10089,6 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
         }
         await notifyFriendIncomingMessage(resolvedFriend, messagePayload);
     } catch (error) {
-        if (previewUrl) {
-            try {
-                URL.revokeObjectURL(previewUrl);
-            } catch (revokeError) {
-                // ignore
-            }
-            consumeLocalMediaPreview(messageRef.id);
-        }
         alert('Erro ao enviar arquivo: ' + error.message);
     }
 }
@@ -10638,7 +10105,6 @@ function clearActiveConversation() {
     clearEditingMessage();
     clearReplyTargetMessage();
     closeMessageActionMenu();
-    cleanupLocalMediaPreviews();
 
     if (messagesUnsubscribe) {
         messagesUnsubscribe();
@@ -10774,7 +10240,6 @@ window.CameChatApp.handleAndroidFcmToken = handleAndroidFcmToken;
 function resetChatUI() {
     selectedUserId = null;
     selectedFriendData = null;
-    cleanupLocalMediaPreviews();
     if (messagesContainer) {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
