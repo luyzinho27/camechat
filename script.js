@@ -1899,9 +1899,22 @@ function buildFirebaseMediaUrl(storagePath) {
     return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media`;
 }
 
+function resolveMessageType(msg) {
+    if (!msg) return 'text';
+    const explicitType = typeof msg.type === 'string' ? msg.type.trim() : '';
+    if (explicitType) return explicitType;
+    if (msg.imageUrl) return 'image';
+    const fileType = String(msg.fileType || '').toLowerCase();
+    if (fileType.startsWith('image/')) return 'image';
+    if (fileType.startsWith('video/')) return 'video';
+    if (fileType.startsWith('audio/')) return 'audio';
+    if (msg.fileUrl) return 'file';
+    return 'text';
+}
+
 function getAttachmentDownloadCandidates(msg) {
     if (!msg) return [];
-    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
+    const type = resolveMessageType(msg);
     if (!['image', 'video', 'audio', 'file'].includes(type)) return [];
 
     const basePath = type === 'image'
@@ -2319,18 +2332,15 @@ function isPdfFile(msg, resolvedUrl) {
 }
 
 function isAttachmentImage(msg) {
-    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
-    return messageType === 'image';
+    return resolveMessageType(msg) === 'image';
 }
 
 function isAttachmentVideo(msg) {
-    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
-    return messageType === 'video';
+    return resolveMessageType(msg) === 'video';
 }
 
 function isAttachmentAudio(msg) {
-    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
-    return messageType === 'audio';
+    return resolveMessageType(msg) === 'audio';
 }
 
 function buildMediaViewerFallback(fileName, resolvedUrl) {
@@ -2501,7 +2511,7 @@ function shouldAutoDownloadIncomingAttachment(msg) {
     if (!msg || !currentUser) return false;
     if (!autoMediaSaveEnabled) return false;
     if (msg.senderId === currentUser.uid) return false;
-    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
+    const type = resolveMessageType(msg);
     if (!['image', 'video', 'audio', 'file'].includes(type)) return false;
     return !!getAttachmentDownloadUrl(msg);
 }
@@ -7644,7 +7654,7 @@ function resetMessageSelectionState() {
 }
 
 function getMessageType(msg) {
-    return msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    return resolveMessageType(msg);
 }
 
 function getSelectedTextMessagesData() {
@@ -8581,7 +8591,7 @@ function getMessageTimestampMs(message) {
 }
 
 function buildForwardMessagePayload(msg, targetUid, delivered) {
-    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+    const messageType = resolveMessageType(msg);
     const payload = {
         senderId: currentUser.uid,
         receiverId: targetUid,
