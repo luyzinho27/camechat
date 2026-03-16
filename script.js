@@ -1899,16 +1899,45 @@ function buildFirebaseMediaUrl(storagePath) {
     return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media`;
 }
 
+function getMessageFileUrl(msg) {
+    if (!msg) return '';
+    return String(
+        msg.fileUrl
+        || msg.fileURL
+        || msg.downloadURL
+        || msg.downloadUrl
+        || msg.mediaUrl
+        || msg.mediaURL
+        || msg.url
+        || msg.attachmentUrl
+        || msg.attachmentURL
+        || ''
+    ).trim();
+}
+
+function getMessageImageUrl(msg) {
+    if (!msg) return '';
+    return String(
+        msg.imageUrl
+        || msg.imageURL
+        || msg.photoUrl
+        || msg.photoURL
+        || msg.thumbnailUrl
+        || msg.thumbnailURL
+        || ''
+    ).trim();
+}
+
 function resolveMessageType(msg) {
     if (!msg) return 'text';
     const explicitType = typeof msg.type === 'string' ? msg.type.trim() : '';
     if (explicitType) return explicitType;
-    if (msg.imageUrl) return 'image';
+    if (getMessageImageUrl(msg)) return 'image';
     const fileType = String(msg.fileType || '').toLowerCase();
     if (fileType.startsWith('image/')) return 'image';
     if (fileType.startsWith('video/')) return 'video';
     if (fileType.startsWith('audio/')) return 'audio';
-    if (msg.fileUrl) return 'file';
+    if (getMessageFileUrl(msg)) return 'file';
     return 'text';
 }
 
@@ -1917,9 +1946,11 @@ function getAttachmentDownloadCandidates(msg) {
     const type = resolveMessageType(msg);
     if (!['image', 'video', 'audio', 'file'].includes(type)) return [];
 
+    const fileUrl = getMessageFileUrl(msg);
+    const imageUrl = getMessageImageUrl(msg);
     const basePath = type === 'image'
-        ? (msg.imageUrl || msg.fileUrl || '')
-        : (msg.fileUrl || msg.imageUrl || '');
+        ? (imageUrl || fileUrl || '')
+        : (fileUrl || imageUrl || '');
     const primary = normalizeBackendUrl(basePath);
     const candidates = [];
     addUniqueUrl(candidates, primary);
@@ -9434,7 +9465,8 @@ function renderMessages(messages, options = {}) {
         } else if (messageType === 'file') {
             const fileUrl = getAttachmentDownloadUrl(msg) || '#';
             const safeFileUrl = isProtectedMediaUrl(fileUrl) ? '#' : fileUrl;
-            const fileName = escapeHtml(msg.fileName || 'Arquivo');
+            const inferredName = inferAttachmentFileName(msg, fileUrl, msg.fileType || '');
+            const fileName = escapeHtml(msg.fileName || inferredName || 'Arquivo');
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
                 ${replyReference}
