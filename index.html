@@ -3,12 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https:; frame-src 'none';">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
@@ -19,29 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     <script>
-        // Carregue a configuração do Firebase dinamicamente para segurança
-        // As credenciais públicas do Firebase são seguras (APIs públicas)
-        // Uma verdadeira segurança é feita através das Firestore Rules
-        (async function() {
-            try {
-                const response = await fetch('/api/firebase-config', { 
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                if (response.ok) {
-                    const config = await response.json();
-                    window.FIREBASE_CONFIG = config;
-                } else {
-                    // Fallback para configuração padrão (se necessário)
-                    console.warn('Falha ao carregar configuração do Firebase');
-                }
-            } catch (error) {
-                console.warn('Erro ao carregar config Firebase:', error);
-            }
-        })();
-
-        // Defina a URL do backend quando estiver online
+        // Defina a URL do backend quando estiver online (ex.: https://seu-backend.onrender.com)
         window.CAMECHAT_BACKEND_URL = 'https://camechat.onrender.com';
     </script>
 </head>
