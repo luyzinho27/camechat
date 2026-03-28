@@ -3,9 +3,6 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const mongoSanitize = require('express-mongo-sanitize');
 
 let S3Client = null;
 let PutObjectCommand = null;
@@ -75,105 +72,6 @@ function parseServiceAccountJson(rawValue) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ========== MIDDLEWARES DE SEGURANÇA ==========
-// Headers de segurança
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            imgSrc: ["'self'", 'data:', 'https:'],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            connectSrc: ["'self'", 'https:'],
-            frameSrc: ["'self'"]
-        }
-    },
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    noSniff: true,
-    xssFilter: true,
-    hidePoweredBy: true
-}));
-
-// CORS restritivo
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',').map(o => o.trim());
-const corsOptions = {
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-            callback(null, true);
-        } else {
-            callback(new Error('CORS não permitido'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    maxAge: 3600
-};
-app.use(cors(corsOptions));
-
-// Rate Limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: 'Muitas requisições, tente novamente mais tarde.',
-    standardHeaders: true,
-    legacyHeaders: false
-});
-app.use(limiter);
-
-const uploadLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    message: 'Limite de upload atingido, tente novamente mais tarde.'
-});
-
-const notifyLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 50,
-    message: 'Limite de notificações atingido.'
-});
-
-// Middleware de parsing
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ limit: '1mb', extended: false }));
-
-// Sanitização de dados
-app.use(mongoSanitize());
-
-// Middleware de validação de autenticação Firebase
-async function verifyFirebaseToken(req, res, next) {
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-
-    if (!token) {
-        return res.status(401).json({ message: 'Token de autenticação ausente.' });
-    }
-
-    try {
-        if (!firebaseAdmin) {
-            return res.status(500).json({ message: 'Firebase não configurado.' });
-        }
-        
-        if (!firebaseAdmin.apps.length) {
-            const serviceAccount = parseServiceAccountJson((process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim());
-            if (!serviceAccount) {
-                return res.status(500).json({ message: 'Credenciais Firebase não configuradas.' });
-            }
-            firebaseAdmin.initializeApp({
-                credential: firebaseAdmin.credential.cert(serviceAccount)
-            });
-        }
-
-        const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-        req.user = decodedToken;
-        next();
-    } catch (error) {
-        console.warn('Erro ao verificar token Firebase:', error.message);
-        return res.status(401).json({ message: 'Token inválido ou expirado.' });
-    }
-}
-
 const imagesRoot = path.join(__dirname, 'images');
 const profileDir = path.join(imagesRoot, 'profile');
 const chatUploadsDir = path.join(imagesRoot, 'uploads');
@@ -199,9 +97,7 @@ function slugify(value) {
 function safeExtFromName(filename) {
     const ext = path.extname(filename || '').toLowerCase();
     if (!ext || ext.length > 10) return '';
-    // Whitelist de extensões permitidas
-    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico'];
-    return allowedExts.includes(ext) ? ext : '';
+    return ext;
 }
 
 function safeBaseName(filename) {
@@ -357,40 +253,9 @@ function runMulter(middleware, req, res) {
 
 const profileFileFilter = (req, file, cb) => {
     if (file.mimetype && file.mimetype.startsWith('image/')) {
-        // Validação MIME type whitelist para profile
-        const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (allowedMimes.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Tipo de imagem não permitido. Use JPG, PNG, GIF ou WebP.'));
-        }
-    } else {
-        cb(new Error('Apenas imagens são permitidas.'));
-    }
-};
-
-const chatFileFilter = (req, file, cb) => {
-    // Validação MIME type para uploads de chat
-    const allowedMimes = [
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-        'video/mp4', 'video/webm', 'video/quicktime',
-        'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg',
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'application/zip',
-        'application/x-rar-compressed'
-    ];
-
-    if (allowedMimes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error(`Tipo de arquivo não permitido: ${file.mimetype}`));
+        cb(new Error('Apenas imagens sao permitidas.'));
     }
 };
 
@@ -426,14 +291,12 @@ const uploadProfileMemory = multer({
 
 const uploadChatDisk = multer({
     storage: chatStorageDisk,
-    limits: { fileSize: 60 * 1024 * 1024 },
-    fileFilter: chatFileFilter
+    limits: { fileSize: 60 * 1024 * 1024 }
 });
 
 const uploadChatMemory = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 60 * 1024 * 1024 },
-    fileFilter: chatFileFilter
+    limits: { fileSize: 60 * 1024 * 1024 }
 });
 
 app.use(cors());
@@ -441,33 +304,11 @@ app.use(express.json({ limit: '1mb' }));
 app.use('/images', express.static(imagesRoot, {
     etag: true,
     maxAge: '365d',
-    immutable: true,
-    setHeaders: (res, path, stat) => {
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.setHeader('X-Frame-Options', 'DENY');
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    }
+    immutable: true
 }));
+app.use(express.static(__dirname));
 
-app.use('/style.css', express.static(path.join(__dirname, 'style.css'), {
-    setHeaders: (res) => {
-        res.setHeader('Content-Security-Policy', "default-src 'self'");
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-    }
-}));
-
-app.use(express.static(__dirname, {
-    setHeaders: (res, path) => {
-        if (path.endsWith('.html')) {
-            res.setHeader('X-UA-Compatible', 'IE=edge');
-            res.setHeader('X-Content-Type-Options', 'nosniff');
-            res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-            res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-        }
-    }
-}));
-
-app.post('/api/upload-profile', uploadLimiter, verifyFirebaseToken, async (req, res, next) => {
+app.post('/api/upload-profile', async (req, res, next) => {
     try {
         const uploadMiddleware = canUseObjectStorage
             ? uploadProfileMemory.single('photo')
@@ -477,16 +318,6 @@ app.post('/api/upload-profile', uploadLimiter, verifyFirebaseToken, async (req, 
 
         if (!req.file) {
             return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
-        }
-
-        // Validação adicional de segurança
-        if (!req.user || !req.user.uid) {
-            return res.status(401).json({ message: 'Usuário não autenticado.' });
-        }
-
-        // Validar tamanho
-        if (req.file.size > 5 * 1024 * 1024) {
-            return res.status(400).json({ message: 'Arquivo muito grande. Máximo 5MB.' });
         }
 
         let url = '';
@@ -504,7 +335,7 @@ app.post('/api/upload-profile', uploadLimiter, verifyFirebaseToken, async (req, 
     }
 });
 
-app.post('/api/upload-chat', uploadLimiter, verifyFirebaseToken, async (req, res, next) => {
+app.post('/api/upload-chat', async (req, res, next) => {
     try {
         const uploadMiddleware = canUseObjectStorage
             ? uploadChatMemory.single('file')
@@ -514,16 +345,6 @@ app.post('/api/upload-chat', uploadLimiter, verifyFirebaseToken, async (req, res
 
         if (!req.file) {
             return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
-        }
-
-        // Validação adicional de segurança
-        if (!req.user || !req.user.uid) {
-            return res.status(401).json({ message: 'Usuário não autenticado.' });
-        }
-
-        // Validar tamanho
-        if (req.file.size > 60 * 1024 * 1024) {
-            return res.status(400).json({ message: 'Arquivo muito grande. Máximo 60MB.' });
         }
 
         let url = '';
@@ -541,7 +362,7 @@ app.post('/api/upload-chat', uploadLimiter, verifyFirebaseToken, async (req, res
     }
 });
 
-app.post('/api/call-notify', notifyLimiter, verifyFirebaseToken, async (req, res) => {
+app.post('/api/call-notify', async (req, res) => {
     try {
         const tokens = Array.isArray(req.body?.tokens)
             ? req.body.tokens.filter((token) => typeof token === 'string' && token.trim())
@@ -614,7 +435,7 @@ app.post('/api/call-notify', notifyLimiter, verifyFirebaseToken, async (req, res
     }
 });
 
-app.post('/api/message-notify', notifyLimiter, verifyFirebaseToken, async (req, res) => {
+app.post('/api/message-notify', async (req, res) => {
     try {
         const tokens = Array.isArray(req.body?.tokens)
             ? req.body.tokens.filter((token) => typeof token === 'string' && token.trim())
@@ -706,50 +527,14 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-app.get('/api/firebase-config', (req, res) => {
-    // Endpoint seguro que retorna apenas a configuração pública do Firebase
-    // NUNCA exponha a chave privada ou credenciais de administrador
-    const publicConfig = {
-        apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls',
-        authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'camechat-4fb88.firebaseapp.com',
-        projectId: process.env.FIREBASE_PROJECT_ID || 'camechat-4fb88',
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'camechat-4fb88.firebasestorage.app',
-        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '405074774387',
-        appId: process.env.FIREBASE_APP_ID || '1:405074774387:web:17d2c4e7fd1e35e0c1dd06'
-    };
-    res.json(publicConfig);
-});
-
 app.use((err, req, res, next) => {
-    // Evitar expor detalhes do erro
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const isMulterError = err instanceof multer.MulterError;
-    
-    if (isMulterError) {
-        let message = 'Erro no upload.';
-        if (err.code === 'LIMIT_FILE_SIZE') {
-            message = 'Arquivo muito grande.';
-        } else if (err.code === 'LIMIT_FILE_COUNT') {
-            message = 'Muitos arquivos.';
-        } else if (err.message) {
-            message = err.message;
-        }
-        return res.status(400).json({ message });
+    if (err instanceof multer.MulterError) {
+        return res.status(400).json({ message: err.message });
     }
-    
-    if (err.message === 'CORS não permitido') {
-        return res.status(403).json({ message: 'Acesso não permitido.' });
+    if (err) {
+        return res.status(400).json({ message: err.message || 'Erro no upload.' });
     }
-    
-    // Log de erro
-    if (isDevelopment) {
-        console.error('Erro:', err);
-    }
-    
-    // Resposta genérica sem expor detalhes
-    const statusCode = err.statusCode || 500;
-    const message = isDevelopment ? (err.message || 'Erro do servidor.') : 'Erro ao processar requisição.';
-    return res.status(statusCode).json({ message });
+    return next();
 });
 
 app.listen(PORT, () => {
