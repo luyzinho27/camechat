@@ -174,6 +174,7 @@ let callToneDataUrl = '';
 let callToneAudio = null;
 let readReceiptsEnabled = true;
 let desktopNotificationsEnabled = false;
+const activeDesktopNotifications = new Map();
 let showOnlineStatusEnabled = true;
 let chatFontSizePreference = 'normal';
 let chatBackgroundDataUrl = '';
@@ -6116,10 +6117,37 @@ function showIncomingDesktopNotification(senderUid, messageData) {
                 Promise.resolve(selectUser(friend)).catch(() => {});
             }
         };
+        const key = notification.tag || `${Date.now()}-${Math.random()}`;
+        activeDesktopNotifications.set(key, notification);
+        notification.onclose = () => {
+            activeDesktopNotifications.delete(key);
+        };
     } catch (error) {
         // ignore
     }
 }
+
+function closeActiveDesktopNotifications() {
+    if (!activeDesktopNotifications.size) return;
+    activeDesktopNotifications.forEach((notification) => {
+        try {
+            notification.close();
+        } catch (error) {
+            // ignore
+        }
+    });
+    activeDesktopNotifications.clear();
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        closeActiveDesktopNotifications();
+    }
+});
+
+window.addEventListener('focus', () => {
+    closeActiveDesktopNotifications();
+});
 
 function getStoredAdminTab() {
     try {
@@ -11685,14 +11713,6 @@ if (profileCropFrame) {
     profileCropFrame.addEventListener('pointercancel', endDrag);
     profileCropFrame.addEventListener('pointerleave', endDrag);
 }
-
-// Atalho Enter
-messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        btnSend.click();
-    }
-});
 
 // Logout
 btnLogout.addEventListener('click', async () => {
