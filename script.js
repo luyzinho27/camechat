@@ -6176,6 +6176,23 @@ function syncMobileViewportSize() {
     if (!viewportWidth || !viewportHeight) return;
     document.documentElement.style.setProperty('--chat-viewport-width', `${viewportWidth}px`);
     document.documentElement.style.setProperty('--chat-viewport-height', `${viewportHeight}px`);
+    document.documentElement.style.setProperty('--vh', `${viewportHeight * 0.01}px`);
+
+    if (isAndroidWebViewRuntime()) {
+        const visualViewport = window.visualViewport;
+        let insetBottom = 0;
+        if (visualViewport) {
+            const diff = Math.max(0, Math.round(window.innerHeight - visualViewport.height - visualViewport.offsetTop));
+            insetBottom = diff;
+        } else if (window.screen?.height) {
+            insetBottom = Math.max(0, Math.round(window.screen.height - window.innerHeight));
+        }
+        if (insetBottom > 120) {
+            insetBottom = 0;
+        }
+        insetBottom = Math.min(insetBottom, 60);
+        document.documentElement.style.setProperty('--android-bottom-inset', `${insetBottom}px`);
+    }
 }
 
 function shouldAutoFocusMessageInput() {
