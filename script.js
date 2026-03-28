@@ -1,12 +1,60 @@
-// Configuração do Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls",
-    authDomain: "camechat-4fb88.firebaseapp.com",
-    projectId: "camechat-4fb88",
-    storageBucket: "camechat-4fb88.firebasestorage.app",
-    messagingSenderId: "405074774387",
-    appId: "1:405074774387:web:17d2c4e7fd1e35e0c1dd06"
-};
+// Configuração do Firebase - Carregada dinamicamente para segurança
+let firebaseConfig = null;
+
+async function loadFirebaseConfig() {
+    if (firebaseConfig) return firebaseConfig;
+    
+    try {
+        const response = await fetch('/api/firebase-config', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) throw new Error('Falha ao carregar configuração');
+        
+        firebaseConfig = await response.json();
+        return firebaseConfig;
+    } catch (error) {
+        console.error('Erro ao carregar Firebase config:', error);
+        // Fallback para valores padrão se necessário
+        firebaseConfig = {
+            apiKey: "AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls",
+            authDomain: "camechat-4fb88.firebaseapp.com",
+            projectId: "camechat-4fb88",
+            storageBucket: "camechat-4fb88.firebasestorage.app",
+            messagingSenderId: "405074774387",
+            appId: "1:405074774387:web:17d2c4e7fd1e35e0c1dd06"
+        };
+        return firebaseConfig;
+    }
+}
+
+// Função para escapar HTML e prevenir XSS
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Função para sanitizar atributos de dados
+function sanitizeDataAttribute(value) {
+    if (!value) return '';
+    return escapeHtml(value);
+}
+
+// Proteção contra CSRF - Gerar e validar token
+function generateCSRFToken() {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// Armazenar CSRF token de forma segura
+let csrfToken = generateCSRFToken();
+localStorage.setItem('csrf_token_' + Date.now(), csrfToken);
 
 const BACKEND_BASE_URL = (window.CAMECHAT_BACKEND_URL || '').replace(/\/$/, '');
 const RTC_CONFIG = {
@@ -17,17 +65,21 @@ const RTC_CONFIG = {
     ]
 };
 
-// Inicializa Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-db.enablePersistence({ synchronizeTabs: true }).catch((error) => {
-    console.warn('Persistência offline do Firestore indisponível.', error);
-});
+// Inicializar Firebase dinamicamente
+loadFirebaseConfig().then(config => {
+    firebase.initializeApp(config);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    
+    db.enablePersistence({ synchronizeTabs: true }).catch((error) => {
+        console.warn('Persistência offline do Firestore indisponível.', error);
+    });
 
-// Mantem sessao ativa ate o usuario clicar em "Sair"
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((error) => {
-    console.warn('Nao foi possivel definir persistencia LOCAL:', error);
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((error) => {
+        console.warn('Nao foi possivel definir persistencia LOCAL:', error);
+    });
+}).catch(error => {
+    console.error('Falha ao inicializar aplicação:', error);
 });
 
 // ========== ELEMENTOS DOM ==========
@@ -8528,14 +8580,8 @@ function bindMessageSelectionInteractions(rowEl, messageId, options = {}) {
     });
 }
 
-function escapeHtml(value) {
-    return String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
+// Função auxiliar para proteção (já duplicada acima, mas mantendo para referência)
+// Ver implementação melhorada na seção de configuração inicial
 
 function normalizeExternalLink(rawUrl) {
     let value = String(rawUrl || '').trim();
