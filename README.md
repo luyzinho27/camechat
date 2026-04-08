@@ -33,5 +33,5 @@ CameChat é uma aplicação de mensagens em tempo real com suporte a texto, míd
 
 **Luiz Sérgio Garcia Carvalho**  
 Formado em Sistemas de Informação e Licenciatura em Matemática.  
-Contato: (91) 993064354 (WhatsApp)  
+Contato: (91) 993064344 (WhatsApp)  
 E-mail: luizynho27@gmail.com
