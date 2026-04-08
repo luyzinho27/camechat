@@ -2083,6 +2083,30 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         alert('Arquivo de mídia indisponível. Peça para o contato reenviar.');
         return;
     }
+    const messageType = resolveMessageType(msg);
+    const inferredName = msg?.fileName || extractFileNameFromUrl(resolvedUrl);
+    const inferredMime = msg?.fileType || inferMimeTypeFromFileName(inferredName || '');
+
+    if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, resolvedUrl))) {
+        const opened = callAndroidBridgeMethod('openExternalFile', resolvedUrl, inferredMime, inferredName || '');
+        if (opened) return;
+    }
+
+    if (messageType === 'file' && !isPdfFile(msg, resolvedUrl)) {
+        if (!mediaViewerModal || !mediaViewerContent) {
+            window.location.href = resolvedUrl;
+            return;
+        }
+        clearMediaViewerContent();
+        mediaViewerActiveMessage = msg || null;
+        mediaViewerActiveUrl = resolvedUrl || '';
+        syncMediaViewerSaveButton();
+        mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || '', resolvedUrl);
+        mediaViewerModal.classList.remove('hidden');
+        document.body.classList.add('media-viewer-open');
+        return;
+    }
+
     openMediaViewer(msg, resolvedUrl);
 }
 
