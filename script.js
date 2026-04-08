@@ -2027,6 +2027,14 @@ function buildMediaViewerFallback(fileName, resolvedUrl) {
     `;
 }
 
+function ensureAbsoluteUrl(url) {
+    if (!url) return '';
+    const raw = String(url).trim();
+    if (!raw) return '';
+    if (/^(https?:\/\/|blob:|data:)/i.test(raw)) return raw;
+    return normalizeBackendUrl(raw);
+}
+
 function openMediaViewer(msg, resolvedUrl) {
     if (!mediaViewerModal || !mediaViewerContent) {
         window.location.href = resolvedUrl;
@@ -2066,11 +2074,21 @@ function openMediaViewer(msg, resolvedUrl) {
         iframe.src = resolvedUrl;
         iframe.title = msg?.fileName || 'Documento PDF';
         mediaViewerContent.appendChild(iframe);
+        if (!isAndroidWebViewRuntime()) {
+            const fallback = document.createElement('div');
+            fallback.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento PDF', resolvedUrl);
+            mediaViewerContent.appendChild(fallback);
+        }
     } else {
         const iframe = document.createElement('iframe');
         iframe.src = resolvedUrl;
         iframe.title = msg?.fileName || 'Documento';
         mediaViewerContent.appendChild(iframe);
+        if (!isAndroidWebViewRuntime()) {
+            const fallback = document.createElement('div');
+            fallback.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento', resolvedUrl);
+            mediaViewerContent.appendChild(fallback);
+        }
     }
 
     mediaViewerModal.classList.remove('hidden');
@@ -2083,31 +2101,34 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         alert('Arquivo de mídia indisponível. Peça para o contato reenviar.');
         return;
     }
+    const absoluteUrl = ensureAbsoluteUrl(resolvedUrl);
     const messageType = resolveMessageType(msg);
-    const inferredName = msg?.fileName || extractFileNameFromUrl(resolvedUrl);
+    const inferredName = msg?.fileName || extractFileNameFromUrl(absoluteUrl);
     const inferredMime = msg?.fileType || inferMimeTypeFromFileName(inferredName || '');
 
-    if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, resolvedUrl))) {
-        const opened = callAndroidBridgeMethod('openExternalFile', resolvedUrl, inferredMime, inferredName || '');
-        if (opened) return;
+    if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, absoluteUrl))) {
+        if (!String(absoluteUrl).startsWith('blob:')) {
+            const opened = callAndroidBridgeMethod('openExternalFile', absoluteUrl, inferredMime, inferredName || '');
+            if (opened) return;
+        }
     }
 
-    if (messageType === 'file' && !isPdfFile(msg, resolvedUrl)) {
+    if (messageType === 'file' && !isPdfFile(msg, absoluteUrl)) {
         if (!mediaViewerModal || !mediaViewerContent) {
-            window.location.href = resolvedUrl;
+            window.location.href = absoluteUrl;
             return;
         }
         clearMediaViewerContent();
         mediaViewerActiveMessage = msg || null;
-        mediaViewerActiveUrl = resolvedUrl || '';
+        mediaViewerActiveUrl = absoluteUrl || '';
         syncMediaViewerSaveButton();
-        mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || '', resolvedUrl);
+        mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || '', absoluteUrl);
         mediaViewerModal.classList.remove('hidden');
         document.body.classList.add('media-viewer-open');
         return;
     }
 
-    openMediaViewer(msg, resolvedUrl);
+    openMediaViewer(msg, absoluteUrl);
 }
 
 async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
@@ -9066,7 +9087,7 @@ function renderMessages(messages, options = {}) {
                 `;
             }
         } else if (messageType === 'file') {
-            const fileUrl = getAttachmentDownloadUrl(msg) || '#';
+            const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || '#');
             const fileName = escapeHtml(msg.fileName || 'Arquivo');
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             div.innerHTML = `
