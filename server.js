@@ -146,8 +146,11 @@ const r2AccessKeyId = (process.env.R2_ACCESS_KEY_ID || '').trim();
 const r2SecretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || '').trim();
 const r2Bucket = (process.env.R2_BUCKET || '').trim();
 const r2PublicBaseUrl = trimTrailingSlash(process.env.R2_PUBLIC_BASE_URL || '');
+const r2EnabledFlag = (process.env.R2_ENABLED || '').trim().toLowerCase();
+const r2Enabled = r2EnabledFlag ? ['1', 'true', 'yes', 'on'].includes(r2EnabledFlag) : true;
 let objectStorageEnabled = Boolean(
-    S3Client
+    r2Enabled
+    && S3Client
     && PutObjectCommand
     && r2Endpoint
     && r2AccessKeyId
@@ -563,6 +566,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-    const mode = canUseObjectStorage ? 'bucket externo' : 'disco local';
+    const mode = objectStorageEnabled ? 'bucket externo' : 'disco local';
     console.log(`Servidor rodando em http://localhost:${PORT} (${mode})`);
 });
