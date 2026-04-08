@@ -146,7 +146,7 @@ const r2AccessKeyId = (process.env.R2_ACCESS_KEY_ID || '').trim();
 const r2SecretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || '').trim();
 const r2Bucket = (process.env.R2_BUCKET || '').trim();
 const r2PublicBaseUrl = trimTrailingSlash(process.env.R2_PUBLIC_BASE_URL || '');
-const canUseObjectStorage = Boolean(
+let objectStorageEnabled = Boolean(
     S3Client
     && PutObjectCommand
     && r2Endpoint
@@ -156,7 +156,7 @@ const canUseObjectStorage = Boolean(
     && r2PublicBaseUrl
 );
 
-const objectStorageClient = canUseObjectStorage
+let objectStorageClient = objectStorageEnabled
     ? new S3Client({
         region: r2Region,
         endpoint: r2Endpoint,
@@ -239,6 +239,15 @@ async function uploadBufferToObjectStorage(file, keyPrefix, generatedName) {
     return buildPublicObjectUrl(r2PublicBaseUrl, key);
 }
 
+async function writeBufferToLocalDisk(file, targetDir, filename, publicPrefix) {
+    if (!file?.buffer) {
+        throw new Error('Arquivo vazio.');
+    }
+    const outputPath = path.join(targetDir, filename);
+    await fs.promises.writeFile(outputPath, file.buffer);
+    return `${publicPrefix}/${filename}`;
+}
+
 function runMulter(middleware, req, res) {
     return new Promise((resolve, reject) => {
         middleware(req, res, (error) => {
@@ -310,7 +319,8 @@ app.use(express.static(__dirname));
 
 app.post('/api/upload-profile', async (req, res, next) => {
     try {
-        const uploadMiddleware = canUseObjectStorage
+        const useObjectStorage = objectStorageEnabled;
+        const uploadMiddleware = useObjectStorage
             ? uploadProfileMemory.single('photo')
             : uploadProfileDisk.single('photo');
 
@@ -321,9 +331,16 @@ app.post('/api/upload-profile', async (req, res, next) => {
         }
 
         let url = '';
-        if (canUseObjectStorage) {
+        if (useObjectStorage) {
             const filename = buildProfileFilename(req, req.file);
-            url = await uploadBufferToObjectStorage(req.file, 'profile', filename);
+            try {
+                url = await uploadBufferToObjectStorage(req.file, 'profile', filename);
+            } catch (error) {
+                console.warn('Falha no bucket externo. Salvando perfil no disco local.', error);
+                objectStorageEnabled = false;
+                objectStorageClient = null;
+                url = await writeBufferToLocalDisk(req.file, profileDir, filename, '/images/profile');
+            }
         } else {
             url = `/images/profile/${req.file.filename}`;
         }
@@ -337,7 +354,8 @@ app.post('/api/upload-profile', async (req, res, next) => {
 
 app.post('/api/upload-chat', async (req, res, next) => {
     try {
-        const uploadMiddleware = canUseObjectStorage
+        const useObjectStorage = objectStorageEnabled;
+        const uploadMiddleware = useObjectStorage
             ? uploadChatMemory.single('file')
             : uploadChatDisk.single('file');
 
@@ -348,9 +366,16 @@ app.post('/api/upload-chat', async (req, res, next) => {
         }
 
         let url = '';
-        if (canUseObjectStorage) {
+        if (useObjectStorage) {
             const filename = buildChatFilename(req, req.file);
-            url = await uploadBufferToObjectStorage(req.file, 'uploads', filename);
+            try {
+                url = await uploadBufferToObjectStorage(req.file, 'uploads', filename);
+            } catch (error) {
+                console.warn('Falha no bucket externo. Salvando anexo no disco local.', error);
+                objectStorageEnabled = false;
+                objectStorageClient = null;
+                url = await writeBufferToLocalDisk(req.file, chatUploadsDir, filename, '/images/uploads');
+            }
         } else {
             url = `/images/uploads/${req.file.filename}`;
         }
@@ -523,7 +548,7 @@ app.post('/api/message-notify', async (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({
         ok: true,
-        storageMode: canUseObjectStorage ? 'object-storage' : 'local-disk'
+        storageMode: objectStorageEnabled ? 'object-storage' : 'local-disk'
     });
 });
 
