@@ -2021,8 +2021,11 @@ function buildMediaViewerFallback(fileName, resolvedUrl) {
     return `
         <div class="media-viewer-file-fallback">
             <h3>${safeName}</h3>
-            <p>Não foi possível visualizar este arquivo diretamente. Toque no botão para abrir na mesma aba.</p>
-            <a href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
+            <p>Não foi possível visualizar este arquivo diretamente. Toque no botão para baixar ou abrir.</p>
+            <div class="media-viewer-file-actions">
+                <a class="media-viewer-file-open" href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
+                <a class="media-viewer-file-download" href="${safeUrl}" download>Baixar arquivo</a>
+            </div>
         </div>
     `;
 }
@@ -2033,6 +2036,86 @@ function ensureAbsoluteUrl(url) {
     if (!raw) return '';
     if (/^(https?:\/\/|blob:|data:)/i.test(raw)) return raw;
     return normalizeBackendUrl(raw);
+}
+
+function bindMediaViewerFileActions(resolvedUrl, msg) {
+    if (!mediaViewerContent) return;
+    const openBtn = mediaViewerContent.querySelector('.media-viewer-file-open');
+    const downloadBtn = mediaViewerContent.querySelector('.media-viewer-file-download');
+    const absoluteUrl = ensureAbsoluteUrl(resolvedUrl);
+    const fileName = msg?.fileName || extractFileNameFromUrl(absoluteUrl);
+    const mimeType = msg?.fileType || inferMimeTypeFromFileName(fileName || '');
+
+    if (openBtn && isAndroidWebViewRuntime()) {
+        openBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const opened = callAndroidBridgeMethod('openExternalFile', absoluteUrl, mimeType, fileName || '');
+            if (!opened) {
+                window.location.href = absoluteUrl;
+            }
+        });
+    }
+
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', (event) => {
+            if (isAndroidWebViewRuntime()) {
+                event.preventDefault();
+                saveAttachmentToDevice(msg, absoluteUrl).catch(() => {});
+            }
+        });
+    }
+}
+
+function getFileExtensionInfo(msg, url) {
+    const name = String(msg?.fileName || '').trim();
+    let ext = name.split('.').pop()?.toLowerCase() || '';
+    if (!ext) {
+        try {
+            const parsed = new URL(url, window.location.href);
+            const last = decodeURIComponent(parsed.pathname.split('/').pop() || '');
+            ext = last.split('.').pop()?.toLowerCase() || '';
+        } catch (_) {
+            ext = '';
+        }
+    }
+    return ext;
+}
+
+function getDocumentPreviewUrl(absoluteUrl, msg) {
+    const ext = getFileExtensionInfo(msg, absoluteUrl);
+    const fileType = String(msg?.fileType || '').toLowerCase();
+    const docExt = new Set(['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'odt', 'odp', 'ods', 'rtf', 'txt']);
+    if (docExt.has(ext) || fileType.includes('officedocument') || fileType.includes('msword') || fileType.includes('ms-powerpoint') || fileType.includes('ms-excel')) {
+        return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(absoluteUrl)}`;
+    }
+    return '';
+}
+
+function buildDocumentThumbInfo(msg, absoluteUrl) {
+    const ext = getFileExtensionInfo(msg, absoluteUrl);
+    const fileType = String(msg?.fileType || '').toLowerCase();
+    let label = ext ? ext.toUpperCase() : 'FILE';
+    let theme = 'file';
+    if (ext === 'pdf' || fileType.includes('pdf')) {
+        label = 'PDF';
+        theme = 'pdf';
+    } else if (['doc', 'docx', 'odt', 'rtf', 'txt'].includes(ext) || fileType.includes('msword') || fileType.includes('officedocument.word')) {
+        label = 'DOC';
+        theme = 'doc';
+    } else if (['ppt', 'pptx', 'odp'].includes(ext) || fileType.includes('powerpoint')) {
+        label = 'PPT';
+        theme = 'ppt';
+    } else if (['xls', 'xlsx', 'ods', 'csv'].includes(ext) || fileType.includes('excel') || fileType.includes('spreadsheet')) {
+        label = 'XLS';
+        theme = 'xls';
+    } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+        label = 'ZIP';
+        theme = 'zip';
+    } else if (ext === 'apk') {
+        label = 'APK';
+        theme = 'apk';
+    }
+    return { label, theme };
 }
 
 function openMediaViewer(msg, resolvedUrl) {
@@ -2074,20 +2157,18 @@ function openMediaViewer(msg, resolvedUrl) {
         iframe.src = resolvedUrl;
         iframe.title = msg?.fileName || 'Documento PDF';
         mediaViewerContent.appendChild(iframe);
-        if (!isAndroidWebViewRuntime()) {
-            const fallback = document.createElement('div');
-            fallback.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento PDF', resolvedUrl);
-            mediaViewerContent.appendChild(fallback);
-        }
+        bindMediaViewerFileActions(resolvedUrl, msg);
     } else {
-        const iframe = document.createElement('iframe');
-        iframe.src = resolvedUrl;
-        iframe.title = msg?.fileName || 'Documento';
-        mediaViewerContent.appendChild(iframe);
-        if (!isAndroidWebViewRuntime()) {
-            const fallback = document.createElement('div');
-            fallback.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento', resolvedUrl);
-            mediaViewerContent.appendChild(fallback);
+        const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg);
+        if (previewUrl) {
+            const iframe = document.createElement('iframe');
+            iframe.src = previewUrl;
+            iframe.title = msg?.fileName || 'Documento';
+            mediaViewerContent.appendChild(iframe);
+            bindMediaViewerFileActions(resolvedUrl, msg);
+        } else {
+            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento', resolvedUrl);
+            bindMediaViewerFileActions(resolvedUrl, msg);
         }
     }
 
@@ -2105,15 +2186,17 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
     const messageType = resolveMessageType(msg);
     const inferredName = msg?.fileName || extractFileNameFromUrl(absoluteUrl);
     const inferredMime = msg?.fileType || inferMimeTypeFromFileName(inferredName || '');
+    const previewUrl = getDocumentPreviewUrl(absoluteUrl, msg);
 
     if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, absoluteUrl))) {
-        if (!String(absoluteUrl).startsWith('blob:')) {
-            const opened = callAndroidBridgeMethod('openExternalFile', absoluteUrl, inferredMime, inferredName || '');
+        const targetUrl = previewUrl || absoluteUrl;
+        if (!String(targetUrl).startsWith('blob:')) {
+            const opened = callAndroidBridgeMethod('openExternalFile', targetUrl, inferredMime, inferredName || '');
             if (opened) return;
         }
     }
 
-    if (messageType === 'file' && !isPdfFile(msg, absoluteUrl)) {
+    if (messageType === 'file' && !isPdfFile(msg, absoluteUrl) && !previewUrl) {
         if (!mediaViewerModal || !mediaViewerContent) {
             window.location.href = absoluteUrl;
             return;
@@ -2128,7 +2211,7 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         return;
     }
 
-    openMediaViewer(msg, absoluteUrl);
+    openMediaViewer(msg, previewUrl || absoluteUrl);
 }
 
 async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
@@ -2201,7 +2284,7 @@ function shouldAutoDownloadIncomingAttachment(msg) {
     if (!autoMediaSaveEnabled) return false;
     if (msg.senderId === currentUser.uid) return false;
     const type = msg.type || (msg.imageUrl ? 'image' : 'text');
-    if (!['image', 'video', 'audio', 'file'].includes(type)) return false;
+    if (!['image', 'video', 'audio'].includes(type)) return false;
     return !!getAttachmentDownloadUrl(msg);
 }
 
@@ -7835,9 +7918,17 @@ function normalizeAndroidSharePayload(payload) {
         mimeType: String(item?.mimeType || item?.type || '').trim(),
         size: Number(item?.size || 0) || 0
     })).filter((item) => item.uri);
+    let filteredItems = normalizedItems;
+    const hasLink = /(https?:\/\/|www\.)/i.test(text);
+    if (hasLink && normalizedItems.length) {
+        const onlyImages = normalizedItems.every((item) => item.mimeType.startsWith('image/'));
+        if (onlyImages) {
+            filteredItems = [];
+        }
+    }
     return {
         text,
-        items: normalizedItems
+        items: filteredItems
     };
 }
 
@@ -9090,10 +9181,12 @@ function renderMessages(messages, options = {}) {
             const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || '#');
             const fileName = escapeHtml(msg.fileName || 'Arquivo');
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
+            const thumbInfo = buildDocumentThumbInfo(msg, fileUrl);
             div.innerHTML = `
                 ${replyReference}
                 <div class="file-attachment">
                     <span class="file-icon">&#128206;</span>
+                    <span class="file-attachment-thumb file-attachment-thumb-${thumbInfo.theme}">${thumbInfo.label}</span>
                     <div class="file-info">
                         <a class="chat-media-file-link" href="${fileUrl}" target="_self" rel="noopener">${fileName}</a>
                         <small>${fileSize}</small>
