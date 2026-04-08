@@ -1658,6 +1658,11 @@ async function resolveAttachmentUrl(msg, preferredUrl = '') {
         return await getCachedAttachmentObjectUrl(msg);
     }
 
+    const resolvedType = resolveMessageType(msg);
+    if (resolvedType === 'file') {
+        return candidates[0] || '';
+    }
+
     for (const url of candidates) {
         const ok = await canAccessAttachmentUrl(url);
         if (ok) return url;
@@ -2084,8 +2089,8 @@ function getFileExtensionInfo(msg, url) {
 function getDocumentPreviewUrl(absoluteUrl, msg) {
     const ext = getFileExtensionInfo(msg, absoluteUrl);
     const fileType = String(msg?.fileType || '').toLowerCase();
-    const docExt = new Set(['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'odt', 'odp', 'ods', 'rtf', 'txt']);
-    if (docExt.has(ext) || fileType.includes('officedocument') || fileType.includes('msword') || fileType.includes('ms-powerpoint') || fileType.includes('ms-excel')) {
+    const docExt = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'odt', 'odp', 'ods', 'rtf', 'txt']);
+    if (docExt.has(ext) || fileType.includes('pdf') || fileType.includes('officedocument') || fileType.includes('msword') || fileType.includes('ms-powerpoint') || fileType.includes('ms-excel')) {
         return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(absoluteUrl)}`;
     }
     return '';
@@ -2199,6 +2204,10 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         if (!String(targetUrl).startsWith('blob:')) {
             const opened = callAndroidBridgeMethod('openExternalFile', targetUrl, inferredMime, inferredName || '');
             if (opened) return;
+            if (previewUrl && previewUrl !== absoluteUrl) {
+                const openedDirect = callAndroidBridgeMethod('openExternalFile', absoluteUrl, inferredMime, inferredName || '');
+                if (openedDirect) return;
+            }
         }
     }
 
