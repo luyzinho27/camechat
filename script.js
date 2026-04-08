@@ -2153,11 +2153,17 @@ function openMediaViewer(msg, resolvedUrl) {
         audio.autoplay = true;
         mediaViewerContent.appendChild(audio);
     } else if (isPdfFile(msg, resolvedUrl)) {
-        const iframe = document.createElement('iframe');
-        iframe.src = resolvedUrl;
-        iframe.title = msg?.fileName || 'Documento PDF';
-        mediaViewerContent.appendChild(iframe);
-        bindMediaViewerFileActions(resolvedUrl, msg);
+        if (isAndroidWebViewRuntime()) {
+            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento PDF', resolvedUrl);
+            bindMediaViewerFileActions(resolvedUrl, msg);
+        } else {
+            const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg) || resolvedUrl;
+            const iframe = document.createElement('iframe');
+            iframe.src = previewUrl;
+            iframe.title = msg?.fileName || 'Documento PDF';
+            mediaViewerContent.appendChild(iframe);
+            bindMediaViewerFileActions(resolvedUrl, msg);
+        }
     } else {
         const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg);
         if (previewUrl) {
@@ -2357,8 +2363,8 @@ function callAndroidBridgeMethod(methodName, ...args) {
         if (!window.CameChatAndroid) return;
         const method = window.CameChatAndroid[methodName];
         if (typeof method === 'function') {
-            method.call(window.CameChatAndroid, ...args);
-            return true;
+            const result = method.call(window.CameChatAndroid, ...args);
+            return typeof result === 'undefined' ? true : !!result;
         }
     } catch (error) {
         console.warn(`Falha ao chamar o bridge Android: ${methodName}`, error);
