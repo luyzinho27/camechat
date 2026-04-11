@@ -1598,12 +1598,14 @@ function buildFirebaseMediaUrl(storagePath) {
 
 function getAttachmentDownloadCandidates(msg) {
     if (!msg) return [];
-    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
+    const type = resolveMessageType(msg);
     if (!['image', 'video', 'audio', 'file'].includes(type)) return [];
 
+    const fileUrl = getMessageFileUrl(msg);
+    const imageUrl = getMessageImageUrl(msg);
     const basePath = type === 'image'
-        ? (msg.imageUrl || msg.fileUrl || '')
-        : (msg.fileUrl || msg.imageUrl || '');
+        ? (imageUrl || fileUrl || '')
+        : (fileUrl || imageUrl || '');
     const primary = normalizeBackendUrl(basePath);
     const candidates = [];
     addUniqueUrl(candidates, primary);
@@ -2006,18 +2008,15 @@ function isPdfFile(msg, resolvedUrl) {
 }
 
 function isAttachmentImage(msg) {
-    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
-    return messageType === 'image';
+    return resolveMessageType(msg) === 'image';
 }
 
 function isAttachmentVideo(msg) {
-    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
-    return messageType === 'video';
+    return resolveMessageType(msg) === 'video';
 }
 
 function isAttachmentAudio(msg) {
-    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
-    return messageType === 'audio';
+    return resolveMessageType(msg) === 'audio';
 }
 
 function buildMediaViewerFallback(fileName, resolvedUrl) {
@@ -2188,7 +2187,8 @@ function openMediaViewer(msg, resolvedUrl) {
 }
 
 async function openAttachmentInNewTab(msg, preferredUrl = '') {
-    const resolvedUrl = await resolveAttachmentUrl(msg, preferredUrl);
+    const fallbackUrl = preferredUrl || getMessageFileUrl(msg) || getMessageImageUrl(msg) || '';
+    const resolvedUrl = await resolveAttachmentUrl(msg, fallbackUrl);
     if (!resolvedUrl) {
         alert('Arquivo de mídia indisponível. Peça para o contato reenviar.');
         return;
@@ -9193,7 +9193,7 @@ function renderMessages(messages, options = {}) {
                 `;
             }
         } else if (messageType === 'file') {
-            const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || '#');
+            const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || getMessageFileUrl(msg) || '#');
             const fileName = escapeHtml(msg.fileName || 'Arquivo');
             const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
             const thumbInfo = buildDocumentThumbInfo(msg, fileUrl);
