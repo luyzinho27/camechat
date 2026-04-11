@@ -6,7 +6,7 @@
     <title>CameChat - Conectando Pessoas</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
     <link rel="apple-touch-icon" href="images/camechat_logo.png">
-    <link rel="stylesheet" href="style.cssv=20260408-03">
+    <link rel="stylesheet" href="style.css?v=20260408-03">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -41,16 +41,16 @@
             <div class="auth-header">
                 <img src="images/camechat_logo.png" alt="Logo do CameChat" class="auth-brand-logo">
                 <h1>CameChat</h1>
-                <p class="subtitle">Faa login ou crie sua conta</p>
+                <p class="subtitle">Fa?a login ou crie sua conta</p>
             </div>
             
-            <!-- Abas de navegao -->
+            <!-- Abas de navega??o -->
             <div class="auth-tabs">
                 <button id="tab-login" class="auth-tab active">Entrar</button>
                 <button id="tab-register" class="auth-tab">Cadastrar</button>
             </div>
             
-            <!-- Formulrio de Login -->
+            <!-- Formul?rio de Login -->
             <form id="login-form" class="auth-form active">
                 <div class="form-group">
                     <label for="login-email">E-mail</label>
@@ -82,7 +82,7 @@
                 </button>
             </form>
             
-            <!-- Formulrio de Cadastro -->
+            <!-- Formul?rio de Cadastro -->
             <form id="register-form" class="auth-form">
                 <div class="form-group">
                     <label for="register-photo">Foto de perfil</label>
@@ -192,21 +192,21 @@
                     <input type="file" id="message-tone-input" accept="audio/mpeg,audio/mp3" class="hidden">
                     <button id="btn-call-tone" class="settings-item" type="button">Toque de chamada: padro</button>
                     <input type="file" id="call-tone-input" accept="audio/mpeg,audio/mp3" class="hidden">
-                    <button id="btn-desktop-notifications-toggle" class="settings-item" type="button" aria-pressed="false">Notificaes: desligadas</button>
+                    <button id="btn-desktop-notifications-toggle" class="settings-item" type="button" aria-pressed="false">Notifica??es: desligadas</button>
                     <button id="btn-read-receipts-toggle" class="settings-item" type="button" aria-pressed="true">Leitura: ligada</button>
                     <button id="btn-online-status-toggle" class="settings-item" type="button" aria-pressed="true">Status: visvel</button>
                     <button id="btn-chat-font-toggle" class="settings-item" type="button" aria-pressed="false">Fonte do chat: normal</button>
                     <button id="btn-chat-background" class="settings-item" type="button">Plano de fundo do chat</button>
                     <input type="file" id="chat-background-upload" accept="image/*" class="hidden">
-                    <button id="btn-media-save-mode-toggle" class="settings-item" type="button" aria-pressed="true">Salvamento de mdia: automtico</button>
-                    <button id="btn-media-folder-pc" class="settings-item hidden" type="button">Pasta de mdia (PC): configurar</button>
+                    <button id="btn-media-save-mode-toggle" class="settings-item" type="button" aria-pressed="true">Salvamento de m?dia: autom?tico</button>
+                    <button id="btn-media-folder-pc" class="settings-item hidden" type="button">Pasta de m?dia (PC): configurar</button>
                     <button id="btn-call-block-toggle" class="settings-item" type="button" aria-pressed="false">Chamadas: permitidas</button>
                     <button id="btn-last-seen-toggle" class="settings-item" type="button" aria-pressed="true">Visto por ltimo: visvel</button>
                     <button id="btn-language-toggle" class="settings-item" type="button" aria-pressed="false">Idioma: portugus</button>
                     <button id="btn-about" class="settings-item" type="button">Sobre</button>
                     <button id="btn-logout" class="settings-item logout-btn" type="button">Sair</button>
                 </div>
-                <button id="btn-settings" class="settings-btn" type="button" title="Configuraes" aria-label="Configuraes">&#9881;</button>
+                <button id="btn-settings" class="settings-btn" type="button" title="Configura??es" aria-label="Configura??es">&#9881;</button>
             </div>
         </aside>
 
@@ -384,7 +384,7 @@
                                 <option value="administrador">Administrador</option>
                             </select>
                         </div>
-                        <button id="admin-edit-save" class="btn-primary">Salvar alteraes</button>
+                        <button id="admin-edit-save" class="btn-primary">Salvar altera??es</button>
                     </div>
                 </div>
             </section>
@@ -571,13 +571,13 @@
         </div>
     </div>
 
-    <div id="media-viewer-modal" class="media-viewer-modal hidden" role="dialog" aria-modal="true" aria-label="Visualizador de mdia">
-        <button id="btn-media-viewer-save" class="btn-icon btn-media-viewer-save hidden" type="button" title="Salvar mdia" aria-label="Salvar mdia">&#11015;</button>
-        <button id="btn-media-viewer-close" class="btn-icon btn-media-viewer-close" type="button" title="Fechar" aria-label="Fechar visualizao">&#10006;</button>
+    <div id="media-viewer-modal" class="media-viewer-modal hidden" role="dialog" aria-modal="true" aria-label="Visualizador de m?dia">
+        <button id="btn-media-viewer-save" class="btn-icon btn-media-viewer-save hidden" type="button" title="Salvar m?dia" aria-label="Salvar m?dia">&#11015;</button>
+        <button id="btn-media-viewer-close" class="btn-icon btn-media-viewer-close" type="button" title="Fechar" aria-label="Fechar visualiza??o">&#10006;</button>
         <div id="media-viewer-content" class="media-viewer-content"></div>
     </div>
 
-    <div id="message-action-menu" class="message-action-menu hidden" role="menu" aria-label="Aes da mensagem">
+    <div id="message-action-menu" class="message-action-menu hidden" role="menu" aria-label="A??es da mensagem">
         <button id="message-action-reply" class="message-action-btn" type="button" role="menuitem">&#8617; Responder</button>
         <button id="message-action-copy" class="message-action-btn" type="button" role="menuitem">&#128203; Copiar</button>
         <button id="message-action-edit" class="message-action-btn" type="button" role="menuitem">&#9998; Editar</button>
@@ -587,6 +587,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.jsv=20260411-04"></script>
+    <script src="script.js?v=20260411-09"></script>
 </body>
 </html>
