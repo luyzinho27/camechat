@@ -2033,7 +2033,7 @@ function closeMediaViewer() {
 function isPdfFile(msg, resolvedUrl) {
     const fileType = String(msg.fileType || '').toLowerCase();
     if (fileType.includes('pdf')) return true;
-    return /\.pdf($|\)/i.test(String(resolvedUrl || ''));
+    return /\.pdf($|\?)/i.test(String(resolvedUrl || ''));
 }
 
 function isAttachmentImage(msg) {
