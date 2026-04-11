@@ -2089,6 +2089,21 @@ function bindMediaViewerFileActions(resolvedUrl, msg) {
         });
     }
 
+    if (openBtn && !isAndroidWebViewRuntime()) {
+        openBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (!mediaViewerContent) {
+                window.location.href = absoluteUrl;
+                return;
+            }
+            const iframe = document.createElement('iframe');
+            iframe.src = absoluteUrl;
+            iframe.title = fileName || 'Documento';
+            mediaViewerContent.innerHTML = '';
+            mediaViewerContent.appendChild(iframe);
+        });
+    }
+
     if (downloadBtn) {
         downloadBtn.addEventListener('click', (event) => {
             if (isAndroidWebViewRuntime()) {
@@ -2098,6 +2113,7 @@ function bindMediaViewerFileActions(resolvedUrl, msg) {
         });
     }
 }
+
 
 function getFileExtensionInfo(msg, url) {
     const name = String(msg?.fileName || '').trim();
@@ -7220,82 +7236,104 @@ async function loadMessages(otherUid) {
     if (messagesUnsubscribe) messagesUnsubscribe();
     if (typingUnsubscribe) typingUnsubscribe();
     if (!currentUser || !otherUid) return;
+
     const conversationId = getConversationId(currentUser.uid, otherUid);
     currentConversationId = conversationId;
     let hasLoadedRealtimeSnapshot = false;
     let hasRenderedAnySnapshot = false;
+
     listenTypingStatus(otherUid);
-    const messagesRef = db.collection('conversations')
+
+    const orderedRef = db.collection('conversations')
         .doc(conversationId)
         .collection('messages')
         .orderBy('timestamp', 'asc');
+
     const renderSnapshot = (snapshot, { realtime } = {}) => {
+        const messages = [];
         try {
-            if (realtime && hasLoadedRealtimeSnapshot) {
-                const incomingChanges = snapshot.docChanges().filter((change) => {
-                    if (change.type !== 'added') return false;
-                    const data = change.doc.data();
-                    return data?.senderId === otherUid;
-                });
-                if (incomingChanges.length > 0) {
-                    playIncomingMessageTone(otherUid);
-                    const latestIncoming = incomingChanges[incomingChanges.length - 1].doc.data();
-                    showIncomingDesktopNotification(otherUid, latestIncoming);
-                    incomingChanges.forEach((change) => {
-                        const msgData = change.doc.data() || {};
-                        const message = { id: change.doc.id, ...msgData };
-                        autoDownloadIncomingAttachment(conversationId, message);
+            if (snapshot && typeof snapshot.forEach === 'function') {
+                if (realtime && hasLoadedRealtimeSnapshot) {
+                    const incomingChanges = snapshot.docChanges().filter((change) => {
+                        if (change.type !== 'added') return false;
+                        const data = change.doc.data();
+                        return data?.senderId === otherUid;
                     });
+
+                    if (incomingChanges.length > 0) {
+                        playIncomingMessageTone(otherUid);
+                        const latestIncoming = incomingChanges[incomingChanges.length - 1].doc.data();
+                        showIncomingDesktopNotification(otherUid, latestIncoming);
+
+                        incomingChanges.forEach((change) => {
+                            const msgData = change.doc.data() || {};
+                            const message = { id: change.doc.id, ...msgData };
+                            autoDownloadIncomingAttachment(conversationId, message);
+                        });
+                    }
                 }
-            }
-            const messages = [];
-            snapshot.forEach((doc) => {
-                const data = { id: doc.id, ...doc.data() };
-                if (isMessageHiddenForCurrentUser(data)) return;
-                messages.push(data);
-            });
-            currentConversationMessages = messages;
-            if (editingMessage?.id) {
-                const latestEditingMessage = messages.find((msg) => msg.id === editingMessage.id);
-                if (!latestEditingMessage || !canEditMessage(latestEditingMessage)) {
-                    clearEditingMessage();
-                } else {
-                    editingMessage = latestEditingMessage;
-                    syncComposerEditModeUI();
-                }
-            }
-            if (isMessageSelectionMode) {
-                const validIds = new Set(messages.map((msg) => msg.id));
-                selectedMessageIds.forEach((id) => {
-                    if (!validIds.has(id)) selectedMessageIds.delete(id);
+
+                snapshot.forEach((doc) => {
+                    const data = { id: doc.id, ...doc.data() };
+                    if (isMessageHiddenForCurrentUser(data)) return;
+                    messages.push(data);
                 });
-                if (selectedMessageIds.size === 0) {
-                    isMessageSelectionMode = false;
-                }
             }
+        } catch (error) {
+            console.warn('Falha ao preparar mensagens:', error);
+        }
+
+        currentConversationMessages = messages;
+
+        if (editingMessage?.id) {
+            const latestEditingMessage = messages.find((msg) => msg.id === editingMessage.id);
+            if (!latestEditingMessage || !canEditMessage(latestEditingMessage)) {
+                clearEditingMessage();
+            } else {
+                editingMessage = latestEditingMessage;
+                syncComposerEditModeUI();
+            }
+        }
+
+        if (isMessageSelectionMode) {
+            const validIds = new Set(messages.map((msg) => msg.id));
+            selectedMessageIds.forEach((id) => {
+                if (!validIds.has(id)) selectedMessageIds.delete(id);
+            });
+            if (selectedMessageIds.size === 0) {
+                isMessageSelectionMode = false;
+            }
+        }
+
+        let rendered = false;
+        try {
             renderMessages(messages);
-            updateMessageSelectionUI();
-            updateMessageAttachmentUrls(conversationId, messages);
-            updateMessageDeliveryStatus(conversationId, messages);
-            updateOutgoingDeliveryStatus(conversationId, messages);
-            // Marcar mensagens como lidas
-            markMessagesAsRead(conversationId);
+            rendered = true;
+        } catch (error) {
+            console.warn('Falha ao renderizar mensagens:', error);
+        }
+
+        try { updateMessageSelectionUI(); } catch (error) { console.warn('Falha ao atualizar selecao.', error); }
+        try { updateMessageAttachmentUrls(conversationId, messages); } catch (error) { console.warn('Falha ao atualizar urls.', error); }
+        try { updateMessageDeliveryStatus(conversationId, messages); } catch (error) { console.warn('Falha ao atualizar entrega.', error); }
+        try { updateOutgoingDeliveryStatus(conversationId, messages); } catch (error) { console.warn('Falha ao atualizar recebimento.', error); }
+        try { markMessagesAsRead(conversationId); } catch (error) { console.warn('Falha ao marcar leitura.', error); }
+
+        if (rendered) {
             hasRenderedAnySnapshot = true;
             if (realtime) {
                 hasLoadedRealtimeSnapshot = true;
             }
-        } catch (error) {
-            console.warn('Falha ao processar mensagens:', error);
-            if (!hasRenderedAnySnapshot && messagesContainer) {
-                messagesContainer.innerHTML = `
-                    <div class="welcome-message">
-                        <p>Nao foi possivel carregar as mensagens agora.</p>
-                    </div>
-                `;
-            }
+        } else if (!hasRenderedAnySnapshot && messagesContainer) {
+            messagesContainer.innerHTML = `
+                <div class="welcome-message">
+                    <p>Nao foi possivel carregar as mensagens agora.</p>
+                </div>
+            `;
         }
     };
-    messagesUnsubscribe = messagesRef.onSnapshot(
+
+    messagesUnsubscribe = orderedRef.onSnapshot(
         (snapshot) => renderSnapshot(snapshot, { realtime: true }),
         (error) => {
             console.warn('Falha ao escutar mensagens em tempo real:', error);
@@ -7308,8 +7346,9 @@ async function loadMessages(otherUid) {
             }
         }
     );
+
     try {
-        const initialSnapshot = await messagesRef.get();
+        const initialSnapshot = await orderedRef.get();
         if (!hasRenderedAnySnapshot) {
             renderSnapshot(initialSnapshot, { realtime: false });
         }
@@ -7317,6 +7356,7 @@ async function loadMessages(otherUid) {
         console.warn('Falha ao carregar mensagens iniciais:', error);
     }
 }
+
 
 // Gerar ID da conversa
 function getConversationId(uid1, uid2) {
