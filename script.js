@@ -1,4 +1,4 @@
-// Configurao do Firebase
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls",
     authDomain: "camechat-4fb88.firebaseapp.com",
@@ -22,7 +22,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 db.enablePersistence({ synchronizeTabs: true }).catch((error) => {
-    console.warn('Persistncia offline do Firestore indisponvel.', error);
+    console.warn('Persistência offline do Firestore indisponível.', error);
 });
 
 // Mantem sessao ativa ate o usuario clicar em "Sair"
@@ -51,7 +51,7 @@ const closeModal = document.getElementById('forgot-close-modal');
 const btnResetPassword = document.getElementById('btn-reset-password');
 const resetEmail = document.getElementById('reset-email');
 const rememberMe = document.getElementById('remember-me');
-const rememberMeContainer = rememberMe.closest('.checkbox-container');
+const rememberMeContainer = rememberMe?.closest('.checkbox-container');
 
 if (rememberMe) {
     rememberMe.checked = true;
@@ -80,7 +80,7 @@ const chatPartnerName = document.getElementById('chat-partner-name');
 const chatPartnerPhoto = document.getElementById('chat-partner-photo');
 const chatPartnerStatus = document.getElementById('chat-partner-status');
 const chatPartnerActivity = document.getElementById('chat-partner-activity');
-const defaultChatPartnerPhoto = chatPartnerPhoto.dataset.defaultSrc || chatPartnerPhoto.src || '';
+const defaultChatPartnerPhoto = chatPartnerPhoto?.dataset?.defaultSrc || chatPartnerPhoto?.src || '';
 const messagesContainer = document.getElementById('messages-container');
 const messageInput = document.getElementById('message-input');
 const btnSend = document.getElementById('btn-send');
@@ -305,7 +305,7 @@ const editPreview = document.getElementById('edit-preview');
 const editPreviewLabel = document.getElementById('edit-preview-label');
 const editPreviewText = document.getElementById('edit-preview-text');
 const btnEditCancel = document.getElementById('btn-edit-cancel');
-const DEFAULT_MESSAGE_INPUT_PLACEHOLDER = messageInput.getAttribute('placeholder') || 'Digite sua mensagem...';
+const DEFAULT_MESSAGE_INPUT_PLACEHOLDER = messageInput?.getAttribute('placeholder') || 'Digite sua mensagem...';
 
 const CALL_ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>';
 const CALL_ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
@@ -319,13 +319,13 @@ const CALL_ICON_SWITCH_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="cur
 const CALL_ICON_SWITCH_AUDIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.78.58 2.63a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.45-1.1a2 2 0 0 1 2.11-.45c.85.26 1.73.46 2.63.58a2 2 0 0 1 1.72 1.98z"></path><path d="M19 5h-4"></path><path d="M17 3v4"></path></svg>';
 const VOICE_ICON_IDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line></svg>';
 const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle></svg>';
-const CAMERA_ICON_SWITCH = '';
-const CAMERA_ICON_FLASH_ON = '';
-const CAMERA_ICON_FLASH_OFF = '';
-const CAMERA_ICON_PHOTO = '';
-const CAMERA_ICON_VIDEO = '';
-const CAMERA_ICON_STOP = '';
-const CAMERA_ICON_CLOSE = '';
+const CAMERA_ICON_SWITCH = '🔄';
+const CAMERA_ICON_FLASH_ON = '⚡';
+const CAMERA_ICON_FLASH_OFF = '⚡';
+const CAMERA_ICON_PHOTO = '📷';
+const CAMERA_ICON_VIDEO = '🎥';
+const CAMERA_ICON_STOP = '⏹';
+const CAMERA_ICON_CLOSE = '✕';
 const RECORDING_HEARTBEAT_MS = 5000;
 const ONLINE_HEARTBEAT_MS = 30000;
 const ONLINE_STALE_MS = (ONLINE_HEARTBEAT_MS * 2) + 10000;
@@ -341,7 +341,7 @@ const MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD = 90;
 const MEDIA_VIEWER_SWIPE_NAV_THRESHOLD = 80;
 const APP_BOOTSTRAP_FALLBACK_MS = 1200;
 
-// ========== VARIVEIS DE ESTADO ==========
+// ========== VARIÁVEIS DE ESTADO ==========
 let currentUser = null;
 let currentUserProfile = null;
 let currentUserRole = 'user_chat';
@@ -559,7 +559,7 @@ if (registerPhotoInput) {
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            alert('A foto deve ter no mximo 5MB.');
+            alert('A foto deve ter no máximo 5MB.');
             registerPhotoInput.value = '';
             if (registerPhotoPreview) {
                 registerPhotoPreview.src = '';
@@ -577,7 +577,7 @@ if (registerPhotoInput) {
 }
 
 async function checkAdminExists() {
-    if (!auth.currentUser) return null;
+    if (!auth?.currentUser) return null;
     try {
         const snapshot = await db.collection('users')
             .where('role', '==', 'administrador')
@@ -585,7 +585,7 @@ async function checkAdminExists() {
             .get();
         return !snapshot.empty;
     } catch (error) {
-        if (error.code !== 'permission-denied' && error.code !== 'unauthenticated') {
+        if (error?.code !== 'permission-denied' && error?.code !== 'unauthenticated') {
             console.warn('Erro ao verificar administrador:', error);
         }
         return null;
@@ -593,7 +593,7 @@ async function checkAdminExists() {
 }
 
 async function resolveRoleForSignup(requestedRole) {
- const normalizedRole = requestedRole === 'administrador' ? 'administrador' : 'user_chat';
+    const normalizedRole = requestedRole === 'administrador' ? 'administrador' : 'user_chat';
     const adminExists = await checkAdminExists();
     if (adminExists === false) {
         return 'administrador';
@@ -612,7 +612,7 @@ async function updateRegisterRoleAvailability() {
     const adminExists = await checkAdminExists();
     const disableAdmin = adminExists !== false;
     registerRoleAdminOption.disabled = disableAdmin;
- registerRoleAdminOption.textContent = disableAdmin ? 'Administrador (indisponvel)' : 'Administrador';
+    registerRoleAdminOption.textContent = disableAdmin ? 'Administrador (indisponível)' : 'Administrador';
     if (disableAdmin && registerRole && registerRole.value === 'administrador') {
         registerRole.value = 'user_chat';
     }
@@ -683,7 +683,7 @@ function getSearchableUserTag(entity) {
     if (!entity) return '';
     const sourceName = entity.name || entity.displayName || '';
     const canonicalTag = sourceName
-         ? normalizeUserTagInput(buildGeneratedUserTag(sourceName, entity.uid || entity.id || ''))
+        ? normalizeUserTagInput(buildGeneratedUserTag(sourceName, entity.uid || entity.id || ''))
         : '';
     if (canonicalTag) {
         return canonicalTag;
@@ -693,24 +693,24 @@ function getSearchableUserTag(entity) {
 
 function sortUsersByNameAndEmail(users) {
     return [...users].sort((a, b) => {
-        const nameA = String(a.name || '').toLowerCase();
-        const nameB = String(b.name || '').toLowerCase();
+        const nameA = String(a?.name || '').toLowerCase();
+        const nameB = String(b?.name || '').toLowerCase();
         if (nameA !== nameB) return nameA.localeCompare(nameB, 'pt-BR');
-        const emailA = String(a.email || '').toLowerCase();
-        const emailB = String(b.email || '').toLowerCase();
+        const emailA = String(a?.email || '').toLowerCase();
+        const emailB = String(b?.email || '').toLowerCase();
         return emailA.localeCompare(emailB, 'pt-BR');
     });
 }
 
 function getUserTagMatchOptionMeta(user) {
-    if (!user.uid || !currentUser) {
+    if (!user?.uid || !currentUser) {
         return { selectable: true, buttonLabel: 'Escolher' };
     }
     if (user.uid === currentUser.uid) {
         const alreadyAdded = Array.isArray(currentFriends) && currentFriends.includes(user.uid);
         return {
             selectable: !alreadyAdded,
- buttonLabel: alreadyAdded ? 'Adicionado' : 'Adicionar voc'
+            buttonLabel: alreadyAdded ? 'Adicionado' : 'Adicionar você'
         };
     }
     if (currentFriends.includes(user.uid)) {
@@ -725,21 +725,21 @@ function buildUserTagMatchItem(user) {
     item.dataset.uid = user.uid;
     const optionMeta = getUserTagMatchOptionMeta(user);
 
-    const safeName = escapeHtml(user.name || 'Usurio');
-    const safeEmail = escapeHtml(user.email || 'E-mail no informado');
+    const safeName = escapeHtml(user.name || 'Usuário');
+    const safeEmail = escapeHtml(user.email || 'E-mail não informado');
 
     item.innerHTML = `
-        <img src="https://via.placeholder.com/40/cccccc/666666text=User" alt="avatar">
+        <img src="https://via.placeholder.com/40/cccccc/666666?text=User" alt="avatar">
         <div class="share-message-friend-info">
             <strong>${safeName}</strong>
             <small>${safeEmail}</small>
         </div>
- <button type="button" class="btn-primary share-message-pick-btn"${optionMeta.selectable ? '' : ' disabled'}>${optionMeta.buttonLabel}</button>
+        <button type="button" class="btn-primary share-message-pick-btn"${optionMeta.selectable ? '' : ' disabled'}>${optionMeta.buttonLabel}</button>
     `;
 
     const avatar = item.querySelector('img');
     if (avatar) {
-        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666text=User');
+        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666?text=User');
     }
 
     return item;
@@ -767,7 +767,7 @@ async function askUserTagMatchSelection(identifier, users) {
 
     const normalizedIdentifier = normalizeUserTagInput(identifier);
     if (userTagMatchText) {
-        userTagMatchText.textContent = `Mais de um usurio foi encontrado com @${normalizedIdentifier}. Escolha o usurio correto abaixo.`;
+        userTagMatchText.textContent = `Mais de um usuário foi encontrado com @${normalizedIdentifier}. Escolha o usuário correto abaixo.`;
     }
 
     userTagMatchList.innerHTML = '';
@@ -810,8 +810,8 @@ function renderCurrentUserIdentity(profile) {
     }
 }
 
-function getMutedFriendsStorageKey(uid = currentUser.uid) {
- return uid ? `${MUTED_FRIENDS_STORAGE_KEY_PREFIX}${uid}` : '';
+function getMutedFriendsStorageKey(uid = currentUser?.uid) {
+    return uid ? `${MUTED_FRIENDS_STORAGE_KEY_PREFIX}${uid}` : '';
 }
 
 function loadMutedFriendsForCurrentUser() {
@@ -823,8 +823,8 @@ function loadMutedFriendsForCurrentUser() {
 
     try {
         const raw = localStorage.getItem(key);
- const parsed = raw ? JSON.parse(raw) : [];
- mutedFriendIds = new Set(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
+        const parsed = raw ? JSON.parse(raw) : [];
+        mutedFriendIds = new Set(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
     } catch (error) {
         mutedFriendIds = new Set();
     }
@@ -841,12 +841,12 @@ function persistMutedFriendsForCurrentUser() {
     }
 }
 
-function getFriendsCacheStorageKey(uid = currentUser.uid) {
- return uid ? `${FRIENDS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
+function getFriendsCacheStorageKey(uid = currentUser?.uid) {
+    return uid ? `${FRIENDS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
 }
 
-function getUsersCacheStorageKey(uid = currentUser.uid) {
- return uid ? `${USERS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
+function getUsersCacheStorageKey(uid = currentUser?.uid) {
+    return uid ? `${USERS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
 }
 
 function loadCachedFriendsForCurrentUser() {
@@ -854,7 +854,7 @@ function loadCachedFriendsForCurrentUser() {
     if (!key) return [];
     try {
         const raw = localStorage.getItem(key);
- const parsed = raw ? JSON.parse(raw) : null;
+        const parsed = raw ? JSON.parse(raw) : null;
         if (Array.isArray(parsed)) return parsed.filter(Boolean);
         if (parsed && Array.isArray(parsed.data)) return parsed.data.filter(Boolean);
     } catch (error) {
@@ -866,7 +866,7 @@ function loadCachedFriendsForCurrentUser() {
 function persistFriendsCache(friends) {
     const key = getFriendsCacheStorageKey();
     if (!key) return;
- const safeFriends = Array.isArray(friends) ? friends.filter(Boolean) : [];
+    const safeFriends = Array.isArray(friends) ? friends.filter(Boolean) : [];
     try {
         localStorage.setItem(key, JSON.stringify({ data: safeFriends, updatedAt: Date.now() }));
     } catch (error) {
@@ -879,8 +879,8 @@ function sanitizeUserForCache(user) {
     const photoData = typeof user.photoData === 'string'
         && user.photoData.startsWith('data:image/')
         && user.photoData.length <= USERS_CACHE_MAX_PHOTO_DATA_LENGTH
-          ? user.photoData
- : null;
+        ? user.photoData
+        : null;
     return {
         uid: user.uid,
         name: user.name || '',
@@ -900,8 +900,8 @@ function loadCachedUsersForCurrentUser() {
     if (!key) return [];
     try {
         const raw = localStorage.getItem(key);
- const parsed = raw ? JSON.parse(raw) : null;
- const data = Array.isArray(parsed) ? parsed : (parsed.data || []);
+        const parsed = raw ? JSON.parse(raw) : null;
+        const data = Array.isArray(parsed) ? parsed : (parsed?.data || []);
         if (Array.isArray(data)) {
             return data.filter((user) => user && user.uid);
         }
@@ -915,8 +915,8 @@ function persistUsersCache(users) {
     const key = getUsersCacheStorageKey();
     if (!key) return;
     const safeUsers = Array.isArray(users)
-          ? users.map(sanitizeUserForCache).filter(Boolean)
- : [];
+        ? users.map(sanitizeUserForCache).filter(Boolean)
+        : [];
     try {
         localStorage.setItem(key, JSON.stringify({ data: safeUsers, updatedAt: Date.now() }));
     } catch (error) {
@@ -950,7 +950,7 @@ function getSelectedFriendsData() {
 function updateFriendSelectionUI() {
     const selectedCount = selectedFriendIds.size;
     const hasSelection = isFriendSelectionMode && selectedCount > 0;
- const selectedFriends = hasSelection ? getSelectedFriendsData() : [];
+    const selectedFriends = hasSelection ? getSelectedFriendsData() : [];
     const allMuted = selectedFriends.length > 0 && selectedFriends.every((friend) => isFriendMuted(friend.uid));
 
     if (friendSelectionCount) {
@@ -959,14 +959,14 @@ function updateFriendSelectionUI() {
     if (friendSelectionToolbar) {
         friendSelectionToolbar.classList.toggle('hidden', !hasSelection);
     }
-    const sidebarHeader = userPhoto.closest('.sidebar-header');
+    const sidebarHeader = userPhoto?.closest('.sidebar-header');
     if (sidebarHeader) {
         sidebarHeader.classList.toggle('friend-selection-active', hasSelection);
     }
     if (btnFriendMuteSelected) {
- btnFriendMuteSelected.title = allMuted ? 'Remover silncio' : 'Silenciar';
- btnFriendMuteSelected.setAttribute('aria-label', allMuted ? 'Remover silncio' : 'Silenciar');
- btnFriendMuteSelected.setAttribute('aria-pressed', allMuted ? 'true' : 'false');
+        btnFriendMuteSelected.title = allMuted ? 'Remover silêncio' : 'Silenciar';
+        btnFriendMuteSelected.setAttribute('aria-label', allMuted ? 'Remover silêncio' : 'Silenciar');
+        btnFriendMuteSelected.setAttribute('aria-pressed', allMuted ? 'true' : 'false');
     }
 }
 
@@ -1052,14 +1052,14 @@ function startInitialBootstrapFallback() {
     }
 
     appBootstrapFallbackTimer = window.setTimeout(() => {
- finishInitialBootstrap(currentUser ? 'app' : 'auth');
+        finishInitialBootstrap(currentUser ? 'app' : 'auth');
     }, APP_BOOTSTRAP_FALLBACK_MS);
 }
 
 function warmUpBackend() {
     if (backendWarmupStarted) return;
     backendWarmupStarted = true;
- const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/health` : '/api/health';
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/health` : '/api/health';
     fetch(apiUrl, { method: 'GET', cache: 'no-store', credentials: 'include' }).catch(() => {});
 }
 
@@ -1071,7 +1071,7 @@ async function ensureUserDocument(user, options = {}) {
     try {
         snapshot = await userRef.get();
     } catch (error) {
-        console.warn('Falha ao ler perfil do usurio. Usando dados bsicos da sesso.', error);
+        console.warn('Falha ao ler perfil do usuário. Usando dados básicos da sessão.', error);
         return {
             uid: user.uid,
             name: resolvedName,
@@ -1081,15 +1081,15 @@ async function ensureUserDocument(user, options = {}) {
             photoURL: options.photoURL ?? user.photoURL ?? null,
             photoData: options.photoData ?? null,
             role: options.role || 'user_chat',
- friends: Array.isArray(options.friends) ? options.friends : [],
- blocked: Array.isArray(options.blocked) ? options.blocked : [],
- friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
- showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
+            friends: Array.isArray(options.friends) ? options.friends : [],
+            blocked: Array.isArray(options.blocked) ? options.blocked : [],
+            friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
+            showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
             online: true
         };
     }
     const emailValue = options.email || user.email || '';
- const emailLower = emailValue ? emailValue.toLowerCase() : '';
+    const emailLower = emailValue ? emailValue.toLowerCase() : '';
     const baseData = {
         uid: user.uid,
         name: resolvedName,
@@ -1100,11 +1100,11 @@ async function ensureUserDocument(user, options = {}) {
         photoURL: options.photoURL ?? user.photoURL ?? null,
         photoData: options.photoData ?? null,
         role: options.role || 'user_chat',
- friends: Array.isArray(options.friends) ? options.friends : [],
- blocked: Array.isArray(options.blocked) ? options.blocked : [],
- fcmTokens: Array.isArray(options.fcmTokens) ? options.fcmTokens : [],
- friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
- showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
+        friends: Array.isArray(options.friends) ? options.friends : [],
+        blocked: Array.isArray(options.blocked) ? options.blocked : [],
+        fcmTokens: Array.isArray(options.fcmTokens) ? options.fcmTokens : [],
+        friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
+        showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
         online: true,
         lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1116,7 +1116,7 @@ async function ensureUserDocument(user, options = {}) {
             await userRef.set(baseData);
             return baseData;
         } catch (error) {
-            console.warn('Falha ao criar documento do usurio. Continuando com dados bsicos.', error);
+            console.warn('Falha ao criar documento do usuário. Continuando com dados básicos.', error);
             return baseData;
         }
     }
@@ -1158,7 +1158,7 @@ async function ensureUserDocument(user, options = {}) {
             await userRef.update(updates);
             return { ...data, ...updates };
         } catch (error) {
-            const denied = error.code === 'permission-denied';
+            const denied = error?.code === 'permission-denied';
             if (denied && Object.prototype.hasOwnProperty.call(updates, 'showOnlineStatus')) {
                 const fallbackUpdates = { ...updates };
                 delete fallbackUpdates.showOnlineStatus;
@@ -1171,7 +1171,7 @@ async function ensureUserDocument(user, options = {}) {
                         await userRef.update(fallbackUpdates);
                         return { ...data, ...fallbackUpdates };
                     } catch (retryError) {
-                        console.warn('Falha ao atualizar perfil do usurio.', retryError);
+                        console.warn('Falha ao atualizar perfil do usuário.', retryError);
                         return data;
                     }
                 }
@@ -1179,7 +1179,7 @@ async function ensureUserDocument(user, options = {}) {
                 return data;
             }
 
-            console.warn('Falha ao atualizar perfil do usurio.', error);
+            console.warn('Falha ao atualizar perfil do usuário.', error);
             return data;
         }
     }
@@ -1198,21 +1198,21 @@ function normalizePhotoValue(value) {
 
 function getSafePhotoData(value) {
     const normalized = normalizePhotoValue(value);
- return normalized.startsWith('data:image/') ? normalized : '';
+    return normalized.startsWith('data:image/') ? normalized : '';
 }
 
 function getSafePhotoUrl(value) {
     const normalized = normalizePhotoValue(value);
     if (!normalized) return '';
-    if (/^https:\/\//i.test(normalized)) return normalized;
+    if (/^https?:\/\//i.test(normalized)) return normalized;
     if (normalized.startsWith('blob:')) return normalized;
     if (normalized.startsWith('data:image/')) return normalized;
     return '';
 }
 
 function resolvePhotoSources(entity, defaultFallback) {
-    const fallback = getSafePhotoData(entity.photoData) || defaultFallback;
-    const url = getSafePhotoUrl(entity.photoURL);
+    const fallback = getSafePhotoData(entity?.photoData) || defaultFallback;
+    const url = getSafePhotoUrl(entity?.photoURL);
     return { fallback, url };
 }
 
@@ -1277,7 +1277,7 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
     if (options.displayName) formData.append('displayName', options.displayName);
     if (options.uid) formData.append('uid', options.uid);
 
- const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-profile` : '/api/upload-profile';
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-profile` : '/api/upload-profile';
     const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData
@@ -1287,7 +1287,7 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
         let errorMessage = 'Erro ao enviar foto.';
         try {
             const data = await response.json();
-            if (data.message) errorMessage = data.message;
+            if (data?.message) errorMessage = data.message;
         } catch (error) {
             // ignore
         }
@@ -1295,8 +1295,8 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
     }
 
     const data = await response.json();
-    if (!data.url) {
-        throw new Error('Resposta invlida do servidor.');
+    if (!data?.url) {
+        throw new Error('Resposta inválida do servidor.');
     }
     return normalizeBackendUrl(data.url);
 }
@@ -1306,15 +1306,15 @@ async function uploadChatFileViaBackend(file, options = {}) {
     formData.append('file', file);
     if (options.uid) formData.append('uid', options.uid);
 
- const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-chat` : '/api/upload-chat';
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-chat` : '/api/upload-chat';
     const timeoutMs = Number(options.timeoutMs) > 0
-          ? Number(options.timeoutMs)
- : Math.max(120000, Math.ceil((Number(file.size || 0) / (1024 * 1024)) * 5000));
+        ? Number(options.timeoutMs)
+        : Math.max(120000, Math.ceil((Number(file?.size || 0) / (1024 * 1024)) * 5000));
     let response;
     try {
         response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, { ...options, timeoutMs });
     } catch (error) {
-        throw new Error('No foi possvel conectar ao backend de upload.');
+        throw new Error('Não foi possível conectar ao backend de upload.');
     }
 
     if (!response.ok) {
@@ -1324,7 +1324,7 @@ async function uploadChatFileViaBackend(file, options = {}) {
             if (rawText) {
                 try {
                     const data = JSON.parse(rawText);
-                    if (data.message) {
+                    if (data?.message) {
                         errorMessage = data.message;
                     } else if (rawText.trim()) {
                         errorMessage = rawText.trim();
@@ -1337,22 +1337,22 @@ async function uploadChatFileViaBackend(file, options = {}) {
             // ignore
         }
         if (response.status === 404) {
-            errorMessage = 'Endpoint de upload no encontrado. Atualize o backend com /api/upload-chat.';
+            errorMessage = 'Endpoint de upload não encontrado. Atualize o backend com /api/upload-chat.';
         }
         throw new Error(errorMessage);
     }
 
     const data = await response.json();
-    if (!data.url) {
-        throw new Error('Resposta invlida do servidor.');
+    if (!data?.url) {
+        throw new Error('Resposta inválida do servidor.');
     }
     return normalizeBackendUrl(data.url);
 }
 
 async function uploadChatFile(file, options = {}) {
     const timeoutMs = Number(options.timeoutMs) > 0
-          ? Number(options.timeoutMs)
- : Math.max(120000, Math.ceil((Number(file.size || 0) / (1024 * 1024)) * 5000));
+        ? Number(options.timeoutMs)
+        : Math.max(120000, Math.ceil((Number(file?.size || 0) / (1024 * 1024)) * 5000));
     return await uploadChatFileViaBackend(file, { ...options, timeoutMs });
 }
 
@@ -1360,7 +1360,7 @@ function normalizeBackendUrl(url) {
     if (!url) return url;
     const raw = String(url).trim();
     if (!raw) return '';
-    if (/^(https:\/\/|data:|blob:)/i.test(raw)) return raw;
+    if (/^(https?:\/\/|data:|blob:)/i.test(raw)) return raw;
 
     let path = raw;
     if (path.startsWith('./')) path = path.slice(2);
@@ -1485,13 +1485,13 @@ function markDownloadError(item, message) {
 function sanitizeDownloadFileName(fileName) {
     const value = String(fileName || '').trim();
     if (!value) return `arquivo_${Date.now()}`;
-    return value.replace(/[\\/:*"<>|]+/g, '_');
+    return value.replace(/[\\/:*?"<>|]+/g, '_');
 }
 
 let downloadNameCounter = 0;
 
 function formatDownloadTimestamp(value) {
- const date = value instanceof Date ? value : new Date();
+    const date = value instanceof Date ? value : new Date();
     const pad = (num) => String(num).padStart(2, '0');
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
@@ -1499,10 +1499,10 @@ function formatDownloadTimestamp(value) {
 function buildCctDownloadFileName(msg, fileName, mimeType = '') {
     const safeName = sanitizeDownloadFileName(fileName);
     const mime = String(mimeType || '').toLowerCase();
-    const baseType = msg.type
- || (mime.startsWith('image/') ? 'image' : '')
- || (mime.startsWith('video/') ? 'video' : '')
- || (mime.startsWith('audio/') ? 'audio' : '')
+    const baseType = msg?.type
+        || (mime.startsWith('image/') ? 'image' : '')
+        || (mime.startsWith('video/') ? 'video' : '')
+        || (mime.startsWith('audio/') ? 'audio' : '')
         || 'file';
 
     if (!['image', 'video', 'audio'].includes(baseType)) {
@@ -1513,7 +1513,7 @@ function buildCctDownloadFileName(msg, fileName, mimeType = '') {
         return safeName;
     }
 
-    const ts = timestampToDate(msg.timestamp) || new Date();
+    const ts = timestampToDate(msg?.timestamp) || new Date();
     const stamp = formatDownloadTimestamp(ts);
     downloadNameCounter += 1;
     const counter = String(downloadNameCounter).padStart(3, '0');
@@ -1536,12 +1536,12 @@ function buildCctDownloadFileName(msg, fileName, mimeType = '') {
         else ext = 'jpg';
     }
 
- const prefix = baseType === 'image' ? 'imagem' : baseType;
+    const prefix = baseType === 'image' ? 'imagem' : baseType;
     return `${prefix}-${stamp}-CCT${counter}.${ext}`;
 }
 
 function inferAttachmentFileName(msg, url, blobType = '') {
-    const byMessage = sanitizeDownloadFileName(msg.fileName || '');
+    const byMessage = sanitizeDownloadFileName(msg?.fileName || '');
     if (byMessage && !/^arquivo_\d+$/.test(byMessage)) return byMessage;
 
     try {
@@ -1552,13 +1552,13 @@ function inferAttachmentFileName(msg, url, blobType = '') {
         // ignore
     }
 
-    const type = msg.type || 'file';
+    const type = msg?.type || 'file';
     let ext = 'bin';
     if (type === 'image') ext = 'jpg';
     if (type === 'video') ext = 'mp4';
     if (type === 'audio') ext = 'webm';
-    if (blobType.includes('pdf')) ext = 'pdf';
-    return sanitizeDownloadFileName(`${type}_${msg.id || Date.now()}.${ext}`);
+    if (blobType?.includes('pdf')) ext = 'pdf';
+    return sanitizeDownloadFileName(`${type}_${msg?.id || Date.now()}.${ext}`);
 }
 
 function normalizeUrlForCompare(url) {
@@ -1591,9 +1591,9 @@ function extractFileNameFromUrl(url) {
 }
 
 function buildFirebaseMediaUrl(storagePath) {
-    const bucket = firebaseConfig.storageBucket;
+    const bucket = firebaseConfig?.storageBucket;
     if (!bucket || !storagePath) return '';
-    return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}alt=media`;
+    return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media`;
 }
 
 function getMessageFileUrl(msg) {
@@ -1633,8 +1633,8 @@ function getAttachmentDownloadCandidates(msg) {
     const fileUrl = getMessageFileUrl(msg);
     const imageUrl = getMessageImageUrl(msg);
     const basePath = type === 'image'
-          ? (imageUrl || fileUrl || '')
- : (fileUrl || imageUrl || '');
+        ? (imageUrl || fileUrl || '')
+        : (fileUrl || imageUrl || '');
     const primary = normalizeBackendUrl(basePath);
     const candidates = [];
     addUniqueUrl(candidates, primary);
@@ -1675,7 +1675,7 @@ async function canAccessAttachmentUrl(url) {
         }
         return false;
     } catch (error) {
-        // Quando no for possvel validar (CORS/rede), tentamos usar a URL mesmo assim.
+        // Quando não for possível validar (CORS/rede), tentamos usar a URL mesmo assim.
         return true;
     }
 }
@@ -1776,8 +1776,8 @@ function getConversationMediaAttachments() {
 }
 
 function getMediaViewerActiveIndex(list) {
-    if (!mediaViewerActiveMessage.id) return -1;
-    return list.findIndex((msg) => msg.id === mediaViewerActiveMessage.id);
+    if (!mediaViewerActiveMessage?.id) return -1;
+    return list.findIndex((msg) => msg?.id === mediaViewerActiveMessage.id);
 }
 
 function navigateMediaViewer(direction) {
@@ -1822,7 +1822,7 @@ function handleMediaViewerSwipeDelta(deltaX, deltaY, event) {
         if (absX < MEDIA_VIEWER_SWIPE_AXIS_LOCK && absY < MEDIA_VIEWER_SWIPE_AXIS_LOCK) {
             return false;
         }
- mediaViewerSwipeAxis = absX > absY ? 'x' : 'y';
+        mediaViewerSwipeAxis = absX > absY ? 'x' : 'y';
     }
 
     if (mediaViewerSwipeAxis === 'y') {
@@ -1830,7 +1830,7 @@ function handleMediaViewerSwipeDelta(deltaX, deltaY, event) {
             && (isAttachmentImage(mediaViewerActiveMessage)
                 || isAttachmentVideo(mediaViewerActiveMessage)
                 || isAttachmentAudio(mediaViewerActiveMessage))) {
-            event.preventDefault?.();
+            event?.preventDefault?.();
             mediaViewerSwipeHandled = true;
             closeMediaViewer();
             resetMediaViewerSwipeState();
@@ -1839,7 +1839,7 @@ function handleMediaViewerSwipeDelta(deltaX, deltaY, event) {
     }
 
     if (mediaViewerSwipeAxis === 'x' && absX > MEDIA_VIEWER_SWIPE_NAV_THRESHOLD && absY < MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD) {
-        event.preventDefault?.();
+        event?.preventDefault?.();
         mediaViewerSwipeHandled = true;
         if (deltaX < 0) {
             navigateMediaViewer(1);
@@ -1968,7 +1968,7 @@ function bindMediaViewerImageInteractions(img) {
 
     img.addEventListener('wheel', (event) => {
         event.preventDefault();
- const zoomDelta = event.deltaY < 0 ? 0.2 : -0.2;
+        const zoomDelta = event.deltaY < 0 ? 0.2 : -0.2;
         mediaViewerImageScale = clampValue(
             mediaViewerImageScale + zoomDelta,
             MEDIA_VIEWER_MIN_SCALE,
@@ -2031,7 +2031,7 @@ function closeMediaViewer() {
 }
 
 function isPdfFile(msg, resolvedUrl) {
-    const fileType = String(msg.fileType || '').toLowerCase();
+    const fileType = String(msg?.fileType || '').toLowerCase();
     if (fileType.includes('pdf')) return true;
     return /\.pdf($|\?)/i.test(String(resolvedUrl || ''));
 }
@@ -2054,7 +2054,7 @@ function buildMediaViewerFallback(fileName, resolvedUrl) {
     return `
         <div class="media-viewer-file-fallback">
             <h3>${safeName}</h3>
-            <p>No foi possvel visualizar este arquivo diretamente. Toque no boto para baixar ou abrir.</p>
+            <p>Não foi possível visualizar este arquivo diretamente. Toque no botão para baixar ou abrir.</p>
             <div class="media-viewer-file-actions">
                 <a class="media-viewer-file-open" href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
                 <a class="media-viewer-file-download" href="${safeUrl}" download>Baixar arquivo</a>
@@ -2067,7 +2067,7 @@ function ensureAbsoluteUrl(url) {
     if (!url) return '';
     const raw = String(url).trim();
     if (!raw) return '';
-    if (/^(https:\/\/|blob:|data:)/i.test(raw)) return raw;
+    if (/^(https?:\/\/|blob:|data:)/i.test(raw)) return raw;
     return normalizeBackendUrl(raw);
 }
 
@@ -2076,8 +2076,8 @@ function bindMediaViewerFileActions(resolvedUrl, msg) {
     const openBtn = mediaViewerContent.querySelector('.media-viewer-file-open');
     const downloadBtn = mediaViewerContent.querySelector('.media-viewer-file-download');
     const absoluteUrl = ensureAbsoluteUrl(resolvedUrl);
-    const fileName = msg.fileName || extractFileNameFromUrl(absoluteUrl);
-    const mimeType = msg.fileType || inferMimeTypeFromFileName(fileName || '');
+    const fileName = msg?.fileName || extractFileNameFromUrl(absoluteUrl);
+    const mimeType = msg?.fileType || inferMimeTypeFromFileName(fileName || '');
 
     if (openBtn && isAndroidWebViewRuntime()) {
         openBtn.addEventListener('click', (event) => {
@@ -2086,22 +2086,6 @@ function bindMediaViewerFileActions(resolvedUrl, msg) {
             if (!opened) {
                 window.location.href = absoluteUrl;
             }
-        });
-    }
-
-    if (openBtn && !isAndroidWebViewRuntime()) {
-        openBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            if (!mediaViewerContent) {
-                window.location.href = absoluteUrl;
-                return;
-            }
-            const previewUrl = getDocumentPreviewUrl(absoluteUrl, msg) || absoluteUrl;
-            const iframe = document.createElement('iframe');
-            iframe.src = previewUrl;
-            iframe.title = fileName || 'Documento';
-            mediaViewerContent.innerHTML = '';
-            mediaViewerContent.appendChild(iframe);
         });
     }
 
@@ -2115,15 +2099,14 @@ function bindMediaViewerFileActions(resolvedUrl, msg) {
     }
 }
 
-
 function getFileExtensionInfo(msg, url) {
-    const name = String(msg.fileName || '').trim();
-    let ext = name.split('.').pop().toLowerCase() || '';
+    const name = String(msg?.fileName || '').trim();
+    let ext = name.split('.').pop()?.toLowerCase() || '';
     if (!ext) {
         try {
             const parsed = new URL(url, window.location.href);
             const last = decodeURIComponent(parsed.pathname.split('/').pop() || '');
-            ext = last.split('.').pop().toLowerCase() || '';
+            ext = last.split('.').pop()?.toLowerCase() || '';
         } catch (_) {
             ext = '';
         }
@@ -2133,18 +2116,18 @@ function getFileExtensionInfo(msg, url) {
 
 function getDocumentPreviewUrl(absoluteUrl, msg) {
     const ext = getFileExtensionInfo(msg, absoluteUrl);
-    const fileType = String(msg.fileType || '').toLowerCase();
+    const fileType = String(msg?.fileType || '').toLowerCase();
     const docExt = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'odt', 'odp', 'ods', 'rtf', 'txt']);
     if (docExt.has(ext) || fileType.includes('pdf') || fileType.includes('officedocument') || fileType.includes('msword') || fileType.includes('ms-powerpoint') || fileType.includes('ms-excel')) {
-        return `https://docs.google.com/gviewembedded=1&url=${encodeURIComponent(absoluteUrl)}`;
+        return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(absoluteUrl)}`;
     }
     return '';
 }
 
 function buildDocumentThumbInfo(msg, absoluteUrl) {
     const ext = getFileExtensionInfo(msg, absoluteUrl);
-    const fileType = String(msg.fileType || '').toLowerCase();
- let label = ext ? ext.toUpperCase() : 'FILE';
+    const fileType = String(msg?.fileType || '').toLowerCase();
+    let label = ext ? ext.toUpperCase() : 'FILE';
     let theme = 'file';
     if (ext === 'pdf' || fileType.includes('pdf')) {
         label = 'PDF';
@@ -2184,7 +2167,7 @@ function openMediaViewer(msg, resolvedUrl) {
         mediaViewerContent.classList.add('media-viewer-image-mode');
         const img = document.createElement('img');
         img.src = resolvedUrl;
-        img.alt = msg.fileName || 'Imagem';
+        img.alt = msg?.fileName || 'Imagem';
         mediaViewerContent.appendChild(img);
         bindMediaViewerImageInteractions(img);
     } else if (isAttachmentVideo(msg)) {
@@ -2204,13 +2187,13 @@ function openMediaViewer(msg, resolvedUrl) {
         mediaViewerContent.appendChild(audio);
     } else if (isPdfFile(msg, resolvedUrl)) {
         if (isAndroidWebViewRuntime()) {
-            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg.fileName || 'Documento PDF', resolvedUrl);
+            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento PDF', resolvedUrl);
             bindMediaViewerFileActions(resolvedUrl, msg);
         } else {
             const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg) || resolvedUrl;
             const iframe = document.createElement('iframe');
             iframe.src = previewUrl;
-            iframe.title = msg.fileName || 'Documento PDF';
+            iframe.title = msg?.fileName || 'Documento PDF';
             mediaViewerContent.appendChild(iframe);
             bindMediaViewerFileActions(resolvedUrl, msg);
         }
@@ -2219,11 +2202,11 @@ function openMediaViewer(msg, resolvedUrl) {
         if (previewUrl) {
             const iframe = document.createElement('iframe');
             iframe.src = previewUrl;
-            iframe.title = msg.fileName || 'Documento';
+            iframe.title = msg?.fileName || 'Documento';
             mediaViewerContent.appendChild(iframe);
             bindMediaViewerFileActions(resolvedUrl, msg);
         } else {
-            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg.fileName || 'Documento', resolvedUrl);
+            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento', resolvedUrl);
             bindMediaViewerFileActions(resolvedUrl, msg);
         }
     }
@@ -2236,13 +2219,13 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
     const fallbackUrl = preferredUrl || getMessageFileUrl(msg) || getMessageImageUrl(msg) || '';
     const resolvedUrl = await resolveAttachmentUrl(msg, fallbackUrl);
     if (!resolvedUrl) {
-        alert('Arquivo de mdia indisponvel. Pea para o contato reenviar.');
+        alert('Arquivo de mídia indisponível. Peça para o contato reenviar.');
         return;
     }
     const absoluteUrl = ensureAbsoluteUrl(resolvedUrl);
     const messageType = resolveMessageType(msg);
-    const inferredName = msg.fileName || extractFileNameFromUrl(absoluteUrl);
-    const inferredMime = msg.fileType || inferMimeTypeFromFileName(inferredName || '');
+    const inferredName = msg?.fileName || extractFileNameFromUrl(absoluteUrl);
+    const inferredMime = msg?.fileType || inferMimeTypeFromFileName(inferredName || '');
     const previewUrl = getDocumentPreviewUrl(absoluteUrl, msg);
 
     if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, absoluteUrl))) {
@@ -2266,28 +2249,28 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         mediaViewerActiveMessage = msg || null;
         mediaViewerActiveUrl = absoluteUrl || '';
         syncMediaViewerSaveButton();
-        mediaViewerContent.innerHTML = buildMediaViewerFallback(msg.fileName || '', absoluteUrl);
+        mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || '', absoluteUrl);
         mediaViewerModal.classList.remove('hidden');
         document.body.classList.add('media-viewer-open');
         return;
     }
 
-    openMediaViewer(msg, absoluteUrl);
+    openMediaViewer(msg, previewUrl || absoluteUrl);
 }
 
 async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
     const resolvedUrl = await resolveAttachmentUrl(msg, preferredUrl);
     if (!resolvedUrl) {
-        throw new Error('Arquivo indisponvel');
+        throw new Error('Arquivo indisponível');
     }
 
     const allowInteractiveFolderSetup = !!options.allowInteractiveFolderSetup;
     const scope = resolveLocalMediaScope(msg, options.scope);
-    const mimeType = msg.fileType || '';
+    const mimeType = msg?.fileType || '';
     const inferredName = inferAttachmentFileName(msg, resolvedUrl, mimeType);
     const downloadName = buildCctDownloadFileName(msg, inferredName, mimeType);
-    const isLargeFile = Number(msg.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
- const progressItem = isLargeFile ? createDownloadProgressItem(downloadName || 'arquivo') : null;
+    const isLargeFile = Number(msg?.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
+    const progressItem = isLargeFile ? createDownloadProgressItem(downloadName || 'arquivo') : null;
 
     try {
         if (isAndroidWebViewRuntime() && !String(resolvedUrl).startsWith('blob:')) {
@@ -2332,8 +2315,8 @@ async function saveCurrentMediaViewerAttachment() {
             allowInteractiveFolderSetup: true
         });
     } catch (error) {
-        console.warn('Falha ao salvar mdia manualmente.', error);
-        alert('No foi possvel salvar esta mdia agora. Tente novamente.');
+        console.warn('Falha ao salvar mídia manualmente.', error);
+        alert('Não foi possível salvar esta mídia agora. Tente novamente.');
     } finally {
         isManualMediaSaveInProgress = false;
         syncMediaViewerSaveButton();
@@ -2344,7 +2327,7 @@ function shouldAutoDownloadIncomingAttachment(msg) {
     if (!msg || !currentUser) return false;
     if (!autoMediaSaveEnabled) return false;
     if (msg.senderId === currentUser.uid) return false;
- const type = msg.type || (msg.imageUrl ? 'image' : 'text');
+    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
     if (!['image', 'video', 'audio'].includes(type)) return false;
     return !!getAttachmentDownloadUrl(msg);
 }
@@ -2378,9 +2361,9 @@ function syncAndroidAudioMessageProximityFromPlayback() {
 }
 
 function getDownloadCategory(msg, fileName = '', mimeType = '') {
-    const messageType = (msg.type || '').toLowerCase();
-    const mime = String(mimeType || msg.fileType || '').toLowerCase();
-    const extension = String(fileName || '').split('.').pop().toLowerCase() || '';
+    const messageType = (msg?.type || '').toLowerCase();
+    const mime = String(mimeType || msg?.fileType || '').toLowerCase();
+    const extension = String(fileName || '').split('.').pop()?.toLowerCase() || '';
 
     if (messageType === 'image' || mime.startsWith('image/')) return 'Images';
     if (messageType === 'video' || mime.startsWith('video/')) return 'Video';
@@ -2398,7 +2381,7 @@ function getDownloadCategory(msg, fileName = '', mimeType = '') {
 function resolveLocalMediaScope(msg, explicitScope = '') {
     if (explicitScope === 'sent') return 'sent';
     if (explicitScope === 'received') return 'received';
-    if (currentUser && msg.senderId === currentUser.uid) return 'sent';
+    if (currentUser && msg?.senderId === currentUser.uid) return 'sent';
     return 'received';
 }
 
@@ -2419,7 +2402,7 @@ function callAndroidBridgeMethod(methodName, ...args) {
         const method = window.CameChatAndroid[methodName];
         if (typeof method === 'function') {
             const result = method.call(window.CameChatAndroid, ...args);
- return typeof result === 'undefined' ? true : !!result;
+            return typeof result === 'undefined' ? true : !!result;
         }
     } catch (error) {
         console.warn(`Falha ao chamar o bridge Android: ${methodName}`, error);
@@ -2525,28 +2508,28 @@ async function handleNativeGoogleSignInResult(payload = {}) {
         } catch (error) {
             handleAuthError({
                 code: 'auth/native-google-invalid-response',
-                message: 'Resposta invlida do login Google nativo.'
+                message: 'Resposta inválida do login Google nativo.'
             });
             nativeGoogleSignInRequestedRole = '';
             return;
         }
     }
 
-    const requestedRole = data.requestedRole || nativeGoogleSignInRequestedRole || '';
+    const requestedRole = data?.requestedRole || nativeGoogleSignInRequestedRole || '';
     nativeGoogleSignInRequestedRole = '';
 
-    if (!data.ok) {
+    if (!data?.ok) {
         handleAuthError({
-            code: data.code || 'auth/native-google-failed',
-            message: data.message || 'No foi possvel concluir o login com Google no Android.'
+            code: data?.code || 'auth/native-google-failed',
+            message: data?.message || 'Não foi possível concluir o login com Google no Android.'
         });
         return;
     }
 
-    if (!data.idToken) {
+    if (!data?.idToken) {
         handleAuthError({
             code: 'auth/native-google-token-missing',
-            message: 'O Google no retornou um token de autenticao vlido.'
+            message: 'O Google não retornou um token de autenticação válido.'
         });
         return;
     }
@@ -2557,7 +2540,7 @@ async function handleNativeGoogleSignInResult(payload = {}) {
         const userCredential = await auth.signInWithCredential(credential);
         const resolvedRole = await resolveRoleForSignup(requestedRole);
         await ensureUserDocument(userCredential.user, {
-            name: userCredential.user.displayName || data.displayName || data.email.split('@')[0] || 'Usurio',
+            name: userCredential.user.displayName || data.displayName || data.email?.split('@')[0] || 'Usuário',
             email: userCredential.user.email || data.email || '',
             role: resolvedRole,
             photoURL: userCredential.user.photoURL || data.photoURL || null
@@ -2571,7 +2554,7 @@ function buildDeviceDownloadPath(msg, fileName, mimeType = '', options = {}) {
     const safeName = buildCctDownloadFileName(msg, fileName, mimeType);
     const category = getDownloadCategory(msg, safeName, mimeType);
     const scope = resolveLocalMediaScope(msg, options.scope);
- const scopePrefix = scope === 'sent' ? 'Enviados/' : '';
+    const scopePrefix = scope === 'sent' ? 'Enviados/' : '';
     return `CameChat/Media/${scopePrefix}${category}/${safeName}`;
 }
 
@@ -2598,7 +2581,7 @@ function triggerBlobDownload(blob, fileName, msg = null, mimeType = '', options 
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = objectUrl;
-    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType || blob.type || '', options);
+    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType || blob?.type || '', options);
     anchor.rel = 'noopener';
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
@@ -2656,7 +2639,7 @@ async function fetchBlobWithProgress(url, onProgress) {
 }
 
 async function autoDownloadIncomingAttachment(conversationId, msg) {
-    if (!conversationId || !msg.id) return;
+    if (!conversationId || !msg?.id) return;
     if (!shouldAutoDownloadIncomingAttachment(msg)) return;
 
     const key = `${conversationId}:${msg.id}`;
@@ -2669,16 +2652,16 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
 
     autoDownloadingAttachmentKeys.add(key);
     const isLargeFile = Number(msg.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
- const progressItem = isLargeFile ? createDownloadProgressItem(msg.fileName || 'arquivo') : null;
+    const progressItem = isLargeFile ? createDownloadProgressItem(msg.fileName || 'arquivo') : null;
 
     try {
         if (isAndroidWebViewRuntime()) {
             const resolvedUrl = await resolveAttachmentUrl(msg);
             if (!resolvedUrl) {
-                throw new Error('Arquivo indisponvel');
+                throw new Error('Arquivo indisponível');
             }
-            const fileName = inferAttachmentFileName(msg, resolvedUrl, msg.fileType || '');
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg.fileType || '', { scope: 'received' });
+            const fileName = inferAttachmentFileName(msg, resolvedUrl, msg?.fileType || '');
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '', { scope: 'received' });
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
@@ -2697,12 +2680,12 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
                 resolvedUrl = candidate;
                 break;
             } catch (candidateError) {
-                // tenta o prximo candidato
+                // tenta o próximo candidato
             }
         }
 
         if (!resolvedBlob || !resolvedUrl) {
-            throw new Error('Arquivo indisponvel');
+            throw new Error('Arquivo indisponível');
         }
 
         const fileName = inferAttachmentFileName(msg, resolvedUrl, resolvedBlob.type);
@@ -2720,11 +2703,11 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
         const fallbackUrl = candidates[0];
         const fallbackName = inferAttachmentFileName(msg, fallbackUrl, '');
         try {
-            triggerDirectUrlDownload(fallbackUrl, fallbackName, msg, msg.fileType || '', { scope: 'received' });
+            triggerDirectUrlDownload(fallbackUrl, fallbackName, msg, msg?.fileType || '', { scope: 'received' });
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
         } catch (fallbackError) {
-            console.warn('Falha ao baixar mdia automaticamente.', error || fallbackError);
+            console.warn('Falha ao baixar mídia automaticamente.', error || fallbackError);
             if (progressItem) markDownloadError(progressItem, 'Falha no download');
         }
     } finally {
@@ -2733,7 +2716,7 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
 }
 
 async function autoSaveOutgoingAttachment(msg, file) {
-    if (!msg.id || !file || !autoMediaSaveEnabled) return false;
+    if (!msg?.id || !file || !autoMediaSaveEnabled) return false;
 
     const mimeType = String(file.type || msg.fileType || 'application/octet-stream');
     const fileName = sanitizeDownloadFileName(file.name || msg.fileName || inferAttachmentFileName(msg, msg.fileUrl || msg.imageUrl || '', mimeType));
@@ -2755,7 +2738,7 @@ async function autoSaveOutgoingAttachment(msg, file) {
         triggerBlobDownload(file, fileName, msg, mimeType, { scope: 'sent' });
         return true;
     } catch (error) {
-        console.warn('Falha ao salvar mdia enviada localmente.', error);
+        console.warn('Falha ao salvar mídia enviada localmente.', error);
         return false;
     }
 }
@@ -2764,7 +2747,7 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         const item = createUploadProgressItem(file.name || 'arquivo');
- xhr.timeout = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000;
+        xhr.timeout = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000;
         xhr.open('POST', apiUrl, true);
         xhr.upload.onprogress = (event) => {
             if (!event.lengthComputable) return;
@@ -2791,8 +2774,8 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
             }
         };
         xhr.onerror = () => {
-            markUploadError(item, 'Falha na conexo');
-            reject(new Error('No foi possvel conectar ao backend de upload.'));
+            markUploadError(item, 'Falha na conexão');
+            reject(new Error('Não foi possível conectar ao backend de upload.'));
         };
         xhr.ontimeout = () => {
             markUploadError(item, 'Tempo esgotado');
@@ -2831,8 +2814,8 @@ registerForm.addEventListener('submit', async (e) => {
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
     const confirmPassword = document.getElementById('register-confirm-password').value;
- const requestedRole = registerRole ? registerRole.value : 'user_chat';
- const photoFile = registerPhotoInput ? registerPhotoInput.files[0] : null;
+    const requestedRole = registerRole ? registerRole.value : 'user_chat';
+    const photoFile = registerPhotoInput ? registerPhotoInput.files[0] : null;
 
     if (!photoFile) {
         alert('Selecione uma foto de perfil.');
@@ -2845,17 +2828,17 @@ registerForm.addEventListener('submit', async (e) => {
     }
 
     if (photoFile.size > 5 * 1024 * 1024) {
-        alert('A foto deve ter no mximo 5MB.');
+        alert('A foto deve ter no máximo 5MB.');
         return;
     }
     
     if (password.length < 6) {
-        alert('A senha deve ter no mnimo 6 caracteres.');
+        alert('A senha deve ter no mínimo 6 caracteres.');
         return;
     }
     
     if (password !== confirmPassword) {
-        alert('As senhas no conferem.');
+        alert('As senhas não conferem.');
         return;
     }
     
@@ -2885,7 +2868,7 @@ registerForm.addEventListener('submit', async (e) => {
             photoData = await createProfileImageDataUrl(photoFile);
         } catch (error) {
             console.error('Erro ao processar a foto:', error);
-            alert('No foi possvel processar a foto. Tente outra imagem.');
+            alert('Não foi possível processar a foto. Tente outra imagem.');
             return;
         }
 
@@ -2915,7 +2898,7 @@ async function handleGoogleLogin(requestedRole) {
         if (!started) {
             handleAuthError({
                 code: 'auth/native-google-unavailable',
-                message: 'O login Google nativo no est disponvel nesta verso do aplicativo Android.'
+                message: 'O login Google nativo não está disponível nesta versão do aplicativo Android.'
             });
         }
         return;
@@ -2929,7 +2912,7 @@ async function handleGoogleLogin(requestedRole) {
         
         const resolvedRole = await resolveRoleForSignup(requestedRole);
         await ensureUserDocument(result.user, {
-            name: result.user.displayName || result.user.email.split('@')[0] || 'Usurio',
+            name: result.user.displayName || result.user.email?.split('@')[0] || 'Usuário',
             email: result.user.email,
             role: resolvedRole,
             photoURL: result.user.photoURL || null
@@ -2946,7 +2929,7 @@ async function handleGoogleLogin(requestedRole) {
 btnGoogleLogin.addEventListener('click', () => handleGoogleLogin());
 btnGoogleRegister.addEventListener('click', () => handleGoogleLogin(registerRole ? registerRole.value : 'user_chat'));
 
-// Recuperao de senha
+// Recuperação de senha
 forgotPasswordLink.addEventListener('click', (e) => {
     e.preventDefault();
     forgotModal.classList.add('show');
@@ -2994,7 +2977,7 @@ btnResetPassword.addEventListener('click', async () => {
     
     try {
         await auth.sendPasswordResetEmail(email);
-        alert('E-mail de recuperao enviado!');
+        alert('E-mail de recuperação enviado!');
         forgotModal.classList.remove('show');
         resetEmail.value = '';
     } catch (error) {
@@ -3002,27 +2985,27 @@ btnResetPassword.addEventListener('click', async () => {
     }
 });
 
-// Tratamento de erros de autenticao
+// Tratamento de erros de autenticação
 function handleAuthError(error) {
-    let message = 'Erro de autenticao. ';
+    let message = 'Erro de autenticação. ';
     switch (error.code) {
         case 'auth/user-not-found':
-            message += 'Usurio no encontrado.';
+            message += 'Usuário não encontrado.';
             break;
         case 'auth/wrong-password':
             message += 'Senha incorreta.';
             break;
         case 'auth/email-already-in-use':
-            message += 'Este e-mail j est em uso.';
+            message += 'Este e-mail já está em uso.';
             break;
         case 'auth/invalid-email':
-            message += 'E-mail invlido.';
+            message += 'E-mail inválido.';
             break;
         case 'auth/weak-password':
             message += 'Senha muito fraca.';
             break;
         case 'auth/unauthorized-domain':
-            message += 'Domnio no autorizado. Adicione este domnio em Authentication > Settings > Authorized domains.';
+            message += 'Domínio não autorizado. Adicione este domínio em Authentication > Settings > Authorized domains.';
             break;
         case 'auth/popup-blocked':
             message += 'Pop-up bloqueado pelo navegador. Libere o pop-up e tente novamente.';
@@ -3031,25 +3014,25 @@ function handleAuthError(error) {
             message += 'Pop-up fechado antes de concluir o login.';
             break;
         case 'auth/cancelled-popup-request':
-            message += 'Outra solicitao de login j est em andamento.';
+            message += 'Outra solicitação de login já está em andamento.';
             break;
         case 'auth/operation-not-allowed':
-            message += 'Operao no permitida. Verifique se o provedor est habilitado no Firebase.';
+            message += 'Operação não permitida. Verifique se o provedor está habilitado no Firebase.';
             break;
         case 'auth/native-google-unavailable':
-            message += 'O login Google nativo no est disponvel no aplicativo Android.';
+            message += 'O login Google nativo não está disponível no aplicativo Android.';
             break;
         case 'auth/native-google-unconfigured':
-            message += 'O login Google do Android ainda no foi configurado. Adicione o Web Client ID do Firebase para o app Android.';
+            message += 'O login Google do Android ainda não foi configurado. Adicione o Web Client ID do Firebase para o app Android.';
             break;
         case 'auth/native-google-cancelled':
             message += 'Login com Google cancelado.';
             break;
         case 'auth/native-google-token-missing':
-            message += 'O Google no retornou um token de autenticao vlido.';
+            message += 'O Google não retornou um token de autenticação válido.';
             break;
         case 'auth/native-google-invalid-response':
-            message += 'O app Android retornou uma resposta invlida no login Google.';
+            message += 'O app Android retornou uma resposta inválida no login Google.';
             break;
         case 'auth/native-google-failed':
             message += 'Falha ao concluir o login com Google no Android.';
@@ -3083,7 +3066,7 @@ auth.onAuthStateChanged(async (user) => {
                 photoURL: user.photoURL || null
             });
         } catch (error) {
-            console.warn('Falha ao preparar documento do usurio. Continuando com dados bsicos.', error);
+            console.warn('Falha ao preparar documento do usuário. Continuando com dados básicos.', error);
         }
         currentUserProfile = ensuredProfile || {
             uid: user.uid,
@@ -3100,7 +3083,7 @@ auth.onAuthStateChanged(async (user) => {
         };
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
         loadMutedFriendsForCurrentUser();
- currentFriends = Array.isArray(currentUserProfile.friends) ? currentUserProfile.friends : [];
+        currentFriends = Array.isArray(currentUserProfile.friends) ? currentUserProfile.friends : [];
         const cachedFriends = loadCachedFriendsForCurrentUser();
         if (!currentFriends.length && cachedFriends.length > 0) {
             currentFriends = cachedFriends;
@@ -3118,14 +3101,14 @@ auth.onAuthStateChanged(async (user) => {
             applyOnlineStatusVisibilitySetting(showOnlineStatusEnabled, true, true);
         }
 
-        // Atualizar interface do usurio
+        // Atualizar interface do usuário
         applyProfilePhoto(
             userPhoto,
             currentUserProfile,
-            'https://via.placeholder.com/45/002776/fffffftext=User',
+            'https://via.placeholder.com/45/002776/ffffff?text=User',
             user.photoURL || ''
         );
-        userName.textContent = currentUserProfile.name || user.displayName || 'Usurio';
+        userName.textContent = currentUserProfile.name || user.displayName || 'Usuário';
         userStatus.textContent = 'Online';
         renderCurrentUserIdentity(currentUserProfile);
         setOnlineStatusClass(userStatus, true);
@@ -3149,7 +3132,7 @@ auth.onAuthStateChanged(async (user) => {
         // Configurar heartbeat para manter status online
         setupOnlineStatus();
         
-        // Carregar usurios e conversas
+        // Carregar usuários e conversas
         loadUsers();
 
         listenForIncomingCalls();
@@ -3160,12 +3143,12 @@ auth.onAuthStateChanged(async (user) => {
         processPendingAndroidMessageOpen();
         finishInitialBootstrap('app');
         
-        // Atualizar lastSeen ao fechar a pgina
+        // Atualizar lastSeen ao fechar a página
         window.addEventListener('beforeunload', () => {
             updateUserOnlineStatus(false);
         });
     } else {
-        // Usurio deslogado
+        // Usuário deslogado
         autoDownloadedAttachmentKeys = new Set();
         autoDownloadingAttachmentKeys = new Set();
         currentUser = null;
@@ -3226,7 +3209,7 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// Atualizar status online do usurio
+// Atualizar status online do usuário
 async function updateUserOnlineStatus(online) {
     if (!currentUser) return;
     
@@ -3236,7 +3219,7 @@ async function updateUserOnlineStatus(online) {
             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
     } catch (error) {
-        console.error('Erro ao atualizar status:', error.code || '', error.message || error);
+        console.error('Erro ao atualizar status:', error?.code || '', error?.message || error);
     }
 }
 
@@ -3272,7 +3255,7 @@ function subscribeToCurrentUserDoc() {
             }
             currentUserProfile = { ...(currentUserProfile || {}), ...data };
             currentUserRole = data.role || currentUserRole || 'user_chat';
- currentFriends = Array.isArray(data.friends) ? data.friends : [];
+            currentFriends = Array.isArray(data.friends) ? data.friends : [];
             persistFriendsCache(currentFriends);
             if (!Array.isArray(currentUserProfile.blocked)) {
                 currentUserProfile.blocked = [];
@@ -3289,8 +3272,8 @@ function subscribeToCurrentUserDoc() {
             applyProfilePhoto(
                 userPhoto,
                 data,
-                'https://via.placeholder.com/45/002776/fffffftext=User',
-                currentUser.photoURL || ''
+                'https://via.placeholder.com/45/002776/ffffff?text=User',
+                currentUser?.photoURL || ''
             );
 
             updateRoleBadge(currentUserRole);
@@ -3345,7 +3328,7 @@ function initCropper() {
     if (!profileCropImage || !profileCropFrame) return;
     const frameSize = profileCropFrame.clientWidth;
     cropBaseScale = Math.max(frameSize / profileCropImage.naturalWidth, frameSize / profileCropImage.naturalHeight);
- const sliderValue = profileZoom ? parseFloat(profileZoom.value) || 1 : 1;
+    const sliderValue = profileZoom ? parseFloat(profileZoom.value) || 1 : 1;
     cropScale = cropBaseScale * sliderValue;
     resetCropPosition();
 }
@@ -3395,7 +3378,7 @@ function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.85) {
 }
 
 function getCallTypeLabel(type) {
- return type === 'video' ? 'vdeo' : 'voz';
+    return type === 'video' ? 'vídeo' : 'voz';
 }
 
 function updateCallIndicator(phase, type) {
@@ -3502,7 +3485,7 @@ function moveCallMedia(target) {
 function applyVideoSwapState() {
     if (!callMedia) return;
     callMedia.classList.toggle('swap', isVideoSwapped);
- const currentMainVideo = isVideoSwapped ? localVideo : remoteVideo;
+    const currentMainVideo = isVideoSwapped ? localVideo : remoteVideo;
     resetVideoOverlayPosition(currentMainVideo);
 }
 
@@ -3540,7 +3523,7 @@ function startProximitySensor() {
             proximitySensor = new ProximitySensor();
             proximitySensor.addEventListener('reading', () => {
                 const maxDistance = proximitySensor.max || 0;
- const near = maxDistance ? proximitySensor.distance < maxDistance : proximitySensor.distance === 0;
+                const near = maxDistance ? proximitySensor.distance < maxDistance : proximitySensor.distance === 0;
                 handleProximityState(near);
             });
             proximitySensor.addEventListener('error', () => {
@@ -3596,7 +3579,7 @@ function updateProximityHandling() {
         && (currentCallType === 'audio' || currentCallType === null);
     const shouldEnable = isAudioCall && isMobileDevice();
     setAndroidVoiceCallProximityEnabled(shouldEnable);
- setAndroidSpeakerphoneEnabled(shouldEnable ? isSpeakerOn : false);
+    setAndroidSpeakerphoneEnabled(shouldEnable ? isSpeakerOn : false);
     if (!shouldEnable) {
         stopProximitySensor();
         return;
@@ -3614,21 +3597,21 @@ async function resolveSpeakerOutputDevice() {
     const outputs = devices.filter(device => device.kind === 'audiooutput');
     if (!outputs.length) return null;
     const speaker = outputs.find(device => /speaker|alto|viva|loud|speakerphone/i.test(device.label));
-    return speaker.deviceId || outputs[0].deviceId;
+    return speaker?.deviceId || outputs[0].deviceId;
 }
 
 async function applySpeakerOutput(enable) {
     if (!remoteAudio) return;
     if (typeof remoteAudio.setSinkId !== 'function') {
- remoteAudio.volume = enable ? 1 : 0.7;
+        remoteAudio.volume = enable ? 1 : 0.7;
         return;
     }
     let targetId = 'default';
     if (enable) {
-        if (!speakerOutputDeviceId && navigator.mediaDevices.selectAudioOutput) {
+        if (!speakerOutputDeviceId && navigator.mediaDevices?.selectAudioOutput) {
             try {
                 const selection = await navigator.mediaDevices.selectAudioOutput();
-                speakerOutputDeviceId = selection.deviceId || null;
+                speakerOutputDeviceId = selection?.deviceId || null;
             } catch (error) {
                 speakerOutputDeviceId = null;
             }
@@ -3649,7 +3632,7 @@ async function applySpeakerOutput(enable) {
 
 async function toggleSpeakerphone() {
     isSpeakerOn = !isSpeakerOn;
- setAndroidSpeakerphoneEnabled((callPhase === 'outgoing' || callPhase === 'active') ? isSpeakerOn : false);
+    setAndroidSpeakerphoneEnabled((callPhase === 'outgoing' || callPhase === 'active') ? isSpeakerOn : false);
     await applySpeakerOutput(isSpeakerOn);
     updateCallControls();
 }
@@ -3658,10 +3641,10 @@ function getActiveCallFriend() {
     if (selectedFriendData) return selectedFriendData;
     if (!activeCallData || !currentUser) return null;
     const isCaller = activeCallData.callerId === currentUser.uid;
- const friendId = isCaller ? activeCallData.calleeId : activeCallData.callerId;
- const friendName = isCaller ? activeCallData.calleeName : activeCallData.callerName;
- const friendPhotoURL = isCaller ? activeCallData.calleePhotoURL : activeCallData.callerPhotoURL;
- const friendPhotoData = isCaller ? activeCallData.calleePhotoData : activeCallData.callerPhotoData;
+    const friendId = isCaller ? activeCallData.calleeId : activeCallData.callerId;
+    const friendName = isCaller ? activeCallData.calleeName : activeCallData.callerName;
+    const friendPhotoURL = isCaller ? activeCallData.calleePhotoURL : activeCallData.callerPhotoURL;
+    const friendPhotoData = isCaller ? activeCallData.calleePhotoData : activeCallData.callerPhotoData;
     const displayName = getFriendDisplayName({ uid: friendId, name: friendName });
     return {
         uid: friendId,
@@ -3701,7 +3684,7 @@ async function addLocalVideoTrack() {
     track.enabled = true;
     isVideoMuted = false;
     localStream.addTrack(track);
- const settings = track.getSettings ? track.getSettings() : {};
+    const settings = track.getSettings ? track.getSettings() : {};
     currentCallCameraDeviceId = settings.deviceId || currentCallCameraDeviceId;
     if (settings.facingMode) {
         currentCallCameraFacing = settings.facingMode;
@@ -3775,19 +3758,19 @@ async function handleRenegotiationOffer(renegotiate) {
     lastRenegotiationId = renegotiate.id || null;
     renegotiationInProgress = true;
 
- const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
+    const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
     const friend = getActiveCallFriend();
- setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vdeo...' : 'Mudando para chamada de voz...');
+    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vídeo...' : 'Mudando para chamada de voz...');
     updateCallModal({
- title: targetType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
- status: targetType === 'video' ? 'Mudando para chamada de vdeo...' : 'Mudando para chamada de voz...',
+        title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
+        status: targetType === 'video' ? 'Mudando para chamada de vídeo...' : 'Mudando para chamada de voz...',
         user: friend || selectedFriendData
     });
 
     const ready = await prepareLocalTracksForType(targetType);
     if (!ready) {
         renegotiationInProgress = false;
-        alert('No foi possvel acessar a cmera.');
+        alert('Não foi possível acessar a câmera.');
         setRenegotiationUI(false);
         return;
     }
@@ -3813,7 +3796,7 @@ async function handleRenegotiationOffer(renegotiate) {
         updateCallMediaVisibility(targetType);
         updateCallIndicator('active', targetType);
         updateCallModal({
- title: targetType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+            title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
             status: 'Conectado',
             user: friend || selectedFriendData
         });
@@ -3836,14 +3819,14 @@ async function handleRenegotiationAnswer(renegotiate) {
     try {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(renegotiate.answer));
     } catch (error) {
-        console.warn('Falha ao aplicar resposta de renegociao.', error);
+        console.warn('Falha ao aplicar resposta de renegociação.', error);
     }
- const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
+    const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
     currentCallType = targetType;
     updateCallMediaVisibility(targetType);
     updateCallIndicator('active', targetType);
     updateCallModal({
- title: targetType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+        title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
         status: 'Conectado',
         user: getActiveCallFriend() || selectedFriendData
     });
@@ -3856,10 +3839,10 @@ async function handleRenegotiationAnswer(renegotiate) {
 function handleRenegotiationSnapshot(data) {
     if (!data || !data.renegotiate) return;
     const renegotiate = data.renegotiate;
-    if (renegotiate.offer && renegotiate.from && renegotiate.from !== currentUser.uid) {
+    if (renegotiate.offer && renegotiate.from && renegotiate.from !== currentUser?.uid) {
         handleRenegotiationOffer(renegotiate);
     }
-    if (renegotiate.answer && renegotiate.from && renegotiate.from === currentUser.uid) {
+    if (renegotiate.answer && renegotiate.from && renegotiate.from === currentUser?.uid) {
         handleRenegotiationAnswer(renegotiate);
     }
 }
@@ -3874,24 +3857,24 @@ async function switchCallType(targetType) {
     if (currentType === targetType) return;
 
     const confirmMessage = targetType === 'video'
-          ? 'Deseja mudar para chamada de vdeo'
- : 'Deseja mudar para chamada de voz';
+        ? 'Deseja mudar para chamada de vídeo?'
+        : 'Deseja mudar para chamada de voz?';
     if (!confirm(confirmMessage)) return;
 
     renegotiationInProgress = true;
     renegotiationFallbackUsed = false;
     const friend = getActiveCallFriend();
- setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vdeo...' : 'Mudando para chamada de voz...');
+    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vídeo...' : 'Mudando para chamada de voz...');
     updateCallModal({
- title: targetType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
- status: targetType === 'video' ? 'Mudando para chamada de vdeo...' : 'Mudando para chamada de voz...',
+        title: targetType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
+        status: targetType === 'video' ? 'Mudando para chamada de vídeo...' : 'Mudando para chamada de voz...',
         user: friend || selectedFriendData
     });
 
     const ready = await prepareLocalTracksForType(targetType);
     if (!ready) {
         renegotiationInProgress = false;
-        alert('No foi possvel acessar a cmera.');
+        alert('Não foi possível acessar a câmera.');
         setRenegotiationUI(false);
         return;
     }
@@ -3899,14 +3882,14 @@ async function switchCallType(targetType) {
     try {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        const renegotiationId = `${currentUser.uid || 'user'}_${Date.now()}`;
+        const renegotiationId = `${currentUser?.uid || 'user'}_${Date.now()}`;
         pendingRenegotiationId = renegotiationId;
         pendingRenegotiationTarget = targetType;
         await callDocRef.set({
             type: targetType,
             renegotiate: {
                 id: renegotiationId,
-                from: currentUser.uid || '',
+                from: currentUser?.uid || '',
                 type: targetType,
                 offer: {
                     type: offer.type,
@@ -3923,8 +3906,8 @@ async function switchCallType(targetType) {
                 renegotiationInProgress = false;
                 setRenegotiationUI(false);
                 updateCallModal({
- title: currentType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
-                    status: 'No foi possvel mudar a chamada.',
+                    title: currentType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
+                    status: 'Não foi possível mudar a chamada.',
                     user: friend || selectedFriendData
                 });
                 updateCallControls();
@@ -3934,7 +3917,7 @@ async function switchCallType(targetType) {
     } catch (error) {
         renegotiationInProgress = false;
         console.warn('Falha ao renegociar chamada.', error);
-        alert('No foi possvel mudar o tipo da chamada.');
+        alert('Não foi possível mudar o tipo da chamada.');
         setRenegotiationUI(false);
         fallbackRestartCall(targetType, friend);
     }
@@ -3949,33 +3932,33 @@ function updateCallControls() {
     if (btnCallMute) {
         btnCallMute.classList.toggle('hidden', !showControls);
         btnCallMute.disabled = !hasAudio;
- btnCallMute.innerHTML = isAudioMuted ? CALL_ICON_MIC_OFF : CALL_ICON_MIC_ON;
- btnCallMute.title = isAudioMuted ? 'Ativar microfone' : 'Desativar microfone';
+        btnCallMute.innerHTML = isAudioMuted ? CALL_ICON_MIC_OFF : CALL_ICON_MIC_ON;
+        btnCallMute.title = isAudioMuted ? 'Ativar microfone' : 'Desativar microfone';
         btnCallMute.setAttribute('aria-pressed', String(isAudioMuted));
- btnCallMute.setAttribute('aria-label', isAudioMuted ? 'Ativar microfone' : 'Desativar microfone');
+        btnCallMute.setAttribute('aria-label', isAudioMuted ? 'Ativar microfone' : 'Desativar microfone');
     }
     if (btnCallVideoToggle) {
         btnCallVideoToggle.classList.toggle('hidden', !showControls || !isVideoCall);
         btnCallVideoToggle.disabled = !hasVideo || !isVideoCall;
- btnCallVideoToggle.innerHTML = isVideoMuted ? CALL_ICON_VIDEO_OFF : CALL_ICON_VIDEO_ON;
- btnCallVideoToggle.title = isVideoMuted ? 'Ativar vdeo' : 'Desativar vdeo';
+        btnCallVideoToggle.innerHTML = isVideoMuted ? CALL_ICON_VIDEO_OFF : CALL_ICON_VIDEO_ON;
+        btnCallVideoToggle.title = isVideoMuted ? 'Ativar vídeo' : 'Desativar vídeo';
         btnCallVideoToggle.setAttribute('aria-pressed', String(isVideoMuted));
- btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vdeo' : 'Desativar vdeo');
+        btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vídeo' : 'Desativar vídeo');
     }
     if (btnCallCameraSwitch) {
         const showCameraSwitch = showControls && isVideoCall && isAndroidDevice();
         btnCallCameraSwitch.classList.toggle('hidden', !showCameraSwitch);
         btnCallCameraSwitch.disabled = !hasVideo || !isVideoCall;
         btnCallCameraSwitch.innerHTML = CALL_ICON_CAMERA_SWITCH;
- btnCallCameraSwitch.style.display = showCameraSwitch ? 'inline-flex' : '';
+        btnCallCameraSwitch.style.display = showCameraSwitch ? 'inline-flex' : '';
     }
     if (btnCallSpeaker) {
         btnCallSpeaker.classList.toggle('hidden', !showControls);
         btnCallSpeaker.disabled = !remoteStream || remoteStream.getAudioTracks().length === 0;
- btnCallSpeaker.innerHTML = isSpeakerOn ? CALL_ICON_SPEAKER_ON : CALL_ICON_SPEAKER_OFF;
- btnCallSpeaker.title = isSpeakerOn ? 'Desativar viva-voz' : 'Ativar viva-voz';
+        btnCallSpeaker.innerHTML = isSpeakerOn ? CALL_ICON_SPEAKER_ON : CALL_ICON_SPEAKER_OFF;
+        btnCallSpeaker.title = isSpeakerOn ? 'Desativar viva-voz' : 'Ativar viva-voz';
         btnCallSpeaker.setAttribute('aria-pressed', String(isSpeakerOn));
- btnCallSpeaker.setAttribute('aria-label', isSpeakerOn ? 'Desativar viva-voz' : 'Ativar viva-voz');
+        btnCallSpeaker.setAttribute('aria-label', isSpeakerOn ? 'Desativar viva-voz' : 'Ativar viva-voz');
     }
     if (btnCallSwitchVideo) {
         btnCallSwitchVideo.classList.toggle('hidden', !showControls || isVideoCall);
@@ -4025,10 +4008,10 @@ function toggleLocalVideo() {
 }
 
 async function getCallCameraStreamForFacing(facingMode) {
-    if (!navigator.mediaDevices.getUserMedia) return null;
+    if (!navigator.mediaDevices?.getUserMedia) return null;
     const supported = navigator.mediaDevices.getSupportedConstraints
-          ? navigator.mediaDevices.getSupportedConstraints()
- : {};
+        ? navigator.mediaDevices.getSupportedConstraints()
+        : {};
     const supportsFacing = !!supported.facingMode;
     const attempts = [];
     const baseConstraints = { ...CAMERA_VIDEO_CONSTRAINTS };
@@ -4051,7 +4034,7 @@ async function getCallCameraStreamForFacing(facingMode) {
 }
 
 async function getCallCameraStreamForDevice(deviceId) {
-    if (!navigator.mediaDevices.getUserMedia || !deviceId) return null;
+    if (!navigator.mediaDevices?.getUserMedia || !deviceId) return null;
     const attempts = [];
     const baseConstraints = {
         ...CAMERA_VIDEO_CONSTRAINTS,
@@ -4072,7 +4055,7 @@ async function getCallCameraStreamForDevice(deviceId) {
 }
 
 async function getNextCallCameraDeviceId(currentTrack, fallbackDeviceId = '') {
-    if (!navigator.mediaDevices.enumerateDevices) {
+    if (!navigator.mediaDevices?.enumerateDevices) {
         return { nextDeviceId: '', hasMultiple: false, deviceCount: 0 };
     }
     try {
@@ -4084,7 +4067,7 @@ async function getNextCallCameraDeviceId(currentTrack, fallbackDeviceId = '') {
         if (uniqueInputs.length <= 1) {
             return { nextDeviceId: '', hasMultiple: false, deviceCount: uniqueInputs.length };
         }
- const currentId = currentTrack.getSettings ? (currentTrack.getSettings().deviceId || '') : '';
+        const currentId = currentTrack?.getSettings ? (currentTrack.getSettings().deviceId || '') : '';
         const activeId = currentId || fallbackDeviceId;
         let currentIndex = uniqueInputs.findIndex((device) => device.deviceId === activeId);
         if (currentIndex < 0) currentIndex = 0;
@@ -4101,16 +4084,16 @@ async function switchCallCamera() {
     const currentTrack = localStream.getVideoTracks()[0];
     if (!currentTrack) return;
 
- const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
+    const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
     const activeFacing = currentSettings.facingMode || currentCallCameraFacing || 'user';
     const currentDeviceId = currentSettings.deviceId || currentCallCameraDeviceId || '';
- const nextFacing = activeFacing === 'environment' ? 'user' : 'environment';
+    const nextFacing = activeFacing === 'environment' ? 'user' : 'environment';
 
     // Tenta trocar via applyConstraints primeiro (mais leve)
     if (typeof currentTrack.applyConstraints === 'function') {
         try {
             await currentTrack.applyConstraints({ facingMode: { ideal: nextFacing } });
- const updatedSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
+            const updatedSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
             const facingFromTrack = updatedSettings.facingMode || '';
             const deviceFromTrack = updatedSettings.deviceId || '';
             const switchedDevice = deviceFromTrack && deviceFromTrack !== currentDeviceId;
@@ -4128,8 +4111,8 @@ async function switchCallCamera() {
     }
 
     const sender = peerConnection
-          ? peerConnection.getSenders().find(s => s.track && s.track.kind === 'video')
- : null;
+        ? peerConnection.getSenders().find(s => s.track && s.track.kind === 'video')
+        : null;
 
     const { nextDeviceId, hasMultiple } = await getNextCallCameraDeviceId(currentTrack, currentDeviceId);
 
@@ -4163,15 +4146,15 @@ async function switchCallCamera() {
         newStream = await getCallCameraStreamForFacing(activeFacing);
     }
     if (!newStream) {
-        console.warn('Falha ao alternar cmera.', {
+        console.warn('Falha ao alternar câmera.', {
             hasMultiple,
             currentDeviceId,
             nextDeviceId,
             error: lastCallCameraSwitchError
         });
- const baseMessage = hasMultiple ? 'No foi possvel alternar a cmera.' : 'Apenas uma cmera disponvel no dispositivo.';
- const errorDetails = lastCallCameraSwitchError ? `${lastCallCameraSwitchError.name || 'Erro'}: ${lastCallCameraSwitchError.message || ''}`.trim() : '';
- alert(errorDetails ? `${baseMessage}\n${errorDetails}` : baseMessage);
+        const baseMessage = hasMultiple ? 'Não foi possível alternar a câmera.' : 'Apenas uma câmera disponível no dispositivo.';
+        const errorDetails = lastCallCameraSwitchError ? `${lastCallCameraSwitchError.name || 'Erro'}: ${lastCallCameraSwitchError.message || ''}`.trim() : '';
+        alert(errorDetails ? `${baseMessage}\n${errorDetails}` : baseMessage);
         return;
     }
 
@@ -4204,7 +4187,7 @@ async function switchCallCamera() {
         peerConnection.addTrack(newTrack, localStream);
     }
     if (localVideo) localVideo.srcObject = localStream;
- const settingsFromTrack = newTrack.getSettings ? newTrack.getSettings() : {};
+    const settingsFromTrack = newTrack.getSettings ? newTrack.getSettings() : {};
     const facingFromTrack = settingsFromTrack.facingMode || '';
     const deviceFromTrack = settingsFromTrack.deviceId || '';
     currentCallCameraFacing = facingFromTrack || nextFacing;
@@ -4278,7 +4261,7 @@ function resetVideoOverlayPosition(videoElement) {
 function getCurrentMiniPreviewVideo() {
     if (currentCallType !== 'video' || callPhase !== 'active') return null;
     if (!callMedia || callMedia.classList.contains('hidden')) return null;
- return isVideoSwapped ? remoteVideo : localVideo;
+    return isVideoSwapped ? remoteVideo : localVideo;
 }
 
 function startCallMiniDrag(clientX, clientY) {
@@ -4397,13 +4380,13 @@ function startRingtone(mode = 'incoming') {
         if (ringtoneContext.state === 'suspended') {
             ringtoneContext.resume();
         }
- const interval = mode === 'incoming' ? 1800 : 2200;
+        const interval = mode === 'incoming' ? 1800 : 2200;
         const beep = () => {
             if (!ringtoneContext) return;
             const osc = ringtoneContext.createOscillator();
             const gain = ringtoneContext.createGain();
             osc.type = 'sine';
- osc.frequency.value = mode === 'incoming' ? 440 : 520;
+            osc.frequency.value = mode === 'incoming' ? 440 : 520;
             gain.gain.value = 0.18;
             osc.connect(gain);
             gain.connect(ringtoneContext.destination);
@@ -4413,7 +4396,7 @@ function startRingtone(mode = 'incoming') {
         beep();
         ringtoneInterval = setInterval(beep, interval);
     } catch (error) {
-        console.warn('No foi possvel tocar o toque da chamada.', error);
+        console.warn('Não foi possível tocar o toque da chamada.', error);
     }
 }
 
@@ -4515,10 +4498,10 @@ function updateCallModal({ title, status, user }) {
     if (callTitle) callTitle.textContent = title || 'Chamada de voz';
     if (callStatus) callStatus.textContent = status || '';
     if (callUserName) {
- callUserName.textContent = user.uid ? getFriendDisplayName(user) : (user.name || 'Usurio');
+        callUserName.textContent = user?.uid ? getFriendDisplayName(user) : (user?.name || 'Usuário');
     }
     if (callUserPhoto) {
-        applyProfilePhoto(callUserPhoto, user, 'https://via.placeholder.com/90/cccccc/666666text=User');
+        applyProfilePhoto(callUserPhoto, user, 'https://via.placeholder.com/90/cccccc/666666?text=User');
     }
     if (callModal && !isCallMinimized) callModal.classList.add('show');
 }
@@ -4594,7 +4577,7 @@ async function preparePeerConnection(options = {}) {
 
     localStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
- video: wantsVideo ? getCallVideoConstraints() : false
+        video: wantsVideo ? getCallVideoConstraints() : false
     });
     if (localAudio) localAudio.srcObject = localStream;
     if (localVideo) localVideo.srcObject = localStream;
@@ -4603,21 +4586,21 @@ async function preparePeerConnection(options = {}) {
     });
     const videoTrack = localStream.getVideoTracks()[0];
     if (videoTrack) {
- const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+        const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
         currentCallCameraDeviceId = settings.deviceId || currentCallCameraDeviceId;
         if (settings.facingMode) {
             currentCallCameraFacing = settings.facingMode;
         }
     }
 
- updateCallMediaVisibility(wantsVideo ? 'video' : 'audio');
+    updateCallMediaVisibility(wantsVideo ? 'video' : 'audio');
 }
 
 async function notifyFriendIncomingCall(callId, callType, friend) {
     if (!callId || !friend || !currentUser) return;
     const tokens = Array.isArray(friend.fcmTokens)
-          ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
- : [];
+        ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
+        : [];
     if (!tokens.length) return;
 
     const payload = {
@@ -4625,11 +4608,11 @@ async function notifyFriendIncomingCall(callId, callType, friend) {
         callId,
         callType: callType || 'audio',
         callerId: currentUser.uid,
-        callerName: currentUserProfile.name || currentUser.displayName || 'Usurio',
-        callerPhotoURL: currentUserProfile.photoURL || null
+        callerName: currentUserProfile?.name || currentUser.displayName || 'Usuário',
+        callerPhotoURL: currentUserProfile?.photoURL || null
     };
 
- const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/call-notify` : '/api/call-notify';
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/call-notify` : '/api/call-notify';
     try {
         await fetch(apiUrl, {
             method: 'POST',
@@ -4637,13 +4620,13 @@ async function notifyFriendIncomingCall(callId, callType, friend) {
             body: JSON.stringify(payload)
         });
     } catch (error) {
-        console.warn('Falha ao enviar notificao de chamada.', error);
+        console.warn('Falha ao enviar notificação de chamada.', error);
     }
 }
 
 function buildOutgoingMessageNotificationBody(messagePayload, count = 1) {
     if (count > 1) {
-        return `Voc recebeu ${count} itens`;
+        return `Você recebeu ${count} itens`;
     }
     return buildIncomingNotificationBody(messagePayload);
 }
@@ -4651,28 +4634,28 @@ function buildOutgoingMessageNotificationBody(messagePayload, count = 1) {
 async function notifyFriendIncomingMessage(friend, messagePayload, options = {}) {
     if (!friend || !friend.uid || !currentUser) return;
     const tokens = Array.isArray(friend.fcmTokens)
-          ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
- : [];
+        ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
+        : [];
     if (!tokens.length) return;
 
     const count = Number(options.count || 1) || 1;
     const notificationBody = String(options.body || buildOutgoingMessageNotificationBody(messagePayload, count));
-    const messageType = String(messagePayload.type || 'text');
+    const messageType = String(messagePayload?.type || 'text');
 
     const payload = {
         tokens,
         messageType,
-        messageText: String(messagePayload.text || ''),
-        fileName: String(messagePayload.fileName || ''),
+        messageText: String(messagePayload?.text || ''),
+        fileName: String(messagePayload?.fileName || ''),
         senderId: currentUser.uid,
-        senderName: currentUserProfile.name || currentUser.displayName || 'Usurio',
-        senderPhotoURL: currentUserProfile.photoURL || null,
+        senderName: currentUserProfile?.name || currentUser.displayName || 'Usuário',
+        senderPhotoURL: currentUserProfile?.photoURL || null,
         conversationId: getConversationId(currentUser.uid, friend.uid),
         notificationBody,
         count
     };
 
- const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/message-notify` : '/api/message-notify';
+    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/message-notify` : '/api/message-notify';
     try {
         await fetch(apiUrl, {
             method: 'POST',
@@ -4680,22 +4663,22 @@ async function notifyFriendIncomingMessage(friend, messagePayload, options = {})
             body: JSON.stringify(payload)
         });
     } catch (error) {
-        console.warn('Falha ao enviar notificao de mensagem.', error);
+        console.warn('Falha ao enviar notificação de mensagem.', error);
     }
 }
 
 async function startCall(callType = 'audio') {
     if (!selectedFriendData || !currentUser) return;
     if (selectedFriendData.uid === currentUser.uid) {
-        alert('No  possvel iniciar chamadas com o seu prprio contato.');
+        alert('Não é possível iniciar chamadas com o seu próprio contato.');
         return;
     }
     if (isFriendBlocked(selectedFriendData.uid)) {
-        alert('Voc bloqueou este usurio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
     if (currentCallId) {
-        alert('J existe uma chamada em andamento.');
+        alert('Já existe uma chamada em andamento.');
         return;
     }
 
@@ -4711,7 +4694,7 @@ async function startCall(callType = 'audio') {
         await preparePeerConnection({ video: callType === 'video' });
     } catch (error) {
         if (callType === 'video') {
-            const fallback = confirm('No foi possvel acessar a cmera. Deseja iniciar uma chamada de voz');
+            const fallback = confirm('Não foi possível acessar a câmera. Deseja iniciar uma chamada de voz?');
             if (!fallback) {
                 return;
             }
@@ -4720,22 +4703,22 @@ async function startCall(callType = 'audio') {
             try {
                 await preparePeerConnection({ video: false });
             } catch (audioError) {
-                alert('No foi possvel acessar o microfone.');
+                alert('Não foi possível acessar o microfone.');
                 return;
             }
         } else {
-            alert('No foi possvel acessar o microfone.');
+            alert('Não foi possível acessar o microfone.');
             return;
         }
     }
 
     const callData = {
         callerId: currentUser.uid,
-        callerName: currentUserProfile.name || currentUser.displayName || 'Usurio',
-        callerPhotoURL: currentUserProfile.photoURL || null,
-        callerPhotoData: currentUserProfile.photoData || null,
+        callerName: currentUserProfile?.name || currentUser.displayName || 'Usuário',
+        callerPhotoURL: currentUserProfile?.photoURL || null,
+        callerPhotoData: currentUserProfile?.photoData || null,
         calleeId: selectedFriendData.uid,
-        calleeName: selectedFriendData.name || 'Usurio',
+        calleeName: selectedFriendData.name || 'Usuário',
         calleePhotoURL: selectedFriendData.photoURL || null,
         calleePhotoData: selectedFriendData.photoData || null,
         type: callType,
@@ -4792,7 +4775,7 @@ async function startCall(callType = 'audio') {
             clearCallCountdown();
             updateCallIndicator('active', currentCallType || callType);
             updateCallModal({
- title: callType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+                title: callType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
                 status: 'Conectado',
                 user: selectedFriendData
             });
@@ -4809,7 +4792,7 @@ async function startCall(callType = 'audio') {
     setCallButtonsVisibility('outgoing');
     updateCallIndicator('outgoing', callType);
     updateCallModal({
- title: callType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+        title: callType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
         status: 'Aguardando resposta',
         user: selectedFriendData
     });
@@ -4877,8 +4860,8 @@ async function handleIncomingCall(callDoc) {
     setCallButtonsVisibility('incoming');
     updateCallIndicator('incoming', currentCallType);
     updateCallModal({
- title: currentCallType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
-        status: 'Deseja atender',
+        title: currentCallType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
+        status: 'Deseja atender?',
         user: {
             name: data.callerName,
             photoURL: data.callerPhotoURL,
@@ -4899,7 +4882,7 @@ async function acceptIncomingCall() {
         await preparePeerConnection({ video: wantsVideo });
     } catch (error) {
         if ((currentCallType || activeCallData.type) === 'video') {
-            const fallback = confirm('No foi possvel acessar a cmera. Deseja atender apenas com udio');
+            const fallback = confirm('Não foi possível acessar a câmera. Deseja atender apenas com áudio?');
             if (!fallback) {
                 await rejectIncomingCall();
                 return;
@@ -4908,12 +4891,12 @@ async function acceptIncomingCall() {
             try {
                 await preparePeerConnection({ video: false });
             } catch (audioError) {
-                alert('No foi possvel acessar o microfone.');
+                alert('Não foi possível acessar o microfone.');
                 await rejectIncomingCall();
                 return;
             }
         } else {
-            alert('No foi possvel acessar o microfone.');
+            alert('Não foi possível acessar o microfone.');
             await rejectIncomingCall();
             return;
         }
@@ -4929,7 +4912,7 @@ async function acceptIncomingCall() {
     if (!resolvedOffer && callDocRef) {
         try {
             const freshDoc = await callDocRef.get();
-            resolvedOffer = freshDoc.data().offer || null;
+            resolvedOffer = freshDoc.data()?.offer || null;
         } catch (error) {
             resolvedOffer = null;
         }
@@ -4938,7 +4921,7 @@ async function acceptIncomingCall() {
         resolvedOffer = await waitForOffer(5000);
     }
     if (!resolvedOffer) {
-        alert('No foi possvel atender esta chamada.');
+        alert('Não foi possível atender esta chamada.');
         resetCallState();
         return;
     }
@@ -4982,7 +4965,7 @@ async function acceptIncomingCall() {
     clearCallCountdown();
     updateCallIndicator('active', currentCallType || activeCallData.type || 'audio');
     updateCallModal({
- title: (currentCallType || activeCallData.type) === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+        title: (currentCallType || activeCallData.type) === 'video' ? 'Chamada de vídeo' : 'Chamada de voz',
         status: 'Conectado',
         user: {
             name: activeCallData.callerName,
@@ -5035,7 +5018,7 @@ function listenForIncomingCalls() {
 }
 
 function looksLikeEmail(value) {
-    return /^[^\s@]+@[^\s@]+\?.[^\s@]+$/.test(String(value || '').trim());
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 }
 
 async function findUsersByIdentifier(identifier) {
@@ -5059,7 +5042,7 @@ async function findUsersByIdentifier(identifier) {
         if (!snapshot.empty) {
             const doc = snapshot.docs[0];
             const data = { id: doc.id, ...doc.data() };
- return data.disabled ? [] : [data];
+            return data.disabled ? [] : [data];
         }
 
         return [];
@@ -5084,8 +5067,8 @@ async function findUsersByIdentifier(identifier) {
     snapshot.forEach((doc) => appendMatch({ id: doc.id, ...doc.data() }));
 
     const availableUsers = Array.isArray(allUsersCache) && allUsersCache.length
-          ? allUsersCache
- : (await db.collection('users').get()).docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        ? allUsersCache
+        : (await db.collection('users').get()).docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     availableUsers.forEach((user) => appendMatch(user));
 
     return sortUsersByNameAndEmail(Array.from(matchedUsersMap.values()));
@@ -5095,17 +5078,17 @@ async function addFriendByEmail(email) {
     if (!currentUser) return;
     const matchedUsers = await findUsersByIdentifier(email);
     if (!matchedUsers.length) {
-        alert('Usurio no encontrado. Informe um e-mail ou @primeironome vlido.');
+        alert('Usuário não encontrado. Informe um e-mail ou @primeironome válido.');
         return;
     }
 
     const addableUsers = matchedUsers.filter((user) => getUserTagMatchOptionMeta(user).selectable);
     if (!addableUsers.length) {
         if (matchedUsers.some((user) => user.uid === currentUser.uid)) {
-            alert('Voc j adicionou o seu prprio contato.');
+            alert('Você já adicionou o seu próprio contato.');
             return;
         }
-        alert('Os usurios encontrados j esto na sua lista de amigos.');
+        alert('Os usuários encontrados já estão na sua lista de amigos.');
         return;
     }
 
@@ -5177,15 +5160,15 @@ async function blockSelectedFriends() {
     if (!selectedIds.length) return;
 
     const confirmed = confirm(selectedIds.length === 1
-          ? 'Deseja bloquear este amigo'
- : `Deseja bloquear ${selectedIds.length} amigos selecionados`);
+        ? 'Deseja bloquear este amigo?'
+        : `Deseja bloquear ${selectedIds.length} amigos selecionados?`);
     if (!confirmed) return;
 
     for (const friendId of selectedIds) {
         await blockFriend(friendId);
     }
 
-    if (!Array.isArray(currentUserProfile.blocked)) {
+    if (!Array.isArray(currentUserProfile?.blocked)) {
         currentUserProfile = { ...(currentUserProfile || {}), blocked: [] };
     }
     selectedIds.forEach((id) => {
@@ -5215,8 +5198,8 @@ async function removeSelectedFriends() {
     if (!selectedIds.length) return;
 
     const confirmed = confirm(selectedIds.length === 1
-          ? 'Deseja remover este amigo da sua lista'
- : `Deseja remover ${selectedIds.length} amigos da sua lista`);
+        ? 'Deseja remover este amigo da sua lista?'
+        : `Deseja remover ${selectedIds.length} amigos da sua lista?`);
     if (!confirmed) return;
 
     for (const friendId of selectedIds) {
@@ -5243,7 +5226,7 @@ function setAdminPanelVisible(show) {
     adminPanel.classList.toggle('hidden', !show);
     chatPanel.classList.toggle('hidden', show);
     if (btnAdminPanel) {
- btnAdminPanel.textContent = show ? 'Chat' : 'Admin';
+        btnAdminPanel.textContent = show ? 'Chat' : 'Admin';
     }
     if (show) {
         const storedTab = getStoredAdminTab();
@@ -5303,7 +5286,7 @@ function toggleLogoutButtonVisible() {
 function getStoredTheme() {
     try {
         const value = localStorage.getItem(THEME_STORAGE_KEY);
- return value === 'dark' ? 'dark' : 'light';
+        return value === 'dark' ? 'dark' : 'light';
     } catch (error) {
         return 'light';
     }
@@ -5332,7 +5315,7 @@ function getStoredChatFontSize(defaultValue = 'normal') {
 function getStoredLanguage(defaultValue = 'pt-BR') {
     try {
         const value = localStorage.getItem(LANGUAGE_STORAGE_KEY);
- return value === 'en-US' ? 'en-US' : defaultValue;
+        return value === 'en-US' ? 'en-US' : defaultValue;
     } catch (error) {
         return defaultValue;
     }
@@ -5376,7 +5359,7 @@ function supportsPcLocalMediaFolder() {
 function openMediaHandleDb() {
     return new Promise((resolve, reject) => {
         if (typeof window.indexedDB === 'undefined') {
-            reject(new Error('IndexedDB indisponvel'));
+            reject(new Error('IndexedDB indisponível'));
             return;
         }
 
@@ -5396,7 +5379,7 @@ function openMediaHandleDb() {
 }
 
 function getAttachmentCacheKey(msg) {
-    if (!msg.id) return '';
+    if (!msg?.id) return '';
     const senderId = String(msg.senderId || '').trim();
     const receiverId = String(msg.receiverId || '').trim();
     if (senderId && receiverId) {
@@ -5415,17 +5398,17 @@ async function saveAttachmentBlobToCache(msg, blob) {
             const tx = dbRef.transaction(MEDIA_CACHE_STORE_NAME, 'readwrite');
             tx.objectStore(MEDIA_CACHE_STORE_NAME).put({
                 blob,
-                fileName: String(msg.fileName || '').trim(),
-                fileType: String(blob.type || msg.fileType || '').trim(),
+                fileName: String(msg?.fileName || '').trim(),
+                fileType: String(blob.type || msg?.fileType || '').trim(),
                 updatedAt: Date.now()
             }, cacheKey);
             tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error || new Error('Falha ao salvar cache local da mdia'));
+            tx.onerror = () => reject(tx.error || new Error('Falha ao salvar cache local da mídia'));
         });
         dbRef.close();
         return true;
     } catch (error) {
-        console.warn('Falha ao salvar blob da mdia em cache local.', error);
+        console.warn('Falha ao salvar blob da mídia em cache local.', error);
         return false;
     }
 }
@@ -5440,12 +5423,12 @@ async function loadAttachmentBlobFromCache(msg) {
             const tx = dbRef.transaction(MEDIA_CACHE_STORE_NAME, 'readonly');
             const req = tx.objectStore(MEDIA_CACHE_STORE_NAME).get(cacheKey);
             req.onsuccess = () => resolve(req.result || null);
-            req.onerror = () => reject(req.error || new Error('Falha ao carregar cache local da mdia'));
+            req.onerror = () => reject(req.error || new Error('Falha ao carregar cache local da mídia'));
         });
         dbRef.close();
-        return cachedEntry.blob || null;
+        return cachedEntry?.blob || null;
     } catch (error) {
-        console.warn('Falha ao carregar blob da mdia do cache local.', error);
+        console.warn('Falha ao carregar blob da mídia do cache local.', error);
         return null;
     }
 }
@@ -5476,7 +5459,7 @@ async function savePcMediaRootHandle(handle) {
         });
         dbRef.close();
     } catch (error) {
-        console.warn('No foi possvel salvar referncia da pasta local.', error);
+        console.warn('Não foi possível salvar referência da pasta local.', error);
     }
 }
 
@@ -5496,7 +5479,7 @@ async function loadPcMediaRootHandle() {
         pcMediaRootHandle = handle || null;
         return pcMediaRootHandle;
     } catch (error) {
-        console.warn('No foi possvel carregar referncia da pasta local.', error);
+        console.warn('Não foi possível carregar referência da pasta local.', error);
         pcMediaRootHandle = null;
         return null;
     }
@@ -5508,8 +5491,8 @@ async function ensureHandleWritePermission(handle, interactive = false) {
     try {
         const mode = { mode: 'readwrite' };
         let permission = typeof handle.queryPermission === 'function'
-              ? await handle.queryPermission(mode)
- : 'prompt';
+            ? await handle.queryPermission(mode)
+            : 'prompt';
 
         if (permission === 'granted') return true;
         if (permission === 'prompt' && interactive && typeof handle.requestPermission === 'function') {
@@ -5517,7 +5500,7 @@ async function ensureHandleWritePermission(handle, interactive = false) {
             return permission === 'granted';
         }
     } catch (error) {
-        console.warn('Falha ao verificar permisso da pasta local.', error);
+        console.warn('Falha ao verificar permissão da pasta local.', error);
     }
 
     return false;
@@ -5528,8 +5511,8 @@ async function ensurePcMediaDirectoryHandle(rootHandle, msg, fileName, mimeType 
     const category = getDownloadCategory(msg, fileName, mimeType);
     const scope = resolveLocalMediaScope(msg, options.scope);
     const targetDir = scope === 'sent'
-          ? await mediaDir.getDirectoryHandle('Enviados', { create: true })
- : mediaDir;
+        ? await mediaDir.getDirectoryHandle('Enviados', { create: true })
+        : mediaDir;
     const categoryDir = await targetDir.getDirectoryHandle(category, { create: true });
     return { categoryDir };
 }
@@ -5595,7 +5578,7 @@ function setPcLocalMediaFolderReady(ready, persist = true) {
 
     if (!persist) return;
     try {
- localStorage.setItem(MEDIA_PC_FOLDER_READY_STORAGE_KEY, pcLocalMediaFolderReady ? 'true' : 'false');
+        localStorage.setItem(MEDIA_PC_FOLDER_READY_STORAGE_KEY, pcLocalMediaFolderReady ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -5638,7 +5621,7 @@ async function configurePcLocalMediaFolder() {
         setPcLocalMediaFolderReady(true);
         return true;
     } catch (error) {
-        console.warn('Falha ao preparar pasta local de mdia no PC.', error);
+        console.warn('Falha ao preparar pasta local de mídia no PC.', error);
         setPcLocalMediaFolderReady(false);
         return false;
     }
@@ -5650,46 +5633,46 @@ const UI_TEXT = {
         themeLight: 'Tema claro',
         soundOn: 'Som: ligado',
         soundOff: 'Som: desligado',
-        messageToneDefault: 'Toque de mensagem: padro',
+        messageToneDefault: 'Toque de mensagem: padrão',
         messageToneCustom: 'Toque de mensagem: personalizado',
-        callToneDefault: 'Toque de chamada: padro',
+        callToneDefault: 'Toque de chamada: padrão',
         callToneCustom: 'Toque de chamada: personalizado',
-        notificationsOff: 'Notificaes: desligadas',
-        notificationsOn: 'Notificaes: ligadas',
-        notificationsBlocked: 'Notificaes: bloqueadas',
-        notificationsPending: 'Notificaes: pendentes',
-        notificationsUnavailable: 'Notificaes: indisponveis',
+        notificationsOff: 'Notificações: desligadas',
+        notificationsOn: 'Notificações: ligadas',
+        notificationsBlocked: 'Notificações: bloqueadas',
+        notificationsPending: 'Notificações: pendentes',
+        notificationsUnavailable: 'Notificações: indisponíveis',
         readOn: 'Leitura: ligada',
         readOff: 'Leitura: desligada',
-        statusVisible: 'Status: visvel',
+        statusVisible: 'Status: visível',
         statusHidden: 'Status: oculto',
         chatFontNormal: 'Fonte do chat: normal',
         chatFontLarge: 'Fonte do chat: grande',
         chatBackgroundDefault: 'Plano de fundo do chat',
         chatBackgroundCustom: 'Plano de fundo: personalizado',
-        mediaSaveAuto: 'Salvamento de mdia: automtico',
-        mediaSaveManual: 'Salvamento de mdia: manual',
-        mediaSaveAction: 'Salvar mdia',
-        mediaPcFolderConfigure: 'Pasta de mdia (PC): configurar',
-        mediaPcFolderReady: 'Pasta de mdia (PC): pronta',
-        mediaPcFolderUnavailable: 'Pasta de mdia (PC): indisponvel',
-        mediaPcFolderSaved: 'Pasta local de mdia configurada com sucesso no PC.',
-        mediaPcFolderSaveFailed: 'No foi possvel configurar a pasta local de mdia no PC.',
+        mediaSaveAuto: 'Salvamento de mídia: automático',
+        mediaSaveManual: 'Salvamento de mídia: manual',
+        mediaSaveAction: 'Salvar mídia',
+        mediaPcFolderConfigure: 'Pasta de mídia (PC): configurar',
+        mediaPcFolderReady: 'Pasta de mídia (PC): pronta',
+        mediaPcFolderUnavailable: 'Pasta de mídia (PC): indisponível',
+        mediaPcFolderSaved: 'Pasta local de mídia configurada com sucesso no PC.',
+        mediaPcFolderSaveFailed: 'Não foi possível configurar a pasta local de mídia no PC.',
         callsAllowed: 'Chamadas: permitidas',
         callsBlocked: 'Chamadas: bloqueadas',
-        lastSeenVisible: 'Visto por ltimo: visvel',
-        lastSeenHidden: 'Visto por ltimo: oculto',
-        languagePt: 'Idioma: portugus',
-        languageEn: 'Idioma: ingls',
-        settingsTitle: 'Configuraes',
+        lastSeenVisible: 'Visto por último: visível',
+        lastSeenHidden: 'Visto por último: oculto',
+        languagePt: 'Idioma: português',
+        languageEn: 'Idioma: inglês',
+        settingsTitle: 'Configurações',
         about: 'Sobre',
         logout: 'Sair',
         presenceHidden: 'Status oculto',
-        presenceLastSeen: 'Visto por ltimo s {time}',
+        presenceLastSeen: 'Visto por último às {time}',
         presenceOffline: 'Offline',
         presenceBlocked: 'Bloqueado',
-        typingActivity: '{name} est escrevendo...',
-        recordingActivity: '{name} est gravando udio...',
+        typingActivity: '{name} está escrevendo...',
+        recordingActivity: '{name} está gravando áudio...',
         callAutoBlockedToast: 'Chamada recusada automaticamente: chamadas bloqueadas.'
     },
     'en-US': {
@@ -5766,14 +5749,14 @@ const ABOUT_CONTENT_HTML = `
     <h4>Plataformas</h4>
     <p>Versao Web e versao Android (WebView) com os mesmos recursos principais.</p>
     <h4>Desenvolvedor</h4>
-    <p><strong>Luiz Srgio Garcia Carvalho</strong></p>
+    <p><strong>Luiz Sérgio Garcia Carvalho</strong></p>
     <p>Formado em Sistemas de Informacao e Licenciatura em Matematica.</p>
     <p>Contato: (91) 993064354 (WhatsApp)</p>
     <p>E-mail: luizynho27@gmail.com</p>
 `;
 
 function getUiText(key) {
- const lang = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
+    const lang = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
     return UI_TEXT[lang]?.[key] || UI_TEXT['pt-BR']?.[key] || '';
 }
 
@@ -5798,19 +5781,19 @@ function closeAboutModal() {
 function refreshSettingsMenuLabels() {
     if (btnThemeToggle) {
         const isDark = document.body.classList.contains('theme-dark');
- btnThemeToggle.textContent = isDark ? getUiText('themeLight') : getUiText('themeDark');
+        btnThemeToggle.textContent = isDark ? getUiText('themeLight') : getUiText('themeDark');
     }
 
     if (btnSoundToggle) {
- btnSoundToggle.textContent = soundNotificationsEnabled ? getUiText('soundOn') : getUiText('soundOff');
+        btnSoundToggle.textContent = soundNotificationsEnabled ? getUiText('soundOn') : getUiText('soundOff');
     }
 
     if (btnMessageTone) {
- btnMessageTone.textContent = messageToneDataUrl ? getUiText('messageToneCustom') : getUiText('messageToneDefault');
+        btnMessageTone.textContent = messageToneDataUrl ? getUiText('messageToneCustom') : getUiText('messageToneDefault');
     }
 
     if (btnCallTone) {
- btnCallTone.textContent = callToneDataUrl ? getUiText('callToneCustom') : getUiText('callToneDefault');
+        btnCallTone.textContent = callToneDataUrl ? getUiText('callToneCustom') : getUiText('callToneDefault');
     }
 
     if (btnDesktopNotificationsToggle) {
@@ -5831,23 +5814,23 @@ function refreshSettingsMenuLabels() {
     }
 
     if (btnReadReceiptsToggle) {
- btnReadReceiptsToggle.textContent = readReceiptsEnabled ? getUiText('readOn') : getUiText('readOff');
+        btnReadReceiptsToggle.textContent = readReceiptsEnabled ? getUiText('readOn') : getUiText('readOff');
     }
 
     if (btnOnlineStatusToggle) {
- btnOnlineStatusToggle.textContent = showOnlineStatusEnabled ? getUiText('statusVisible') : getUiText('statusHidden');
+        btnOnlineStatusToggle.textContent = showOnlineStatusEnabled ? getUiText('statusVisible') : getUiText('statusHidden');
     }
 
     if (btnChatFontToggle) {
- btnChatFontToggle.textContent = chatFontSizePreference === 'large' ? getUiText('chatFontLarge') : getUiText('chatFontNormal');
+        btnChatFontToggle.textContent = chatFontSizePreference === 'large' ? getUiText('chatFontLarge') : getUiText('chatFontNormal');
     }
 
     if (btnChatBackground) {
- btnChatBackground.textContent = chatBackgroundDataUrl ? getUiText('chatBackgroundCustom') : getUiText('chatBackgroundDefault');
+        btnChatBackground.textContent = chatBackgroundDataUrl ? getUiText('chatBackgroundCustom') : getUiText('chatBackgroundDefault');
     }
 
     if (btnMediaSaveModeToggle) {
- btnMediaSaveModeToggle.textContent = autoMediaSaveEnabled ? getUiText('mediaSaveAuto') : getUiText('mediaSaveManual');
+        btnMediaSaveModeToggle.textContent = autoMediaSaveEnabled ? getUiText('mediaSaveAuto') : getUiText('mediaSaveManual');
     }
 
     if (btnMediaFolderPc) {
@@ -5864,15 +5847,15 @@ function refreshSettingsMenuLabels() {
     }
 
     if (btnCallBlockToggle) {
- btnCallBlockToggle.textContent = blockIncomingCallsEnabled ? getUiText('callsBlocked') : getUiText('callsAllowed');
+        btnCallBlockToggle.textContent = blockIncomingCallsEnabled ? getUiText('callsBlocked') : getUiText('callsAllowed');
     }
 
     if (btnLastSeenToggle) {
- btnLastSeenToggle.textContent = showLastSeenEnabled ? getUiText('lastSeenVisible') : getUiText('lastSeenHidden');
+        btnLastSeenToggle.textContent = showLastSeenEnabled ? getUiText('lastSeenVisible') : getUiText('lastSeenHidden');
     }
 
     if (btnLanguageToggle) {
- btnLanguageToggle.textContent = selectedLanguage === 'en-US' ? getUiText('languageEn') : getUiText('languagePt');
+        btnLanguageToggle.textContent = selectedLanguage === 'en-US' ? getUiText('languageEn') : getUiText('languagePt');
     }
 
     if (btnAbout) {
@@ -5899,7 +5882,7 @@ function refreshSettingsMenuLabels() {
 function refreshPresenceDisplay() {
     renderFriendUsers();
     renderChatPartnerStatus();
-    if (friendModal.classList.contains('show') && selectedFriendData) {
+    if (friendModal?.classList.contains('show') && selectedFriendData) {
         renderFriendDetailStatus(selectedFriendData);
     }
 }
@@ -5907,11 +5890,11 @@ function refreshPresenceDisplay() {
 try {
     initializeUserPreferences();
 } catch (error) {
-    console.warn('Falha ao inicializar preferncias locais:', error);
+    console.warn('Falha ao inicializar preferências locais:', error);
 }
 
 initializePcLocalMediaFolderState().catch((error) => {
-    console.warn('Falha ao inicializar pasta local de mdia no PC.', error);
+    console.warn('Falha ao inicializar pasta local de mídia no PC.', error);
 });
 
 startInitialBootstrapFallback();
@@ -5933,7 +5916,7 @@ async function syncOnlineStatusVisibilityPreference() {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
     } catch (error) {
-        console.warn('Falha ao salvar preferncia de status online.', error);
+        console.warn('Falha ao salvar preferência de status online.', error);
     }
 }
 
@@ -5943,14 +5926,14 @@ function applyTheme(theme, persist = false) {
     applyChatBackground(chatBackgroundDataUrl, false);
 
     if (btnThemeToggle) {
- btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
- localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
+        localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
     } catch (error) {
         // ignore
     }
@@ -5960,14 +5943,14 @@ function applySoundNotificationsSetting(isEnabled, persist = false) {
     soundNotificationsEnabled = !!isEnabled;
 
     if (btnSoundToggle) {
- btnSoundToggle.setAttribute('aria-pressed', soundNotificationsEnabled ? 'true' : 'false');
+        btnSoundToggle.setAttribute('aria-pressed', soundNotificationsEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
- localStorage.setItem(SOUND_NOTIFICATIONS_STORAGE_KEY, soundNotificationsEnabled ? 'true' : 'false');
+        localStorage.setItem(SOUND_NOTIFICATIONS_STORAGE_KEY, soundNotificationsEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -5985,7 +5968,7 @@ function applyMessageToneSetting(dataUrl, persist = false) {
             localStorage.removeItem(MESSAGE_TONE_STORAGE_KEY);
         }
     } catch (error) {
-        alert('No foi possvel salvar o toque de mensagem.');
+        alert('Não foi possível salvar o toque de mensagem.');
     }
 }
 
@@ -6001,7 +5984,7 @@ function applyCallToneSetting(dataUrl, persist = false) {
             localStorage.removeItem(CALL_TONE_STORAGE_KEY);
         }
     } catch (error) {
-        alert('No foi possvel salvar o toque de chamada.');
+        alert('Não foi possível salvar o toque de chamada.');
     }
 }
 
@@ -6015,7 +5998,7 @@ function isValidToneFile(file) {
     }
     const sizeLimit = 5 * 1024 * 1024;
     if (file.size > sizeLimit) {
-        alert('O arquivo de toque deve ter no mximo 5MB.');
+        alert('O arquivo de toque deve ter no máximo 5MB.');
         return false;
     }
     return true;
@@ -6034,14 +6017,14 @@ function applyReadReceiptsSetting(isEnabled, persist = false) {
     readReceiptsEnabled = !!isEnabled;
 
     if (btnReadReceiptsToggle) {
- btnReadReceiptsToggle.setAttribute('aria-pressed', readReceiptsEnabled ? 'true' : 'false');
+        btnReadReceiptsToggle.setAttribute('aria-pressed', readReceiptsEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
- localStorage.setItem(READ_RECEIPTS_STORAGE_KEY, readReceiptsEnabled ? 'true' : 'false');
+        localStorage.setItem(READ_RECEIPTS_STORAGE_KEY, readReceiptsEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -6062,7 +6045,7 @@ function applyDesktopNotificationsSetting(isEnabled, persist = false) {
     const permission = getDesktopNotificationPermission();
 
     if (btnDesktopNotificationsToggle) {
- btnDesktopNotificationsToggle.setAttribute('aria-pressed', desktopNotificationsEnabled && permission === 'granted' ? 'true' : 'false');
+        btnDesktopNotificationsToggle.setAttribute('aria-pressed', desktopNotificationsEnabled && permission === 'granted' ? 'true' : 'false');
         btnDesktopNotificationsToggle.disabled = false;
     }
     refreshSettingsMenuLabels();
@@ -6070,7 +6053,7 @@ function applyDesktopNotificationsSetting(isEnabled, persist = false) {
     if (!persist) return;
 
     try {
- localStorage.setItem(DESKTOP_NOTIFICATIONS_STORAGE_KEY, desktopNotificationsEnabled ? 'true' : 'false');
+        localStorage.setItem(DESKTOP_NOTIFICATIONS_STORAGE_KEY, desktopNotificationsEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -6080,14 +6063,14 @@ function applyOnlineStatusVisibilitySetting(isEnabled, persist = false, syncRemo
     showOnlineStatusEnabled = !!isEnabled;
 
     if (btnOnlineStatusToggle) {
- btnOnlineStatusToggle.setAttribute('aria-pressed', showOnlineStatusEnabled ? 'true' : 'false');
+        btnOnlineStatusToggle.setAttribute('aria-pressed', showOnlineStatusEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
     refreshPresenceDisplay();
 
     if (persist) {
         try {
- localStorage.setItem(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, showOnlineStatusEnabled ? 'true' : 'false');
+            localStorage.setItem(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, showOnlineStatusEnabled ? 'true' : 'false');
         } catch (error) {
             // ignore
         }
@@ -6099,12 +6082,12 @@ function applyOnlineStatusVisibilitySetting(isEnabled, persist = false, syncRemo
 }
 
 function applyChatFontSizeSetting(size, persist = false) {
- const normalizedSize = size === 'large' ? 'large' : 'normal';
+    const normalizedSize = size === 'large' ? 'large' : 'normal';
     chatFontSizePreference = normalizedSize;
     document.body.classList.toggle('chat-font-large', normalizedSize === 'large');
 
     if (btnChatFontToggle) {
- btnChatFontToggle.setAttribute('aria-pressed', normalizedSize === 'large' ? 'true' : 'false');
+        btnChatFontToggle.setAttribute('aria-pressed', normalizedSize === 'large' ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
@@ -6121,14 +6104,14 @@ function applyMediaAutoSaveSetting(isEnabled, persist = false) {
     autoMediaSaveEnabled = !!isEnabled;
 
     if (btnMediaSaveModeToggle) {
- btnMediaSaveModeToggle.setAttribute('aria-pressed', autoMediaSaveEnabled ? 'true' : 'false');
+        btnMediaSaveModeToggle.setAttribute('aria-pressed', autoMediaSaveEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
- localStorage.setItem(MEDIA_AUTO_SAVE_STORAGE_KEY, autoMediaSaveEnabled ? 'true' : 'false');
+        localStorage.setItem(MEDIA_AUTO_SAVE_STORAGE_KEY, autoMediaSaveEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -6138,14 +6121,14 @@ function applyCallBlockingSetting(isEnabled, persist = false) {
     blockIncomingCallsEnabled = !!isEnabled;
 
     if (btnCallBlockToggle) {
- btnCallBlockToggle.setAttribute('aria-pressed', blockIncomingCallsEnabled ? 'true' : 'false');
+        btnCallBlockToggle.setAttribute('aria-pressed', blockIncomingCallsEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
- localStorage.setItem(CALL_BLOCK_STORAGE_KEY, blockIncomingCallsEnabled ? 'true' : 'false');
+        localStorage.setItem(CALL_BLOCK_STORAGE_KEY, blockIncomingCallsEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -6155,7 +6138,7 @@ function applyLastSeenVisibilitySetting(isEnabled, persist = false) {
     showLastSeenEnabled = !!isEnabled;
 
     if (btnLastSeenToggle) {
- btnLastSeenToggle.setAttribute('aria-pressed', showLastSeenEnabled ? 'true' : 'false');
+        btnLastSeenToggle.setAttribute('aria-pressed', showLastSeenEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
     refreshPresenceDisplay();
@@ -6163,17 +6146,17 @@ function applyLastSeenVisibilitySetting(isEnabled, persist = false) {
     if (!persist) return;
 
     try {
- localStorage.setItem(LAST_SEEN_VISIBILITY_STORAGE_KEY, showLastSeenEnabled ? 'true' : 'false');
+        localStorage.setItem(LAST_SEEN_VISIBILITY_STORAGE_KEY, showLastSeenEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
 }
 
 function applyLanguageSetting(language, persist = false) {
- selectedLanguage = language === 'en-US' ? 'en-US' : 'pt-BR';
+    selectedLanguage = language === 'en-US' ? 'en-US' : 'pt-BR';
 
     if (btnLanguageToggle) {
- btnLanguageToggle.setAttribute('aria-pressed', selectedLanguage === 'en-US' ? 'true' : 'false');
+        btnLanguageToggle.setAttribute('aria-pressed', selectedLanguage === 'en-US' ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
     refreshPresenceDisplay();
@@ -6257,17 +6240,17 @@ function playIncomingMessageTone(senderUid = '') {
 }
 
 function buildIncomingNotificationBody(messageData) {
-    const text = (messageData.text || '').trim();
+    const text = (messageData?.text || '').trim();
     if (text) {
- return text.length > 120 ? `${text.slice(0, 117)}...` : text;
+        return text.length > 120 ? `${text.slice(0, 117)}...` : text;
     }
 
-    const fileType = (messageData.fileType || '').toLowerCase();
+    const fileType = (messageData?.fileType || '').toLowerCase();
     if (fileType.startsWith('image/')) return 'Enviou uma imagem';
-    if (fileType.startsWith('video/')) return 'Enviou um vdeo';
-    if (fileType.startsWith('audio/')) return 'Enviou um udio';
+    if (fileType.startsWith('video/')) return 'Enviou um vídeo';
+    if (fileType.startsWith('audio/')) return 'Enviou um áudio';
     if (fileType.includes('pdf')) return 'Enviou um PDF';
-    if (messageData.fileName) return `Enviou ${messageData.fileName}`;
+    if (messageData?.fileName) return `Enviou ${messageData.fileName}`;
     return 'Nova mensagem';
 }
 
@@ -6284,10 +6267,10 @@ function showIncomingDesktopNotification(senderUid, messageData) {
     if (isFriendMuted(senderUid)) return;
 
     const sender = (selectedFriendData && selectedFriendData.uid === senderUid)
-          ? selectedFriendData
- : getCachedUserByUid(senderUid);
- const senderName = sender ? getFriendDisplayName(sender) : 'Usurio';
-    const icon = getSafePhotoData(sender.photoData) || getSafePhotoUrl(sender.photoURL) || 'images/camechat_logo.png';
+        ? selectedFriendData
+        : getCachedUserByUid(senderUid);
+    const senderName = sender ? getFriendDisplayName(sender) : 'Usuário';
+    const icon = getSafePhotoData(sender?.photoData) || getSafePhotoUrl(sender?.photoURL) || 'images/camechat_logo.png';
     const body = buildIncomingNotificationBody(messageData);
 
     try {
@@ -6360,8 +6343,8 @@ function isMobileLayout() {
 }
 
 function syncMobileViewportSize() {
-    const viewportWidth = Math.round(window.visualViewport.width || window.innerWidth || 0);
-    const viewportHeight = Math.round(window.visualViewport.height || window.innerHeight || 0);
+    const viewportWidth = Math.round(window.visualViewport?.width || window.innerWidth || 0);
+    const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight || 0);
     if (!viewportWidth || !viewportHeight) return;
     document.documentElement.style.setProperty('--chat-viewport-width', `${viewportWidth}px`);
     document.documentElement.style.setProperty('--chat-viewport-height', `${viewportHeight}px`);
@@ -6373,7 +6356,7 @@ function syncMobileViewportSize() {
         if (visualViewport) {
             const diff = Math.max(0, Math.round(window.innerHeight - visualViewport.height - visualViewport.offsetTop));
             insetBottom = diff;
-        } else if (window.screen.height) {
+        } else if (window.screen?.height) {
             insetBottom = Math.max(0, Math.round(window.screen.height - window.innerHeight));
         }
         if (insetBottom > 120) {
@@ -6421,10 +6404,10 @@ function renderAdminUsers(users) {
         const isDisabled = user.disabled === true;
         li.innerHTML = `
             <div class="admin-user-meta">
-                <strong>${user.name || 'Usurio'}</strong>
+                <strong>${user.name || 'Usuário'}</strong>
                 <span>${user.email || ''}</span>
                 <span class="admin-role-pill">${user.role || 'user_chat'}</span>
- ${isDisabled ? '<span class="admin-status-pill">Desativado</span>' : ''}
+                ${isDisabled ? '<span class="admin-status-pill">Desativado</span>' : ''}
             </div>
             <div class="admin-user-actions">
                 <button class="admin-edit-btn" type="button">Editar</button>
@@ -6484,7 +6467,7 @@ async function createUserAsAdmin({ name, email, password, role }) {
         try {
             await secondary.auth().signOut();
         } catch (error) {
-            console.warn('Erro ao sair do auth secundrio:', error);
+            console.warn('Erro ao sair do auth secundário:', error);
         }
         await secondary.delete();
     }
@@ -6521,11 +6504,11 @@ async function removeUserFromFriends(userId) {
 async function handleAdminDeleteUser(user) {
     if (!user || currentUserRole !== 'administrador') return;
     if (user.uid === currentUser.uid) {
-        alert('Voc no pode excluir o seu prprio usurio.');
+        alert('Você não pode excluir o seu próprio usuário.');
         return;
     }
 
-    const confirmed = confirm(`Deseja excluir o usurio ${user.name || user.email || ''}`);
+    const confirmed = confirm(`Deseja excluir o usuário ${user.name || user.email || ''}?`);
     if (!confirmed) return;
 
     try {
@@ -6536,9 +6519,9 @@ async function handleAdminDeleteUser(user) {
         }, { merge: true });
 
         await removeUserFromFriends(user.uid);
-        alert('Usurio desativado com sucesso.');
+        alert('Usuário desativado com sucesso.');
     } catch (error) {
-        alert('Erro ao excluir usurio: ' + error.message);
+        alert('Erro ao excluir usuário: ' + error.message);
     }
 }
 
@@ -6591,7 +6574,7 @@ document.addEventListener('touchend', (event) => {
     if (deltaY > 80) return;
     const swipeDistance = 70;
     const fromLeftEdge = touchStartX < 30;
-    const sidebarIsOpen = app.classList.contains('sidebar-open');
+    const sidebarIsOpen = app?.classList.contains('sidebar-open');
 
     if (deltaX > swipeDistance && fromLeftEdge && !sidebarIsOpen) {
         setSidebarOpen(true);
@@ -6608,7 +6591,7 @@ if (adminTabs) {
             setAdminTab(tabButton.dataset.tab);
         });
     });
-    setAdminTab(getStoredAdminTab() || adminPanel.dataset.activeTab || 'metrics');
+    setAdminTab(getStoredAdminTab() || adminPanel?.dataset?.activeTab || 'metrics');
 }
 
 if (adminEditClose) {
@@ -6619,10 +6602,10 @@ if (adminEditSave) {
     adminEditSave.addEventListener('click', async () => {
         if (!editingUserId || currentUserRole !== 'administrador') return;
         const name = adminEditName.value.trim();
- const role = adminEditRole.value === 'administrador' ? 'administrador' : 'user_chat';
+        const role = adminEditRole.value === 'administrador' ? 'administrador' : 'user_chat';
 
         if (!name) {
-            alert('Digite um nome vlido.');
+            alert('Digite um nome válido.');
             return;
         }
 
@@ -6649,7 +6632,7 @@ if (adminEditSave) {
 
             closeAdminEditModal();
         } catch (error) {
-            alert('Erro ao atualizar usurio: ' + error.message);
+            alert('Erro ao atualizar usuário: ' + error.message);
         }
     });
 }
@@ -6662,7 +6645,7 @@ if (adminCreateForm) {
         const name = adminCreateName.value.trim();
         const email = adminCreateEmail.value.trim();
         const password = adminCreatePassword.value;
- const role = adminCreateRole.value === 'administrador' ? 'administrador' : 'user_chat';
+        const role = adminCreateRole.value === 'administrador' ? 'administrador' : 'user_chat';
 
         if (!name || !email || !password) {
             alert('Preencha todos os campos.');
@@ -6670,7 +6653,7 @@ if (adminCreateForm) {
         }
 
         if (password.length < 6) {
-            alert('A senha deve ter no mnimo 6 caracteres.');
+            alert('A senha deve ter no mínimo 6 caracteres.');
             return;
         }
 
@@ -6678,16 +6661,16 @@ if (adminCreateForm) {
             await createUserAsAdmin({ name, email, password, role });
             adminCreateForm.reset();
             adminCreateRole.value = 'user_chat';
-            alert('Usurio criado com sucesso!');
+            alert('Usuário criado com sucesso!');
         } catch (error) {
             handleAuthError(error);
         }
     });
 }
 
-// ========== FUNES DO CHAT ==========
+// ========== FUNÇÕES DO CHAT ==========
 
-// Carregar lista de usurios
+// Carregar lista de usuários
 function loadUsers() {
     if (usersUnsubscribe) usersUnsubscribe();
     const cachedUsers = loadCachedUsersForCurrentUser();
@@ -6702,7 +6685,7 @@ function loadUsers() {
             const users = [];
             snapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
             if (snapshot.empty) {
-                if (snapshot.metadata.fromCache) {
+                if (snapshot.metadata?.fromCache) {
                     if (allUsersCache.length === 0 && cachedUsers.length > 0) {
                         allUsersCache = cachedUsers;
                         renderFriendUsers();
@@ -6722,7 +6705,7 @@ function loadUsers() {
 function renderFriendUsers() {
     if (!Array.isArray(allUsersCache)) return;
     const friendSet = new Set(currentFriends || []);
-    const blockedSet = new Set(currentUserProfile.blocked || []);
+    const blockedSet = new Set(currentUserProfile?.blocked || []);
     const friends = allUsersCache.filter(user => friendSet.has(user.uid) && !user.disabled && !blockedSet.has(user.uid));
 
     if (currentUser && friendSet.has(currentUser.uid)) {
@@ -6730,10 +6713,10 @@ function renderFriendUsers() {
             ...(currentUserProfile || {}),
             uid: currentUser.uid,
             id: currentUser.uid,
-            name: (currentUserProfile.name || currentUser.displayName || currentUser.email || 'Usurio'),
-            email: currentUserProfile.email || currentUser.email || '',
-            photoURL: currentUserProfile.photoURL || currentUser.photoURL || null,
-            photoData: currentUserProfile.photoData || null
+            name: (currentUserProfile?.name || currentUser.displayName || currentUser.email || 'Usuário'),
+            email: currentUserProfile?.email || currentUser.email || '',
+            photoURL: currentUserProfile?.photoURL || currentUser.photoURL || null,
+            photoData: currentUserProfile?.photoData || null
         };
         const existingIndex = friends.findIndex((user) => user.uid === currentUser.uid);
         if (existingIndex >= 0) {
@@ -6750,12 +6733,12 @@ function renderFriendUsers() {
         const aLast = getFriendLastMessageTimestampMs(a.uid);
         const bLast = getFriendLastMessageTimestampMs(b.uid);
         if (aLast !== bLast) return bLast - aLast;
-        return (b.lastSeen.seconds || 0) - (a.lastSeen.seconds || 0);
+        return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
     });
 
     renderUsers(friends);
     if (totalUsers) {
- totalUsers.textContent = `${friends.length} contato${friends.length !== 1 ? 's' : ''}`;
+        totalUsers.textContent = `${friends.length} contato${friends.length !== 1 ? 's' : ''}`;
     }
 
     if (selectedFriendData) {
@@ -6763,7 +6746,7 @@ function renderFriendUsers() {
         if (updatedFriend) {
             selectedFriendData = updatedFriend;
         }
-        if (friendModal.classList.contains('show')) {
+        if (friendModal?.classList.contains('show')) {
             renderFriendDetailStatus(selectedFriendData);
             updateFriendModalState();
         }
@@ -6780,7 +6763,7 @@ function renderFriendUsers() {
         if (defaultChatPartnerPhoto) {
             chatPartnerPhoto.src = defaultChatPartnerPhoto;
         }
-        chatPartnerName.textContent = 'Selecione um usurio';
+        chatPartnerName.textContent = 'Selecione um usuário';
         if (chatPartnerStatus) {
             chatPartnerStatus.textContent = '';
             chatPartnerStatus.classList.remove('chat-partner-status-activity');
@@ -6824,7 +6807,7 @@ function renderFriendUsers() {
 }
 
 function bindFriendSelectionInteractions(friendEl, user) {
-    if (!friendEl || !user.uid) return;
+    if (!friendEl || !user?.uid) return;
 
     let longPressTimer = null;
     let longPressTriggered = false;
@@ -6843,12 +6826,12 @@ function bindFriendSelectionInteractions(friendEl, user) {
         clearTimer();
         longPressTriggered = false;
 
-        if (event.touches?.[0]) {
+        if (event?.touches?.[0]) {
             pressClientX = event.touches[0].clientX;
             pressClientY = event.touches[0].clientY;
         } else {
-            pressClientX = event.clientX ?? 0;
-            pressClientY = event.clientY ?? 0;
+            pressClientX = event?.clientX ?? 0;
+            pressClientY = event?.clientY ?? 0;
         }
 
         longPressTimer = setTimeout(() => {
@@ -6859,7 +6842,7 @@ function bindFriendSelectionInteractions(friendEl, user) {
     };
 
     const cancelLongPressOnMove = (event) => {
-        if (event.touches?.[0]) {
+        if (event?.touches?.[0]) {
             const deltaX = Math.abs(event.touches[0].clientX - pressClientX);
             const deltaY = Math.abs(event.touches[0].clientY - pressClientY);
             if (deltaX > 12 || deltaY > 12) {
@@ -6898,9 +6881,9 @@ function bindFriendSelectionInteractions(friendEl, user) {
     });
 }
 
-// Renderizar lista de usurios
+// Renderizar lista de usuários
 function renderUsers(users) {
- const previousScrollTop = usersList ? usersList.scrollTop : 0;
+    const previousScrollTop = usersList ? usersList.scrollTop : 0;
     usersList.innerHTML = '';
 
     if (!users || users.length === 0) {
@@ -6918,7 +6901,7 @@ function renderUsers(users) {
 
     users.forEach(user => {
         const li = document.createElement('li');
- li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
+        li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
         if (isFriendSelectionMode) {
             li.classList.add('user-item-select-mode');
             li.classList.toggle('user-item-selected', selectedFriendIds.has(user.uid));
@@ -6926,11 +6909,11 @@ function renderUsers(users) {
         li.dataset.uid = user.uid;
         
         const status = getUserPresenceStatusText(user);
- const statusClass = status === 'Online' ? 'status-online-text' : '';
+        const statusClass = status === 'Online' ? 'status-online-text' : '';
         
         const { fallback: fallbackPhoto, url: photoUrl } = resolvePhotoSources(
             user,
-            'https://via.placeholder.com/45/cccccc/666666text=User'
+            'https://via.placeholder.com/45/cccccc/666666?text=User'
         );
         const displayName = getFriendDisplayName(user);
         li.innerHTML = `
@@ -6955,10 +6938,10 @@ function renderUsers(users) {
     }
 }
 
-// Formatar ltima visualizao
+// Formatar última visualização
 function formatLastSeen(date) {
     if (!date) return '';
- const locale = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
+    const locale = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
     const now = new Date();
     const diffMs = now - date;
     const timeText = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
@@ -6973,19 +6956,19 @@ function formatLastSeen(date) {
 function timestampToDate(value) {
     if (!value) return null;
     if (value instanceof Date) return value;
-    if (value.toDate) return value.toDate();
+    if (value?.toDate) return value.toDate();
     return null;
 }
 
 function isUserEffectivelyOnline(user) {
-    if (!user.online) return false;
+    if (!user?.online) return false;
     const lastSeenDate = timestampToDate(user.lastSeen);
     if (!lastSeenDate) return false;
     return Date.now() - lastSeenDate.getTime() <= ONLINE_STALE_MS;
 }
 
 function isUserPresenceVisible(user) {
-    return user.showOnlineStatus !== false;
+    return user?.showOnlineStatus !== false;
 }
 
 function getUserPresenceStatusText(user) {
@@ -6995,30 +6978,30 @@ function getUserPresenceStatusText(user) {
     if (!showLastSeenEnabled) return getUiText('presenceOffline');
 
     const lastSeenDate = timestampToDate(user.lastSeen);
- const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
- return lastSeen ? formatUiText('presenceLastSeen', { time: lastSeen }) : getUiText('presenceOffline');
+    const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
+    return lastSeen ? formatUiText('presenceLastSeen', { time: lastSeen }) : getUiText('presenceOffline');
 }
 
 function getFriendAlias(friendId) {
-    if (!friendId || !currentUserProfile.friendAliases) return '';
+    if (!friendId || !currentUserProfile?.friendAliases) return '';
     const alias = currentUserProfile.friendAliases[friendId];
- return typeof alias === 'string' ? alias.trim() : '';
+    return typeof alias === 'string' ? alias.trim() : '';
 }
 
 function getFriendDisplayName(user) {
-    if (!user) return 'Usurio';
+    if (!user) return 'Usuário';
     if (currentUser && user.uid === currentUser.uid) {
-        const baseName = user.name || currentUserProfile.name || currentUser.displayName || 'Usurio';
-        return `${baseName} (Voc)`;
+        const baseName = user.name || currentUserProfile?.name || currentUser.displayName || 'Usuário';
+        return `${baseName} (Você)`;
     }
     const alias = getFriendAlias(user.uid);
-    return alias || user.name || 'Usurio';
+    return alias || user.name || 'Usuário';
 }
 
 async function setFriendAlias(friendId, alias) {
     if (!currentUser || !friendId) return;
     const safeAlias = String(alias || '').trim();
-    const currentMap = { ...(currentUserProfile.friendAliases || {}) };
+    const currentMap = { ...(currentUserProfile?.friendAliases || {}) };
     if (safeAlias) {
         currentMap[friendId] = safeAlias;
     } else {
@@ -7051,7 +7034,7 @@ function closeFriendAliasModal() {
 
 async function saveFriendAlias() {
     if (!pendingFriendAliasUser || !friendAliasInput) {
-        alert('No foi possvel salvar o nome do contato. Tente novamente.');
+        alert('Não foi possível salvar o nome do contato. Tente novamente.');
         return;
     }
     const alias = friendAliasInput.value.trim();
@@ -7069,10 +7052,10 @@ async function saveFriendAlias() {
             openFriendModal();
         }
     } catch (error) {
-        if (error.code === 'permission-denied') {
-            alert('Permisso negada ao salvar o nome do contato. Publique as regras do Firestore atualizadas e tente novamente.');
+        if (error?.code === 'permission-denied') {
+            alert('Permissão negada ao salvar o nome do contato. Publique as regras do Firestore atualizadas e tente novamente.');
         } else {
-            alert('No foi possvel salvar o nome do contato: ' + (error.message || error));
+            alert('Não foi possível salvar o nome do contato: ' + (error?.message || error));
         }
     }
 }
@@ -7084,8 +7067,8 @@ function getConversationMetaForFriend(friendId) {
 
 function getFriendLastMessageTimestampMs(friendId) {
     const meta = getConversationMetaForFriend(friendId);
-    const ts = timestampToDate(meta.lastMessageAt || meta.updatedAt);
- return ts ? ts.getTime() : 0;
+    const ts = timestampToDate(meta?.lastMessageAt || meta?.updatedAt);
+    return ts ? ts.getTime() : 0;
 }
 
 async function backfillConversationMeta(friendId) {
@@ -7105,7 +7088,7 @@ async function backfillConversationMeta(friendId) {
         const doc = snapshot.docs[0];
         const data = doc.data() || {};
         const payload = {
- type: data.type || (data.imageUrl ? 'image' : 'text'),
+            type: data.type || (data.imageUrl ? 'image' : 'text'),
             text: data.text || '',
             fileName: data.fileName || '',
             senderId: data.senderId || '',
@@ -7169,16 +7152,16 @@ function ensureConversationMetaSubscriptions(friendIds) {
     });
 }
 
-// Filtrar usurios
+// Filtrar usuários
 searchUser.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('.user-item').forEach(item => {
         const name = item.querySelector('h4').innerText.toLowerCase();
- item.style.display = name.includes(term) ? 'flex' : 'none';
+        item.style.display = name.includes(term) ? 'flex' : 'none';
     });
 });
 
-// Selecionar usurio para conversar
+// Selecionar usuário para conversar
 async function selectUser(user) {
     clearLocalTypingState();
     clearEditingMessage();
@@ -7193,14 +7176,14 @@ async function selectUser(user) {
     resetMessageSelectionState();
     clearReplyTargetMessage();
     
-    // Atualizar seleo na lista
+    // Atualizar seleção na lista
     document.querySelectorAll('.user-item').forEach(item => {
         item.classList.toggle('active', item.dataset.uid === user.uid);
     });
     
-    // Atualizar cabealho do chat
+    // Atualizar cabeçalho do chat
     chatPartnerName.textContent = getFriendDisplayName(user);
-    applyProfilePhoto(chatPartnerPhoto, user, 'https://via.placeholder.com/45/cccccc/666666text=User');
+    applyProfilePhoto(chatPartnerPhoto, user, 'https://via.placeholder.com/45/cccccc/666666?text=User');
     const isBlocked = isFriendBlocked(user.uid);
     remoteUserActivityState = null;
     setChatPartnerActivity(null);
@@ -7222,7 +7205,7 @@ async function selectUser(user) {
     if (emojiPicker) emojiPicker.classList.add('hidden');
     
     // Esconder mensagem de boas-vindas
-    document.querySelector('.welcome-message').remove();
+    document.querySelector('.welcome-message')?.remove();
     
     // Carregar mensagens
     subscribeToFriendDoc(user.uid);
@@ -7236,132 +7219,78 @@ async function selectUser(user) {
 async function loadMessages(otherUid) {
     if (messagesUnsubscribe) messagesUnsubscribe();
     if (typingUnsubscribe) typingUnsubscribe();
-    if (!currentUser || !otherUid) return;
-
+    
     const conversationId = getConversationId(currentUser.uid, otherUid);
     currentConversationId = conversationId;
-    let hasLoadedRealtimeSnapshot = false;
-    let hasRenderedAnySnapshot = false;
+    let hasLoadedInitialSnapshot = false;
 
     listenTypingStatus(otherUid);
-
-    const orderedRef = db.collection('conversations')
+    
+    messagesUnsubscribe = db.collection('conversations')
         .doc(conversationId)
         .collection('messages')
-        .orderBy('timestamp', 'asc');
-
-    const renderSnapshot = (snapshot, { realtime } = {}) => {
-        const messages = [];
-        try {
-            if (snapshot && typeof snapshot.forEach === 'function') {
-                if (realtime && hasLoadedRealtimeSnapshot) {
-                    const incomingChanges = snapshot.docChanges().filter((change) => {
-                        if (change.type !== 'added') return false;
-                        const data = change.doc.data();
-                        return data.senderId === otherUid;
-                    });
-
-                    if (incomingChanges.length > 0) {
-                        playIncomingMessageTone(otherUid);
-                        const latestIncoming = incomingChanges[incomingChanges.length - 1].doc.data();
-                        showIncomingDesktopNotification(otherUid, latestIncoming);
-
-                        incomingChanges.forEach((change) => {
-                            const msgData = change.doc.data() || {};
-                            const message = { id: change.doc.id, ...msgData };
-                            autoDownloadIncomingAttachment(conversationId, message);
-                        });
-                    }
-                }
-
-                snapshot.forEach((doc) => {
-                    const data = { id: doc.id, ...doc.data() };
-                    if (isMessageHiddenForCurrentUser(data)) return;
-                    messages.push(data);
+        .orderBy('timestamp', 'asc')
+        .onSnapshot((snapshot) => {
+            if (hasLoadedInitialSnapshot) {
+                const incomingChanges = snapshot.docChanges().filter((change) => {
+                    if (change.type !== 'added') return false;
+                    const data = change.doc.data();
+                    return data?.senderId === otherUid;
                 });
+
+                if (incomingChanges.length > 0) {
+                    playIncomingMessageTone(otherUid);
+                    const latestIncoming = incomingChanges[incomingChanges.length - 1].doc.data();
+                    showIncomingDesktopNotification(otherUid, latestIncoming);
+
+                    incomingChanges.forEach((change) => {
+                        const msgData = change.doc.data() || {};
+                        const message = { id: change.doc.id, ...msgData };
+                        autoDownloadIncomingAttachment(conversationId, message);
+                    });
+                }
             }
-        } catch (error) {
-            console.warn('Falha ao preparar mensagens:', error);
-        }
 
-        currentConversationMessages = messages;
-
-        if (editingMessage.id) {
-            const latestEditingMessage = messages.find((msg) => msg.id === editingMessage.id);
-            if (!latestEditingMessage || !canEditMessage(latestEditingMessage)) {
-                clearEditingMessage();
-            } else {
-                editingMessage = latestEditingMessage;
-                syncComposerEditModeUI();
-            }
-        }
-
-        if (isMessageSelectionMode) {
-            const validIds = new Set(messages.map((msg) => msg.id));
-            selectedMessageIds.forEach((id) => {
-                if (!validIds.has(id)) selectedMessageIds.delete(id);
+            const messages = [];
+            snapshot.forEach((doc) => {
+                const data = { id: doc.id, ...doc.data() };
+                if (isMessageHiddenForCurrentUser(data)) return;
+                messages.push(data);
             });
-            if (selectedMessageIds.size === 0) {
-                isMessageSelectionMode = false;
+            currentConversationMessages = messages;
+            if (editingMessage?.id) {
+                const latestEditingMessage = messages.find((msg) => msg.id === editingMessage.id);
+                if (!latestEditingMessage || !canEditMessage(latestEditingMessage)) {
+                    clearEditingMessage();
+                } else {
+                    editingMessage = latestEditingMessage;
+                    syncComposerEditModeUI();
+                }
             }
-        }
-
-        let rendered = false;
-        try {
+            if (isMessageSelectionMode) {
+                const validIds = new Set(messages.map((msg) => msg.id));
+                selectedMessageIds.forEach((id) => {
+                    if (!validIds.has(id)) selectedMessageIds.delete(id);
+                });
+                if (selectedMessageIds.size === 0) {
+                    isMessageSelectionMode = false;
+                }
+            }
             renderMessages(messages);
-            rendered = true;
-        } catch (error) {
-            console.warn('Falha ao renderizar mensagens:', error);
-        }
-
-        try { updateMessageSelectionUI(); } catch (error) { console.warn('Falha ao atualizar selecao.', error); }
-        try { updateMessageAttachmentUrls(conversationId, messages); } catch (error) { console.warn('Falha ao atualizar urls.', error); }
-        try { updateMessageDeliveryStatus(conversationId, messages); } catch (error) { console.warn('Falha ao atualizar entrega.', error); }
-        try { updateOutgoingDeliveryStatus(conversationId, messages); } catch (error) { console.warn('Falha ao atualizar recebimento.', error); }
-        try { markMessagesAsRead(conversationId); } catch (error) { console.warn('Falha ao marcar leitura.', error); }
-
-        if (rendered) {
-            hasRenderedAnySnapshot = true;
-            if (realtime) {
-                hasLoadedRealtimeSnapshot = true;
-            }
-        } else if (!hasRenderedAnySnapshot && messagesContainer) {
-            messagesContainer.innerHTML = `
-                <div class="welcome-message">
-                    <p>Nao foi possivel carregar as mensagens agora.</p>
-                </div>
-            `;
-        }
-    };
-
-    messagesUnsubscribe = orderedRef.onSnapshot(
-        (snapshot) => renderSnapshot(snapshot, { realtime: true }),
-        (error) => {
-            console.warn('Falha ao escutar mensagens em tempo real:', error);
-            if (!hasRenderedAnySnapshot && messagesContainer) {
-                messagesContainer.innerHTML = `
-                    <div class="welcome-message">
-                        <p>Nao foi possivel carregar as mensagens. Verifique sua conexao.</p>
-                    </div>
-                `;
-            }
-        }
-    );
-
-    try {
-        const initialSnapshot = await orderedRef.get();
-        if (!hasRenderedAnySnapshot) {
-            renderSnapshot(initialSnapshot, { realtime: false });
-        }
-    } catch (error) {
-        console.warn('Falha ao carregar mensagens iniciais:', error);
-    }
+            updateMessageSelectionUI();
+            updateMessageAttachmentUrls(conversationId, messages);
+            updateMessageDeliveryStatus(conversationId, messages);
+            updateOutgoingDeliveryStatus(conversationId, messages);
+            
+            // Marcar mensagens como lidas
+            markMessagesAsRead(conversationId);
+            hasLoadedInitialSnapshot = true;
+        });
 }
-
 
 // Gerar ID da conversa
 function getConversationId(uid1, uid2) {
- return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
+    return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
 }
 
 // Marcar mensagens como lidas
@@ -7391,12 +7320,12 @@ async function markMessagesAsRead(conversationId) {
 }
 
 function updateMessageDeliveryStatus(conversationId, messages) {
-    if (!currentUser || !conversationId || !messages.length) return;
+    if (!currentUser || !conversationId || !messages?.length) return;
     const batch = db.batch();
     let hasUpdates = false;
 
     messages.forEach(msg => {
-        if (!msg.id) return;
+        if (!msg?.id) return;
         if (msg.receiverId !== currentUser.uid) return;
         if (msg.delivered === true) return;
         const ref = db.collection('conversations')
@@ -7419,14 +7348,14 @@ function updateMessageDeliveryStatus(conversationId, messages) {
 
 function updateOutgoingDeliveryStatus(conversationId, messages) {
     const resolvedConversationId = conversationId || currentConversationId;
- const resolvedMessages = messages.length ? messages : currentConversationMessages;
-    if (!currentUser || !resolvedConversationId || !resolvedMessages.length) return;
+    const resolvedMessages = messages?.length ? messages : currentConversationMessages;
+    if (!currentUser || !resolvedConversationId || !resolvedMessages?.length) return;
     if (!isUserEffectivelyOnline(selectedFriendData)) return;
     const batch = db.batch();
     let hasUpdates = false;
 
     resolvedMessages.forEach(msg => {
-        if (!msg.id) return;
+        if (!msg?.id) return;
         if (msg.senderId !== currentUser.uid) return;
         if (msg.receiverId !== selectedUserId) return;
         if (msg.delivered === true) return;
@@ -7449,12 +7378,12 @@ function updateOutgoingDeliveryStatus(conversationId, messages) {
 }
 
 function updateMessageAttachmentUrls(conversationId, messages) {
-    if (!conversationId || !messages.length || !currentUser) return;
+    if (!conversationId || !messages?.length || !currentUser) return;
     const batch = db.batch();
     let hasUpdates = false;
 
     messages.forEach(msg => {
-        if (!msg.id) return;
+        if (!msg?.id) return;
         const patch = {};
         if (msg.fileUrl && msg.fileUrl.startsWith('/')) {
             patch.fileUrl = normalizeBackendUrl(msg.fileUrl);
@@ -7480,12 +7409,12 @@ function updateMessageAttachmentUrls(conversationId, messages) {
 }
 
 function applyChatBackground(backgroundDataUrl, persist = false) {
- const normalized = (backgroundDataUrl || '').startsWith('data:image/') ? backgroundDataUrl : '';
+    const normalized = (backgroundDataUrl || '').startsWith('data:image/') ? backgroundDataUrl : '';
     chatBackgroundDataUrl = normalized;
     const darkTheme = document.body.classList.contains('theme-dark');
     const overlay = darkTheme
-          ? 'linear-gradient(rgba(17, 24, 39, 0.72), rgba(17, 24, 39, 0.72))'
- : 'linear-gradient(rgba(245, 247, 251, 0.68), rgba(245, 247, 251, 0.68))';
+        ? 'linear-gradient(rgba(17, 24, 39, 0.72), rgba(17, 24, 39, 0.72))'
+        : 'linear-gradient(rgba(245, 247, 251, 0.68), rgba(245, 247, 251, 0.68))';
 
     if (messagesContainer) {
         if (normalized) {
@@ -7513,7 +7442,7 @@ function applyChatBackground(backgroundDataUrl, persist = false) {
             localStorage.removeItem(CHAT_BACKGROUND_STORAGE_KEY);
         }
     } catch (error) {
-        alert('No foi possvel salvar o plano de fundo neste dispositivo.');
+        alert('Não foi possível salvar o plano de fundo neste dispositivo.');
     }
 }
 
@@ -7553,7 +7482,7 @@ function resetMessageSelectionState() {
 }
 
 function getMessageType(msg) {
- return msg.type || (msg.imageUrl ? 'image' : 'text');
+    return msg?.type || (msg?.imageUrl ? 'image' : 'text');
 }
 
 function getSelectedTextMessagesData() {
@@ -7563,7 +7492,7 @@ function getSelectedTextMessagesData() {
 }
 
 function isMessageEdited(message) {
-    return !!(message.edited || message.editedAt);
+    return !!(message?.edited || message?.editedAt);
 }
 
 function canEditMessage(message) {
@@ -7582,7 +7511,7 @@ function canEditMessage(message) {
 function getSelectedEditableMessageData() {
     const selectedMessages = getSelectedMessagesData();
     if (selectedMessages.length !== 1) return null;
- return canEditMessage(selectedMessages[0]) ? selectedMessages[0] : null;
+    return canEditMessage(selectedMessages[0]) ? selectedMessages[0] : null;
 }
 
 function canManageMessageAction(message) {
@@ -7591,7 +7520,7 @@ function canManageMessageAction(message) {
 }
 
 function canCopyMessageText(message) {
-    return getMessageType(message) === 'text' && !!String(message.text || '').trim();
+    return getMessageType(message) === 'text' && !!String(message?.text || '').trim();
 }
 
 function setSingleSelectedMessage(messageId) {
@@ -7606,7 +7535,7 @@ async function copyTextToClipboard(textPayload) {
     const text = String(textPayload || '').trim();
     if (!text) return false;
 
-    if (navigator.clipboard.writeText) {
+    if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
         return true;
     }
@@ -7633,7 +7562,7 @@ function closeMessageActionMenu() {
 }
 
 function openMessageActionMenu(message, options = {}) {
-    if (!messageActionMenu || !message.id) return;
+    if (!messageActionMenu || !message?.id) return;
 
     const canReply = !!selectedUserId;
     const canCopy = canCopyMessageText(message);
@@ -7655,16 +7584,16 @@ function openMessageActionMenu(message, options = {}) {
     messageActionMenu.classList.remove('hidden');
 
     const margin = 12;
-    const rect = options.anchorEl.getBoundingClientRect?.() || null;
+    const rect = options.anchorEl?.getBoundingClientRect?.() || null;
     const menuWidth = messageActionMenu.offsetWidth || 190;
     const menuHeight = messageActionMenu.offsetHeight || 196;
 
     let left = typeof options.clientX === 'number'
-          ? options.clientX
- : (rect ? rect.left + (rect.width / 2) - (menuWidth / 2) : window.innerWidth / 2 - menuWidth / 2);
+        ? options.clientX
+        : (rect ? rect.left + (rect.width / 2) - (menuWidth / 2) : window.innerWidth / 2 - menuWidth / 2);
     let top = typeof options.clientY === 'number'
-          ? options.clientY
- : (rect ? rect.bottom + 8 : window.innerHeight / 2 - menuHeight / 2);
+        ? options.clientY
+        : (rect ? rect.bottom + 8 : window.innerHeight / 2 - menuHeight / 2);
 
     left = Math.max(margin, Math.min(window.innerWidth - menuWidth - margin, left));
     top = Math.max(margin, Math.min(window.innerHeight - menuHeight - margin, top));
@@ -7693,13 +7622,13 @@ async function deleteMessagesByRecords(messagesToDelete) {
 
 function syncComposerEditModeUI() {
     const isEditing = !!editingMessage;
-    const disableComposerTools = !!messageInput.disabled || isEditing;
+    const disableComposerTools = !!messageInput?.disabled || isEditing;
 
     if (btnAttach) btnAttach.disabled = disableComposerTools;
     if (btnVoice) btnVoice.disabled = disableComposerTools;
     if (btnCameraQuick) btnCameraQuick.disabled = disableComposerTools;
     if (messageInput) {
- messageInput.placeholder = isEditing ? 'Corrija sua mensagem...' : DEFAULT_MESSAGE_INPUT_PLACEHOLDER;
+        messageInput.placeholder = isEditing ? 'Corrija sua mensagem...' : DEFAULT_MESSAGE_INPUT_PLACEHOLDER;
     }
     if (editPreview) {
         editPreview.classList.toggle('hidden', !isEditing);
@@ -7708,7 +7637,7 @@ function syncComposerEditModeUI() {
         editPreviewLabel.textContent = 'Editando mensagem';
     }
     if (editPreviewText) {
- editPreviewText.textContent = isEditing ? String(editingMessage.text || '') : '';
+        editPreviewText.textContent = isEditing ? String(editingMessage?.text || '') : '';
     }
 }
 
@@ -7734,7 +7663,7 @@ function clearEditingMessage(options = {}) {
 
 function setEditingMessage(message) {
     if (!canEditMessage(message)) {
-        alert('Esta mensagem no pode mais ser editada.');
+        alert('Esta mensagem não pode mais ser editada.');
         return false;
     }
 
@@ -7759,39 +7688,39 @@ function updateMessageSelectionUI() {
     const hasConversationSelected = !!selectedUserId;
     const selectedCount = selectedMessageIds.size;
     const hasSelection = hasConversationSelected && selectedCount > 0;
- const selectedMessages = hasSelection ? getSelectedMessagesData() : [];
+    const selectedMessages = hasSelection ? getSelectedMessagesData() : [];
     const canCopyText = hasSelection
         && selectedMessages.length > 0
         && selectedMessages.every((msg) => getMessageType(msg) === 'text');
- const editableMessage = hasSelection ? getSelectedEditableMessageData() : null;
+    const editableMessage = hasSelection ? getSelectedEditableMessageData() : null;
     const canEditSelection = !!editableMessage;
     if (btnEditSelected) {
         btnEditSelected.classList.toggle('hidden', !canEditSelection);
         btnEditSelected.disabled = !canEditSelection;
         btnEditSelected.title = canEditSelection
-              ? 'Editar mensagem selecionada'
- : 'Editar mensagem selecionada';
+            ? 'Editar mensagem selecionada'
+            : 'Editar mensagem selecionada';
     }
     if (btnDeleteSelected) {
         btnDeleteSelected.classList.toggle('hidden', !hasSelection);
         btnDeleteSelected.disabled = !hasSelection;
         btnDeleteSelected.title = selectedCount > 0
-              ? `Excluir selecionadas (${selectedCount})`
- : 'Excluir selecionadas';
+            ? `Excluir selecionadas (${selectedCount})`
+            : 'Excluir selecionadas';
     }
     if (btnCopySelected) {
         btnCopySelected.classList.toggle('hidden', !canCopyText);
         btnCopySelected.disabled = !canCopyText;
         btnCopySelected.title = selectedCount > 0
-              ? `Copiar selecionadas (${selectedCount})`
- : 'Copiar selecionadas';
+            ? `Copiar selecionadas (${selectedCount})`
+            : 'Copiar selecionadas';
     }
     if (btnShareSelected) {
         btnShareSelected.classList.toggle('hidden', !hasSelection);
         btnShareSelected.disabled = !hasSelection;
         btnShareSelected.title = selectedCount > 0
-              ? `Compartilhar selecionadas (${selectedCount})`
- : 'Compartilhar selecionadas';
+            ? `Compartilhar selecionadas (${selectedCount})`
+            : 'Compartilhar selecionadas';
     }
     updateChatSelectionSummary();
 }
@@ -7857,7 +7786,7 @@ function activateMessageSelectionByLongPress(messageId, options = {}) {
 
 function isMessageHiddenForCurrentUser(msg) {
     if (!msg || !currentUser) return false;
- const deletedFor = Array.isArray(msg.deletedFor) ? msg.deletedFor : [];
+    const deletedFor = Array.isArray(msg.deletedFor) ? msg.deletedFor : [];
     return deletedFor.includes(currentUser.uid);
 }
 
@@ -7889,7 +7818,7 @@ function updateShareMessageConfirmButton() {
     if (!btnShareMessageConfirm) return;
     const count = shareMessageSelectedFriendIds.size;
     btnShareMessageConfirm.disabled = count === 0;
- btnShareMessageConfirm.textContent = count > 1 ? `Compartilhar (${count})` : 'Compartilhar';
+    btnShareMessageConfirm.textContent = count > 1 ? `Compartilhar (${count})` : 'Compartilhar';
 }
 
 function toggleShareMessageFriendSelection(uid, item) {
@@ -7927,14 +7856,14 @@ function closeShareMessageModal() {
 function getShareableFriends() {
     if (!Array.isArray(allUsersCache) || !Array.isArray(currentFriends)) return [];
     const friendSet = new Set(currentFriends);
-    const blockedSet = new Set(currentUserProfile.blocked || []);
+    const blockedSet = new Set(currentUserProfile?.blocked || []);
 
     const shareable = allUsersCache.filter((user) => {
-        if (!user.uid) return false;
+        if (!user?.uid) return false;
         if (!friendSet.has(user.uid)) return false;
         if (user.disabled) return false;
         if (blockedSet.has(user.uid)) return false;
-        if (user.uid === selectedUserId && user.uid !== currentUser.uid) return false;
+        if (user.uid === selectedUserId && user.uid !== currentUser?.uid) return false;
         return true;
     });
 
@@ -7943,10 +7872,10 @@ function getShareableFriends() {
             ...(currentUserProfile || {}),
             uid: currentUser.uid,
             id: currentUser.uid,
-            name: currentUserProfile.name || currentUser.displayName || currentUser.email || 'Usurio',
-            email: currentUserProfile.email || currentUser.email || '',
-            photoURL: currentUserProfile.photoURL || currentUser.photoURL || null,
-            photoData: currentUserProfile.photoData || null
+            name: currentUserProfile?.name || currentUser.displayName || currentUser.email || 'Usuário',
+            email: currentUserProfile?.email || currentUser.email || '',
+            photoURL: currentUserProfile?.photoURL || currentUser.photoURL || null,
+            photoData: currentUserProfile?.photoData || null
         };
         if (!shareable.some((user) => user.uid === currentUser.uid)) {
             shareable.unshift(selfUser);
@@ -7958,7 +7887,7 @@ function getShareableFriends() {
         const bOnline = isUserPresenceVisible(b) && isUserEffectivelyOnline(b);
         if (aOnline && !bOnline) return -1;
         if (!aOnline && bOnline) return 1;
-        return (b.lastSeen.seconds || 0) - (a.lastSeen.seconds || 0);
+        return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
     });
 
     return shareable;
@@ -7972,7 +7901,7 @@ function buildShareFriendItem(user) {
     const safeStatus = escapeHtml(getUserPresenceStatusText(user));
 
     li.innerHTML = `
-        <img src="https://via.placeholder.com/40/cccccc/666666text=User" alt="avatar">
+        <img src="https://via.placeholder.com/40/cccccc/666666?text=User" alt="avatar">
         <div class="share-message-friend-info">
             <strong>${safeName}</strong>
             <small>${safeStatus}</small>
@@ -7982,7 +7911,7 @@ function buildShareFriendItem(user) {
 
     const avatar = li.querySelector('img');
     if (avatar) {
-        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666text=User');
+        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666?text=User');
     }
 
     return li;
@@ -7991,7 +7920,7 @@ function buildShareFriendItem(user) {
 async function askShareTargetUsers() {
     const shareableFriends = getShareableFriends();
     if (!shareableFriends.length) {
-        alert('Voc precisa ter outro amigo disponvel para compartilhar.');
+        alert('Você precisa ter outro amigo disponível para compartilhar.');
         return null;
     }
 
@@ -8026,15 +7955,15 @@ async function askShareTargetUsers() {
 function normalizeAndroidSharePayload(payload) {
     if (!payload || typeof payload !== 'object') return null;
     const text = String(payload.text || '').trim();
- const items = Array.isArray(payload.items) ? payload.items : [];
+    const items = Array.isArray(payload.items) ? payload.items : [];
     const normalizedItems = items.map((item) => ({
-        uri: String(item.uri || '').trim(),
-        name: String(item.name || item.fileName || '').trim(),
-        mimeType: String(item.mimeType || item.type || '').trim(),
-        size: Number(item.size || 0) || 0
+        uri: String(item?.uri || '').trim(),
+        name: String(item?.name || item?.fileName || '').trim(),
+        mimeType: String(item?.mimeType || item?.type || '').trim(),
+        size: Number(item?.size || 0) || 0
     })).filter((item) => item.uri);
     let filteredItems = normalizedItems;
-    const hasLink = /(https:\/\/|www\.)/i.test(text);
+    const hasLink = /(https?:\/\/|www\.)/i.test(text);
     if (hasLink && normalizedItems.length) {
         const onlyImages = normalizedItems.every((item) => item.mimeType.startsWith('image/'));
         if (onlyImages) {
@@ -8057,11 +7986,11 @@ async function ensureShareableFriendsLoaded(timeoutMs = 8000) {
 }
 
 async function uploadAndroidSharedItem(item) {
-    if (!isAndroidWebViewRuntime() || !item.uri || !currentUser) return null;
+    if (!isAndroidWebViewRuntime() || !item?.uri || !currentUser) return null;
     const cacheKey = item.uri;
     const cached = androidShareItemUploadCache.get(cacheKey);
-    if (cached.result) return cached.result;
-    if (cached.promise) return await cached.promise;
+    if (cached?.result) return cached.result;
+    if (cached?.promise) return await cached.promise;
 
     const promise = (async () => {
         try {
@@ -8101,7 +8030,7 @@ async function uploadAndroidSharedItem(item) {
 
     androidShareItemUploadCache.set(cacheKey, { promise });
     const result = await promise;
-    if (result.url) {
+    if (result?.url) {
         androidShareItemUploadCache.set(cacheKey, { result });
     } else {
         androidShareItemUploadCache.delete(cacheKey);
@@ -8113,7 +8042,7 @@ async function sendChatFileFromUrl(fileUrl, meta = {}, targetUid = selectedUserI
     if (!fileUrl || !targetUid || !currentUser) return;
     if (isFriendBlocked(targetUid)) {
         if (targetUid === selectedUserId) {
-            alert('Voc bloqueou este usurio.');
+            alert('Você bloqueou este usuário.');
         }
         return;
     }
@@ -8128,22 +8057,22 @@ async function sendChatFileFromUrl(fileUrl, meta = {}, targetUid = selectedUserI
 
     const conversationId = getConversationId(currentUser.uid, targetUid);
     const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
- const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
- const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
+    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
+    const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
     const messagePayload = {
         fileUrl: fileUrl,
         fileName: fileName,
         fileType: fileType,
         fileSize: fileSize || null,
- imageUrl: messageType === 'image' ? fileUrl : null,
+        imageUrl: messageType === 'image' ? fileUrl : null,
         senderId: currentUser.uid,
         receiverId: targetUid,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         type: messageType,
         read: false,
         delivered: delivered,
- deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
         replyTo: replyPayload || null
     };
 
@@ -8159,16 +8088,16 @@ async function sendChatFileFromUrl(fileUrl, meta = {}, targetUid = selectedUserI
 }
 
 async function shareAndroidFileItem(item, targetUid = selectedUserId, targetFriend = selectedFriendData) {
-    if (!item.uri || !targetUid) return;
+    if (!item?.uri || !targetUid) return;
     if (item.size && item.size > MAX_CHAT_FILE_SIZE_BYTES) {
-        alert(`O arquivo deve ter no mximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
+        alert(`O arquivo deve ter no máximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
         return;
     }
 
     if (isAndroidWebViewRuntime()) {
         const upload = await uploadAndroidSharedItem(item);
-        if (!upload.url) {
-            alert('No foi possvel importar este arquivo agora.');
+        if (!upload?.url) {
+            alert('Não foi possível importar este arquivo agora.');
             return;
         }
 
@@ -8195,7 +8124,7 @@ async function processPendingAndroidSharePayload() {
         const uniqueTargets = Array.from(new Set(targetUids.filter(Boolean)));
         const validTargets = uniqueTargets.filter((uid) => !isFriendBlocked(uid));
         if (validTargets.length === 0) {
-            alert('Voc bloqueou todos os usurios selecionados.');
+            alert('Você bloqueou todos os usuários selecionados.');
             return;
         }
 
@@ -8240,7 +8169,7 @@ function handleAndroidSharePayload(rawPayload) {
     if (currentUser) {
         processPendingAndroidSharePayload();
     } else {
-        alert('Faa login para compartilhar no CameChat.');
+        alert('Faça login para compartilhar no CameChat.');
     }
 }
 
@@ -8253,21 +8182,21 @@ async function handleAndroidShareUploadResult(rawPayload) {
             return;
         }
     }
-    const requestId = payload.requestId;
+    const requestId = payload?.requestId;
     if (!requestId || !pendingAndroidShareUploads.has(requestId)) return;
     const meta = pendingAndroidShareUploads.get(requestId);
     pendingAndroidShareUploads.delete(requestId);
 
-    if (typeof meta.resolve === 'function') {
+    if (typeof meta?.resolve === 'function') {
         if (!payload.ok || !payload.url) {
             meta.resolve(null);
             return;
         }
         meta.resolve({
             url: payload.url,
-            fileName: payload.fileName || meta.item.name || '',
-            mimeType: payload.mimeType || meta.item.mimeType || '',
-            size: payload.size || meta.item.size || 0
+            fileName: payload.fileName || meta?.item?.name || '',
+            mimeType: payload.mimeType || meta?.item?.mimeType || '',
+            size: payload.size || meta?.item?.size || 0
         });
         return;
     }
@@ -8290,7 +8219,7 @@ async function handleAndroidCallAction(rawPayload) {
     if (!payload || typeof payload !== 'object') return;
     if (!currentUser) {
         pendingAndroidCallAction = payload;
-        alert('Faa login para atender a chamada no CameChat.');
+        alert('Faça login para atender a chamada no CameChat.');
         return;
     }
 
@@ -8356,7 +8285,7 @@ async function handleAndroidMessageOpen(rawPayload) {
     if (!payload || typeof payload !== 'object') return;
     if (!currentUser) {
         pendingAndroidMessageOpen = payload;
-        alert('Faa login para abrir a conversa.');
+        alert('Faça login para abrir a conversa.');
         return;
     }
 
@@ -8396,20 +8325,20 @@ async function askDeleteScope(messagesToDelete) {
     if (!Array.isArray(messagesToDelete) || messagesToDelete.length === 0) return null;
     const allowDeleteForAll = messagesToDelete.every((msg) => canDeleteMessageForAll(msg));
     const total = messagesToDelete.length;
- const noun = total === 1 ? 'item' : 'itens';
+    const noun = total === 1 ? 'item' : 'itens';
 
     if (!deleteMessageModal || !deleteMessageModalText || !btnDeleteMessageMe || !btnDeleteMessageAll) {
         if (allowDeleteForAll) {
-            const confirmedAll = confirm(`Excluir ${total} ${noun} para todos\n\nOK = Excluir para todos\nCancelar = Excluir s para mim`);
- return confirmedAll ? 'all' : 'me';
+            const confirmedAll = confirm(`Excluir ${total} ${noun} para todos?\n\nOK = Excluir para todos\nCancelar = Excluir só para mim`);
+            return confirmedAll ? 'all' : 'me';
         }
-        const confirmedMine = confirm(`Excluir ${total} ${noun} selecionado(s) s para voc`);
- return confirmedMine ? 'me' : null;
+        const confirmedMine = confirm(`Excluir ${total} ${noun} selecionado(s) só para você?`);
+        return confirmedMine ? 'me' : null;
     }
 
     deleteMessageModalText.textContent = allowDeleteForAll
-          ? `Voc selecionou ${total} ${noun}. Escolha como deseja excluir:`
- : `Voc selecionou ${total} ${noun}. Esse contedo s pode ser excludo para voc.`;
+        ? `Você selecionou ${total} ${noun}. Escolha como deseja excluir:`
+        : `Você selecionou ${total} ${noun}. Esse conteúdo só pode ser excluído para você.`;
     btnDeleteMessageAll.classList.toggle('hidden', !allowDeleteForAll);
 
     deleteMessageModal.classList.add('show');
@@ -8479,17 +8408,17 @@ async function deleteSelectedMessages() {
         resetMessageSelectionState();
         renderMessages(currentConversationMessages || []);
     } catch (error) {
-        alert('No foi possvel excluir os itens selecionados.');
+        alert('Não foi possível excluir os itens selecionados.');
     }
 }
 
 function getMessageTimestampMs(message) {
-    const date = timestampToDate(message.timestamp);
- return date ? date.getTime() : 0;
+    const date = timestampToDate(message?.timestamp);
+    return date ? date.getTime() : 0;
 }
 
 function buildForwardMessagePayload(msg, targetUid, delivered) {
- const messageType = msg.type || (msg.imageUrl ? 'image' : 'text');
+    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
     const payload = {
         senderId: currentUser.uid,
         receiverId: targetUid,
@@ -8497,24 +8426,24 @@ function buildForwardMessagePayload(msg, targetUid, delivered) {
         type: messageType,
         read: false,
         delivered: delivered,
- deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
         forwarded: true,
-        forwardedFromUid: msg.senderId || null,
+        forwardedFromUid: msg?.senderId || null,
         forwardedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     if (messageType === 'text') {
-        payload.text = msg.text || '';
+        payload.text = msg?.text || '';
         return payload;
     }
 
-    payload.fileUrl = msg.fileUrl || msg.imageUrl || null;
+    payload.fileUrl = msg?.fileUrl || msg?.imageUrl || null;
     payload.imageUrl = messageType === 'image'
-          ? (msg.imageUrl || msg.fileUrl || null)
- : null;
-    payload.fileName = msg.fileName || null;
-    payload.fileType = msg.fileType || null;
-    payload.fileSize = Number(msg.fileSize || 0) || null;
+        ? (msg?.imageUrl || msg?.fileUrl || null)
+        : null;
+    payload.fileName = msg?.fileName || null;
+    payload.fileType = msg?.fileType || null;
+    payload.fileSize = Number(msg?.fileSize || 0) || null;
     return payload;
 }
 
@@ -8559,7 +8488,7 @@ async function shareSelectedMessages() {
     const uniqueTargets = Array.from(new Set(targetUids.filter(Boolean)));
     const validTargets = uniqueTargets.filter((uid) => !isFriendBlocked(uid));
     if (validTargets.length === 0) {
-        alert('Voc bloqueou todos os usurios selecionados.');
+        alert('Você bloqueou todos os usuários selecionados.');
         return;
     }
 
@@ -8589,7 +8518,7 @@ async function shareSelectedMessages() {
     }
 
     if (hasFailure) {
-        alert('Alguns compartilhamentos no puderam ser concludos.');
+        alert('Alguns compartilhamentos não puderam ser concluídos.');
     }
 }
 
@@ -8601,7 +8530,7 @@ async function copySelectedTextMessages() {
     }
 
     const textPayload = selectedTextMessages
-        .map((msg) => String(msg.text || '').trim())
+        .map((msg) => String(msg?.text || '').trim())
         .filter(Boolean)
         .join('\n');
 
@@ -8610,14 +8539,14 @@ async function copySelectedTextMessages() {
     try {
         await copyTextToClipboard(textPayload);
     } catch (error) {
-        alert('No foi possvel copiar as mensagens selecionadas.');
+        alert('Não foi possível copiar as mensagens selecionadas.');
     }
 }
 
 async function editSelectedMessage() {
     const editableMessage = getSelectedEditableMessageData();
     if (!editableMessage) {
-        alert('Selecione apenas uma mensagem de texto enviada por voc nos ltimos 30 minutos.');
+        alert('Selecione apenas uma mensagem de texto enviada por você nos últimos 30 minutos.');
         return;
     }
 
@@ -8640,7 +8569,7 @@ async function handleMessageActionCopy() {
         await copyTextToClipboard(String(activeMessageActionTarget.text || ''));
         closeMessageActionMenu();
     } catch (error) {
-        alert('No foi possvel copiar esta mensagem.');
+        alert('Não foi possível copiar esta mensagem.');
     }
 }
 
@@ -8662,7 +8591,7 @@ async function handleMessageActionDelete() {
         resetMessageSelectionState();
         renderMessages(currentConversationMessages || []);
     } catch (error) {
-        alert('No foi possvel excluir esta mensagem.');
+        alert('Não foi possível excluir esta mensagem.');
     }
 }
 
@@ -8696,22 +8625,22 @@ function bindMessageSelectionInteractions(rowEl, messageId, options = {}) {
     };
 
     const shouldIgnoreStart = (target) => {
-        return !!target.closest?.('a,video,audio,button,input,textarea,iframe');
+        return !!target?.closest?.('a,video,audio,button,input,textarea,iframe');
     };
 
     const startLongPress = (event) => {
         if (event && typeof event.button === 'number' && event.button !== 0) return;
-        if (shouldIgnoreStart(event.target)) return;
+        if (shouldIgnoreStart(event?.target)) return;
         clearTimer();
         longPressTriggered = false;
-        startedFromTouch = event.type.startsWith('touch') || false;
+        startedFromTouch = event?.type?.startsWith('touch') || false;
 
-        if (event.touches?.[0]) {
+        if (event?.touches?.[0]) {
             pressClientX = event.touches[0].clientX;
             pressClientY = event.touches[0].clientY;
         } else {
-            pressClientX = event.clientX ?? 0;
-            pressClientY = event.clientY ?? 0;
+            pressClientX = event?.clientX ?? 0;
+            pressClientY = event?.clientY ?? 0;
         }
 
         longPressTimer = setTimeout(() => {
@@ -8726,7 +8655,7 @@ function bindMessageSelectionInteractions(rowEl, messageId, options = {}) {
     };
 
     const cancelLongPressOnMove = (event) => {
-        if (event.touches?.[0]) {
+        if (event?.touches?.[0]) {
             const deltaX = Math.abs(event.touches[0].clientX - pressClientX);
             const deltaY = Math.abs(event.touches[0].clientY - pressClientY);
             if (deltaX > 12 || deltaY > 12) {
@@ -8805,13 +8734,13 @@ function normalizeExternalLink(rawUrl) {
 
 function extractMessageLinks(text) {
     const source = String(text || '');
-    const urlRegex = /((:https:\/\/|www\.)[^\s]+)/gi;
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/gi;
     const links = [];
     let match = null;
 
     while ((match = urlRegex.exec(source)) !== null) {
         let candidate = match[0];
-        while (candidate && /[),.;!]$/.test(candidate)) {
+        while (candidate && /[),.;!?]$/.test(candidate)) {
             candidate = candidate.slice(0, -1);
         }
         const normalized = normalizeExternalLink(candidate);
@@ -8825,7 +8754,7 @@ function extractMessageLinks(text) {
 
 function linkifyMessageText(text) {
     const source = String(text || '');
-    const urlRegex = /((:https:\/\/|www\.)[^\s]+)/gi;
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/gi;
     let lastIndex = 0;
     let output = '';
     let match = null;
@@ -8838,7 +8767,7 @@ function linkifyMessageText(text) {
 
         let candidate = fullMatch;
         let trailing = '';
-        while (candidate && /[),.;!]$/.test(candidate)) {
+        while (candidate && /[),.;!?]$/.test(candidate)) {
             trailing = candidate.slice(-1) + trailing;
             candidate = candidate.slice(0, -1);
         }
@@ -8876,7 +8805,7 @@ function buildLinkPreviewData(url) {
     try {
         const parsed = new URL(url);
         const host = parsed.hostname.replace(/^www\./i, '');
- const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
+        const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
         const title = `${host}${path}`;
         const youtubeId = extractYouTubeId(url);
 
@@ -8885,18 +8814,18 @@ function buildLinkPreviewData(url) {
                 url,
                 host,
                 title,
-                description: 'Pr-visualizao do link',
+                description: 'Pré-visualização do link',
                 thumbnailUrl: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
             };
         }
 
-        const faviconUrl = `https://www.google.com/s2/faviconssz=128&domain=${encodeURIComponent(host)}`;
+        const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(host)}`;
         const screenshotUrl = `https://image.thum.io/get/width/700/crop/360/noanimate/${url}`;
         return {
             url,
             host,
             title,
-            description: 'Pr-visualizao do link',
+            description: 'Pré-visualização do link',
             thumbnailUrl: screenshotUrl,
             fallbackIconUrl: faviconUrl
         };
@@ -8916,15 +8845,15 @@ function renderLinkPreviewHtml(text) {
     const safeHost = escapeHtml(preview.host || preview.url);
     const safeDescription = escapeHtml(preview.description || '');
     const thumb = preview.thumbnailUrl
-          ? `<img class="message-link-preview-thumb-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="Prvia do link" loading="lazy" referrerpolicy="no-referrer">`
- : '';
+        ? `<img class="message-link-preview-thumb-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="Prévia do link" loading="lazy" referrerpolicy="no-referrer">`
+        : '';
     const icon = preview.fallbackIconUrl
-          ? `<img class="message-link-preview-favicon" src="${escapeHtml(preview.fallbackIconUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
- : '<span class="message-link-preview-favicon message-link-preview-favicon-placeholder">&#128279;</span>';
+        ? `<img class="message-link-preview-favicon" src="${escapeHtml(preview.fallbackIconUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+        : '<span class="message-link-preview-favicon message-link-preview-favicon-placeholder">&#128279;</span>';
 
     return `
         <a class="message-link-preview" href="${safeUrl}" target="_blank" rel="noopener noreferrer">
- <div class="message-link-preview-thumb ${thumb ? '' : 'no-thumb'}">
+            <div class="message-link-preview-thumb ${thumb ? '' : 'no-thumb'}">
                 ${thumb}
             </div>
             <div class="message-link-preview-info">
@@ -8938,45 +8867,45 @@ function renderLinkPreviewHtml(text) {
 
 function getReplySnippetTextFromMessage(message) {
     const type = getMessageType(message);
-    if (type === 'text') return String(message.text || '').trim() || 'Mensagem';
- if (type === 'image') return message.fileName ? `Foto: ${message.fileName}` : 'Foto';
- if (type === 'video') return message.fileName ? `Vdeo: ${message.fileName}` : 'Vdeo';
- if (type === 'audio') return message.fileName ? `udio: ${message.fileName}` : 'udio';
- if (type === 'file') return message.fileName ? `Arquivo: ${message.fileName}` : 'Arquivo';
+    if (type === 'text') return String(message?.text || '').trim() || 'Mensagem';
+    if (type === 'image') return message?.fileName ? `Foto: ${message.fileName}` : 'Foto';
+    if (type === 'video') return message?.fileName ? `Vídeo: ${message.fileName}` : 'Vídeo';
+    if (type === 'audio') return message?.fileName ? `Áudio: ${message.fileName}` : 'Áudio';
+    if (type === 'file') return message?.fileName ? `Arquivo: ${message.fileName}` : 'Arquivo';
     return 'Mensagem';
 }
 
 function getReplyThumbnailUrl(message) {
     const type = getMessageType(message);
     if (type === 'image') {
-        return message.imageUrl || message.fileUrl || getAttachmentDownloadUrl(message);
+        return message?.imageUrl || message?.fileUrl || getAttachmentDownloadUrl(message);
     }
     return '';
 }
 
 function getDisplayNameByUid(uid) {
-    if (!uid || !currentUser) return 'Usurio';
-    if (uid === currentUser.uid) return 'Voc';
+    if (!uid || !currentUser) return 'Usuário';
+    if (uid === currentUser.uid) return 'Você';
     const alias = getFriendAlias(uid);
     if (alias) return alias;
     const cached = getCachedUserByUid(uid);
-    if (cached) return cached.name || 'Usurio';
+    if (cached) return cached.name || 'Usuário';
     if (selectedFriendData && selectedFriendData.uid === uid) {
         return getFriendDisplayName(selectedFriendData);
     }
-    return 'Usurio';
+    return 'Usuário';
 }
 
 function normalizeReplyReferencePayload(sourceMessage) {
-    if (!sourceMessage.id) return null;
+    if (!sourceMessage?.id) return null;
     const type = getMessageType(sourceMessage);
-    const fileUrl = sourceMessage.fileUrl || sourceMessage.imageUrl || getAttachmentDownloadUrl(sourceMessage) || '';
+    const fileUrl = sourceMessage?.fileUrl || sourceMessage?.imageUrl || getAttachmentDownloadUrl(sourceMessage) || '';
 
     return {
         id: sourceMessage.id,
         senderId: sourceMessage.senderId || null,
         type,
- text: type === 'text' ? String(sourceMessage.text || '').slice(0, 1000) : '',
+        text: type === 'text' ? String(sourceMessage.text || '').slice(0, 1000) : '',
         fileName: sourceMessage.fileName || '',
         fileType: sourceMessage.fileType || '',
         fileUrl: fileUrl || '',
@@ -8997,7 +8926,7 @@ function clearReplyTargetMessage() {
 }
 
 function setReplyTargetMessage(message) {
-    if (!message.id || !selectedUserId) return;
+    if (!message?.id || !selectedUserId) return;
     if (editingMessage) {
         clearEditingMessage();
     }
@@ -9015,7 +8944,7 @@ function setReplyTargetMessage(message) {
     if (thumbUrl) {
         const img = document.createElement('img');
         img.src = thumbUrl;
-        img.alt = 'Mdia respondida';
+        img.alt = 'Mídia respondida';
         img.loading = 'lazy';
         img.referrerPolicy = 'no-referrer';
         img.addEventListener('error', () => {
@@ -9026,13 +8955,13 @@ function setReplyTargetMessage(message) {
     } else {
         const icon = document.createElement('span');
         icon.className = 'reply-preview-thumb-fallback';
- icon.textContent = getMessageType(message) === 'text' ? '#' : '';
+        icon.textContent = getMessageType(message) === 'text' ? '#' : '↪';
         replyPreviewThumb.appendChild(icon);
         replyPreviewThumb.classList.remove('hidden');
     }
 
     replyPreview.classList.remove('hidden');
-    messageInput.focus();
+    messageInput?.focus();
 }
 
 function getPendingReplyPayload() {
@@ -9044,10 +8973,10 @@ function getReplySummaryText(replyTo) {
     const type = getMessageType(replyTo);
     if (type === 'text') return String(replyTo.text || replyTo.previewText || 'Mensagem').trim() || 'Mensagem';
     if (replyTo.previewText) return String(replyTo.previewText);
- if (type === 'image') return replyTo.fileName ? `Foto: ${replyTo.fileName}` : 'Foto';
- if (type === 'video') return replyTo.fileName ? `Vdeo: ${replyTo.fileName}` : 'Vdeo';
- if (type === 'audio') return replyTo.fileName ? `udio: ${replyTo.fileName}` : 'udio';
- if (type === 'file') return replyTo.fileName ? `Arquivo: ${replyTo.fileName}` : 'Arquivo';
+    if (type === 'image') return replyTo.fileName ? `Foto: ${replyTo.fileName}` : 'Foto';
+    if (type === 'video') return replyTo.fileName ? `Vídeo: ${replyTo.fileName}` : 'Vídeo';
+    if (type === 'audio') return replyTo.fileName ? `Áudio: ${replyTo.fileName}` : 'Áudio';
+    if (type === 'file') return replyTo.fileName ? `Arquivo: ${replyTo.fileName}` : 'Arquivo';
     return 'Mensagem';
 }
 
@@ -9056,10 +8985,10 @@ function renderReplyReferenceHtml(replyTo) {
 
     const senderLabel = escapeHtml(getDisplayNameByUid(replyTo.senderId));
     const summary = escapeHtml(getReplySummaryText(replyTo));
- const thumbUrl = replyTo.imageUrl || (getMessageType(replyTo) === 'image' ? replyTo.fileUrl : '');
+    const thumbUrl = replyTo.imageUrl || (getMessageType(replyTo) === 'image' ? replyTo.fileUrl : '');
     const thumbHtml = thumbUrl
-          ? `<img class="message-reply-thumb" src="${escapeHtml(thumbUrl)}" alt="Mdia respondida" loading="lazy" referrerpolicy="no-referrer">`
- : '';
+        ? `<img class="message-reply-thumb" src="${escapeHtml(thumbUrl)}" alt="Mídia respondida" loading="lazy" referrerpolicy="no-referrer">`
+        : '';
 
     return `
         <div class="message-reply-reference">
@@ -9074,7 +9003,7 @@ function renderReplyReferenceHtml(replyTo) {
 }
 
 function bindMessageSwipeToReply(messageEl, msg) {
-    if (!messageEl || !msg.id) return;
+    if (!messageEl || !msg?.id) return;
 
     let startX = 0;
     let startY = 0;
@@ -9105,7 +9034,7 @@ function bindMessageSwipeToReply(messageEl, msg) {
 
     const onStart = (clientX, clientY, eventTarget) => {
         if (isMessageSelectionMode) return;
-        if (eventTarget.closest?.('a,video,audio,button,input,textarea,iframe')) return;
+        if (eventTarget?.closest?.('a,video,audio,button,input,textarea,iframe')) return;
         tracking = true;
         canTrack = true;
         swipeTriggered = false;
@@ -9142,7 +9071,7 @@ function bindMessageSwipeToReply(messageEl, msg) {
         messageEl.style.transform = `translateX(${visualShift}px)`;
         swipeTriggered = deltaX >= SWIPE_TRIGGER_PX;
 
-        if (event.cancelable) {
+        if (event?.cancelable) {
             event.preventDefault();
         }
     };
@@ -9173,19 +9102,16 @@ function bindMessageSwipeToReply(messageEl, msg) {
 
 // Renderizar mensagens
 function renderMessages(messages, options = {}) {
-    if (!messagesContainer) return;
- const safeMessages = Array.isArray(messages) ? messages : [];
     const previousScrollTop = messagesContainer.scrollTop;
     const previousScrollHeight = messagesContainer.scrollHeight;
     const preserveScroll = !!options.preserveScroll;
     messagesContainer.innerHTML = '';
- const partnerLabel = chatPartnerName ? chatPartnerName.textContent : 'seu contato';
     
-    if (safeMessages.length === 0) {
+    if (messages.length === 0) {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
                 <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
-                <p>Inicie uma conversa com ${partnerLabel}!</p>
+                <p>Inicie uma conversa com ${chatPartnerName.textContent}!</p>
             </div>
         `;
         ensureVoiceRecordingBanner();
@@ -9194,180 +9120,172 @@ function renderMessages(messages, options = {}) {
 
     const isSelectionMode = isMessageSelectionMode;
 
-    safeMessages.forEach(msg => {
+    messages.forEach(msg => {
+        const isSent = msg.senderId === currentUser.uid;
         const row = document.createElement('div');
+        row.className = `message-row ${isSent ? 'sent' : 'received'}`;
+        row.dataset.messageId = msg.id || '';
         const div = document.createElement('div');
-        try {
-            const isSent = msg.senderId === currentUser.uid;
- row.className = `message-row ${isSent ? 'sent' : 'received'}`;
-            row.dataset.messageId = msg.id || '';
- div.className = `message ${isSent ? 'sent' : 'received'}`;
-            div.dataset.messageId = msg.id || '';
-            const canManageMessage = !!msg.id
-                && !!currentUser
-                && (msg.senderId === currentUser.uid || msg.receiverId === currentUser.uid);
-            if (isSelectionMode && canManageMessage) {
-                row.classList.toggle('message-row-selected', selectedMessageIds.has(msg.id));
-                div.classList.add('message-select-mode');
-                div.classList.toggle('message-selected', selectedMessageIds.has(msg.id));
-            }
-            const meta = buildMessageMeta(msg, isSent);
-            const replyReference = renderReplyReferenceHtml(msg.replyTo);
-
-            const messageType = getMessageType(msg);
-            if (messageType === 'image') {
-                const imageUrl = getAttachmentDownloadUrl(msg);
-                if (imageUrl) {
-                    div.innerHTML = `
-                        ${replyReference}
-                        <img class="chat-media-image" src="${imageUrl}" alt="imagem" style="max-width: 200px;">
-                        ${meta}
-                    `;
-                    const imageEl = div.querySelector('.chat-media-image');
-                    if (imageEl) {
-                        attachMediaFallbackHandlers(imageEl, msg);
-                        if (!isSelectionMode) {
-                            imageEl.addEventListener('click', (event) => {
-                                if (shouldBlockMessagePrimaryAction(event)) return;
-                                openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
-                            });
-                        }
-                    }
-                } else {
-                    div.innerHTML = `
-                        ${replyReference}
-                        <p>Imagem indisponvel.</p>
-                        ${meta}
-                    `;
-                }
-            } else if (messageType === 'video') {
-                const videoUrl = getAttachmentDownloadUrl(msg);
-                if (videoUrl) {
-                    div.innerHTML = `
-                        ${replyReference}
-                        <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vdeo">
-                            <video class="chat-media-video" src="${videoUrl}" playsinline preload="metadata" muted></video>
-                            <span class="chat-media-video-play" aria-hidden="true">&#9658;</span>
-                        </div>
-                        ${meta}
-                    `;
-                    const videoEl = div.querySelector('.chat-media-video');
-                    if (videoEl) {
-                        attachMediaFallbackHandlers(videoEl, msg);
-                        prepareVideoThumbnail(videoEl);
-                    }
-                    const videoThumb = div.querySelector('.chat-media-video-thumb');
-                    if (videoThumb && !isSelectionMode) {
-                        const openVideo = (event) => {
-                            if (shouldBlockMessagePrimaryAction(event)) return;
-                            openAttachmentInNewTab(msg, videoEl.currentSrc || videoEl.src || videoUrl);
-                        };
-                        videoThumb.addEventListener('click', openVideo);
-                        videoThumb.addEventListener('keydown', (event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                                event.preventDefault();
-                                openVideo(event);
-                            }
-                        });
-                    }
-                } else {
-                    div.innerHTML = `
-                        ${replyReference}
-                        <p>Vdeo indisponvel.</p>
-                        ${meta}
-                    `;
-                }
-            } else if (messageType === 'audio') {
-                const audioUrl = getAttachmentDownloadUrl(msg);
-                if (audioUrl) {
-                    div.innerHTML = `
-                        ${replyReference}
-                        <audio class="chat-media-audio" src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
-                        ${meta}
-                    `;
-                    const audioEl = div.querySelector('.chat-media-audio');
-                    if (audioEl) {
-                        attachMediaFallbackHandlers(audioEl, msg);
-                    }
-                } else {
-                    div.innerHTML = `
-                        ${replyReference}
-                        <p>udio indisponvel.</p>
-                        ${meta}
-                    `;
-                }
-            } else if (messageType === 'file') {
-                const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || getMessageFileUrl(msg) || '#');
-                const fileName = escapeHtml(msg.fileName || 'Arquivo');
- const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
-                const thumbInfo = buildDocumentThumbInfo(msg, fileUrl);
+        div.className = `message ${isSent ? 'sent' : 'received'}`;
+        div.dataset.messageId = msg.id || '';
+        const canManageMessage = !!msg.id
+            && !!currentUser
+            && (msg.senderId === currentUser.uid || msg.receiverId === currentUser.uid);
+        if (isSelectionMode && canManageMessage) {
+            row.classList.toggle('message-row-selected', selectedMessageIds.has(msg.id));
+            div.classList.add('message-select-mode');
+            div.classList.toggle('message-selected', selectedMessageIds.has(msg.id));
+        }
+        const meta = buildMessageMeta(msg, isSent);
+        const replyReference = renderReplyReferenceHtml(msg.replyTo);
+        
+        const messageType = getMessageType(msg);
+        if (messageType === 'image') {
+            const imageUrl = getAttachmentDownloadUrl(msg);
+            if (imageUrl) {
                 div.innerHTML = `
                     ${replyReference}
-                    <div class="file-attachment">
-                        <span class="file-icon">&#128206;</span>
-                        <span class="file-attachment-thumb file-attachment-thumb-${thumbInfo.theme}">${thumbInfo.label}</span>
-                        <div class="file-info">
-                            <a class="chat-media-file-link" href="${fileUrl}" target="_self" rel="noopener">${fileName}</a>
-                            <small>${fileSize}</small>
-                        </div>
-                    </div>
+                    <img class="chat-media-image" src="${imageUrl}" alt="imagem" style="max-width: 200px;">
                     ${meta}
                 `;
-                const fileLink = div.querySelector('.chat-media-file-link');
-                if (fileLink) {
+                const imageEl = div.querySelector('.chat-media-image');
+                if (imageEl) {
+                    attachMediaFallbackHandlers(imageEl, msg);
                     if (!isSelectionMode) {
-                        fileLink.addEventListener('click', (event) => {
+                        imageEl.addEventListener('click', (event) => {
                             if (shouldBlockMessagePrimaryAction(event)) return;
-                            event.preventDefault();
-                            openAttachmentInNewTab(msg, fileLink.href);
+                            openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
                         });
                     }
                 }
             } else {
-                const linkPreviewHtml = renderLinkPreviewHtml(msg.text || '');
                 div.innerHTML = `
                     ${replyReference}
-                    <p>${linkifyMessageText(msg.text || '')}</p>
-                    ${linkPreviewHtml}
+                    <p>Imagem indisponível.</p>
                     ${meta}
                 `;
-                const textLinks = div.querySelectorAll('.chat-text-link');
-                textLinks.forEach((link) => {
-                    link.addEventListener('click', (event) => {
-                        if (shouldBlockMessagePrimaryAction(event)) return;
-                        event.stopPropagation();
-                    });
-                });
-                const previewLink = div.querySelector('.message-link-preview');
-                if (previewLink) {
-                    previewLink.addEventListener('click', (event) => {
-                        if (shouldBlockMessagePrimaryAction(event)) return;
-                        event.stopPropagation();
-                    });
+            }
+        } else if (messageType === 'video') {
+            const videoUrl = getAttachmentDownloadUrl(msg);
+            if (videoUrl) {
+                div.innerHTML = `
+                    ${replyReference}
+                    <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vídeo">
+                        <video class="chat-media-video" src="${videoUrl}" playsinline preload="metadata" muted></video>
+                        <span class="chat-media-video-play" aria-hidden="true">&#9658;</span>
+                    </div>
+                    ${meta}
+                `;
+                const videoEl = div.querySelector('.chat-media-video');
+                if (videoEl) {
+                    attachMediaFallbackHandlers(videoEl, msg);
+                    prepareVideoThumbnail(videoEl);
                 }
-                const previewThumbImage = div.querySelector('.message-link-preview-thumb-image');
-                if (previewThumbImage) {
-                    previewThumbImage.addEventListener('error', () => {
-                        const thumbWrap = previewThumbImage.closest('.message-link-preview-thumb');
-                        if (thumbWrap) {
-                            thumbWrap.classList.add('no-thumb');
-                            thumbWrap.innerHTML = '';
+                const videoThumb = div.querySelector('.chat-media-video-thumb');
+                if (videoThumb && !isSelectionMode) {
+                    const openVideo = (event) => {
+                        if (shouldBlockMessagePrimaryAction(event)) return;
+                        openAttachmentInNewTab(msg, videoEl?.currentSrc || videoEl?.src || videoUrl);
+                    };
+                    videoThumb.addEventListener('click', openVideo);
+                    videoThumb.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openVideo(event);
                         }
                     });
                 }
+            } else {
+                div.innerHTML = `
+                    ${replyReference}
+                    <p>Vídeo indisponível.</p>
+                    ${meta}
+                `;
             }
-
-            if (canManageMessage) {
-                bindMessageSelectionInteractions(row, msg.id, { message: msg, bubbleEl: div });
+        } else if (messageType === 'audio') {
+            const audioUrl = getAttachmentDownloadUrl(msg);
+            if (audioUrl) {
+                div.innerHTML = `
+                    ${replyReference}
+                    <audio class="chat-media-audio" src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
+                    ${meta}
+                `;
+                const audioEl = div.querySelector('.chat-media-audio');
+                if (audioEl) {
+                    attachMediaFallbackHandlers(audioEl, msg);
+                }
+            } else {
+                div.innerHTML = `
+                    ${replyReference}
+                    <p>Áudio indisponível.</p>
+                    ${meta}
+                `;
             }
-            bindMessageSwipeToReply(div, msg);
-        } catch (error) {
-            console.warn('Falha ao renderizar mensagem:', error, msg);
-            div.className = 'message received';
+        } else if (messageType === 'file') {
+            const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || getMessageFileUrl(msg) || '#');
+            const fileName = escapeHtml(msg.fileName || 'Arquivo');
+            const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
+            const thumbInfo = buildDocumentThumbInfo(msg, fileUrl);
             div.innerHTML = `
-                <p>Mensagem indisponvel para visualizao.</p>
+                ${replyReference}
+                <div class="file-attachment">
+                    <span class="file-icon">&#128206;</span>
+                    <span class="file-attachment-thumb file-attachment-thumb-${thumbInfo.theme}">${thumbInfo.label}</span>
+                    <div class="file-info">
+                        <a class="chat-media-file-link" href="${fileUrl}" target="_self" rel="noopener">${fileName}</a>
+                        <small>${fileSize}</small>
+                    </div>
+                </div>
+                ${meta}
             `;
+            const fileLink = div.querySelector('.chat-media-file-link');
+            if (fileLink) {
+                if (!isSelectionMode) {
+                    fileLink.addEventListener('click', (event) => {
+                        if (shouldBlockMessagePrimaryAction(event)) return;
+                        event.preventDefault();
+                        openAttachmentInNewTab(msg, fileLink.href);
+                    });
+                }
+            }
+        } else {
+            const linkPreviewHtml = renderLinkPreviewHtml(msg.text || '');
+            div.innerHTML = `
+                ${replyReference}
+                <p>${linkifyMessageText(msg.text || '')}</p>
+                ${linkPreviewHtml}
+                ${meta}
+            `;
+            const textLinks = div.querySelectorAll('.chat-text-link');
+            textLinks.forEach((link) => {
+                link.addEventListener('click', (event) => {
+                    if (shouldBlockMessagePrimaryAction(event)) return;
+                    event.stopPropagation();
+                });
+            });
+            const previewLink = div.querySelector('.message-link-preview');
+            if (previewLink) {
+                previewLink.addEventListener('click', (event) => {
+                    if (shouldBlockMessagePrimaryAction(event)) return;
+                    event.stopPropagation();
+                });
+            }
+            const previewThumbImage = div.querySelector('.message-link-preview-thumb-image');
+            if (previewThumbImage) {
+                previewThumbImage.addEventListener('error', () => {
+                    const thumbWrap = previewThumbImage.closest('.message-link-preview-thumb');
+                    if (thumbWrap) {
+                        thumbWrap.classList.add('no-thumb');
+                        thumbWrap.innerHTML = '';
+                    }
+                });
+            }
         }
+
+        if (canManageMessage) {
+            bindMessageSelectionInteractions(row, msg.id, { message: msg, bubbleEl: div });
+        }
+        bindMessageSwipeToReply(div, msg);
 
         row.appendChild(div);
         messagesContainer.appendChild(row);
@@ -9395,7 +9313,7 @@ function formatFileSize(bytes) {
     if (bytes === 0 || !bytes) return '';
     const units = ['B', 'KB', 'MB', 'GB'];
     const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
- const size = (bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1);
+    const size = (bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1);
     return `${size} ${units[index]}`;
 }
 
@@ -9405,12 +9323,12 @@ function setOnlineStatusClass(element, isOnline) {
 }
 
 async function saveEditedMessage(text) {
-    if (!editingMessage.id || !currentUser || !selectedUserId) return;
+    if (!editingMessage?.id || !currentUser || !selectedUserId) return;
 
     const latestMessage = currentConversationMessages.find((msg) => msg.id === editingMessage.id) || editingMessage;
     if (!canEditMessage(latestMessage)) {
         clearEditingMessage();
-        alert('O prazo de 30 minutos para editar essa mensagem j expirou.');
+        alert('O prazo de 30 minutos para editar essa mensagem já expirou.');
         return;
     }
 
@@ -9445,7 +9363,7 @@ async function updateConversationLastMessage(conversationId, payload) {
     const update = {
         lastMessageAt: lastMessageAt,
         lastMessageType: payload.type || 'text',
-        lastMessageSenderId: payload.senderId || currentUser.uid || '',
+        lastMessageSenderId: payload.senderId || currentUser?.uid || '',
         lastMessageReceiverId: payload.receiverId || selectedUserId || '',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -9464,7 +9382,7 @@ async function sendTextMessageToFriend(text, targetUid, targetFriend) {
 
     const conversationId = getConversationId(currentUser.uid, targetUid);
     const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
- const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
+    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
 
     const messagePayload = {
         text: messageText,
@@ -9474,7 +9392,7 @@ async function sendTextMessageToFriend(text, targetUid, targetFriend) {
         type: 'text',
         read: false,
         delivered: delivered,
- deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
         replyTo: null
     };
 
@@ -9490,7 +9408,7 @@ async function submitTextComposerMessage() {
     const text = messageInput.value.trim();
     if (!text || !selectedUserId) return;
     if (isFriendBlocked(selectedUserId)) {
-        alert('Voc bloqueou este usurio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
 
@@ -9516,7 +9434,7 @@ async function submitTextComposerMessage() {
             type: 'text',
             read: false,
             delivered: delivered,
- deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+            deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
             replyTo: replyPayload || null
         };
 
@@ -9543,7 +9461,7 @@ function getDefaultChatPartnerStatus() {
 }
 
 function getChatPartnerActivityLabel(state) {
- const displayName = selectedFriendData ? getFriendDisplayName(selectedFriendData) : (chatPartnerName.textContent || 'Usu\u00e1rio');
+    const displayName = selectedFriendData ? getFriendDisplayName(selectedFriendData) : (chatPartnerName?.textContent || 'Usu\u00e1rio');
     if (state === 'recording') {
         return formatUiText('recordingActivity', { name: displayName });
     }
@@ -9602,15 +9520,15 @@ function updateCallButtonsAvailability() {
 }
 
 function setChatPartnerActivity(state) {
- remoteTypingState = state === 'typing' || state === 'recording' ? state : null;
+    remoteTypingState = state === 'typing' || state === 'recording' ? state : null;
     renderChatPartnerStatus();
 }
 
 function setRemoteUserActivity(activity) {
-    const state = activity.state;
-    const targetUid = activity.targetUid;
- const updatedAt = activity.updatedAt.toDate ? activity.updatedAt.toDate() : null;
- const isFresh = updatedAt ? (Date.now() - updatedAt.getTime() <= 8000) : true;
+    const state = activity?.state;
+    const targetUid = activity?.targetUid;
+    const updatedAt = activity?.updatedAt?.toDate ? activity.updatedAt.toDate() : null;
+    const isFresh = updatedAt ? (Date.now() - updatedAt.getTime() <= 8000) : true;
     const isValidState = state === 'typing' || state === 'recording';
 
     if (!currentUser || targetUid !== currentUser.uid || !isValidState || !isFresh) {
@@ -9662,9 +9580,9 @@ function listenTypingStatus(otherUid) {
         .onSnapshot((doc) => {
             const data = doc.data() || {};
             const entry = data.typing && data.typing[otherUid];
-            const state = entry.state || null;
- const updatedAt = entry.updatedAt.toDate ? entry.updatedAt.toDate() : null;
- const isStale = updatedAt ? (Date.now() - updatedAt.getTime() > 8000) : false;
+            const state = entry?.state || null;
+            const updatedAt = entry?.updatedAt?.toDate ? entry.updatedAt.toDate() : null;
+            const isStale = updatedAt ? (Date.now() - updatedAt.getTime() > 8000) : false;
             if (!state || isStale) {
                 setChatPartnerActivity(null);
                 return;
@@ -9699,7 +9617,7 @@ function updateTypingState(state, force = false) {
         .doc(conversationId)
         .set(payload, { merge: true })
         .catch((error) => {
-            console.warn('Falha ao atualizar status de digitao.', error);
+            console.warn('Falha ao atualizar status de digitação.', error);
         });
 
     const activityPayload = {};
@@ -9716,7 +9634,7 @@ function updateTypingState(state, force = false) {
         .doc(currentUser.uid)
         .set(activityPayload, { merge: true })
         .catch((error) => {
-            console.warn('Falha ao atualizar atividade do usurio.', error);
+            console.warn('Falha ao atualizar atividade do usuário.', error);
         });
 
 }
@@ -9741,7 +9659,7 @@ function subscribeToFriendDoc(uid) {
             }
 
             if (chatPartnerPhoto) {
-                applyProfilePhoto(chatPartnerPhoto, data, 'https://via.placeholder.com/45/cccccc/666666text=User');
+                applyProfilePhoto(chatPartnerPhoto, data, 'https://via.placeholder.com/45/cccccc/666666?text=User');
             }
 
             setRemoteUserActivity(data.activity || null);
@@ -9781,8 +9699,8 @@ function clearLocalTypingState() {
 function buildMessageMeta(msg, isSent) {
     const time = formatTime(msg.timestamp);
     const editedLabel = isMessageEdited(msg)
-          ? '<span class="message-edited">editada</span>'
- : '';
+        ? '<span class="message-edited">editada</span>'
+        : '';
     if (!isSent) {
         return `
             <small class="message-meta">
@@ -9792,15 +9710,15 @@ function buildMessageMeta(msg, isSent) {
         `;
     }
     let statusClass = 'status-sent';
-    let ticks = '';
+    let ticks = '✓';
     let title = 'Enviado';
     if (msg.read) {
         statusClass = 'status-read';
-        ticks = '';
+        ticks = '✓✓';
         title = 'Lido';
     } else if (msg.delivered) {
         statusClass = 'status-delivered';
-        ticks = '';
+        ticks = '✓✓';
         title = 'Entregue';
     }
     return `
@@ -9850,11 +9768,11 @@ function openAttachInput(input) {
 async function openCameraModal(preferredMode = '') {
     if (!cameraModal) return;
     if (!selectedUserId) {
-        alert('Selecione um usurio para conversar.');
+        alert('Selecione um usuário para conversar.');
         return;
     }
     if (isFriendBlocked(selectedUserId)) {
-        alert('Voc bloqueou este usurio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
     closeAttachMenu();
@@ -9864,7 +9782,7 @@ async function openCameraModal(preferredMode = '') {
     currentCameraFacing = 'environment';
     updateCameraSwitchVisibility();
     syncCameraActionIcons();
-    if (cameraStatus) cameraStatus.textContent = 'Abrindo cmera...';
+    if (cameraStatus) cameraStatus.textContent = 'Abrindo câmera...';
     await startCameraStream();
     if (!cameraStream && preferredMode) {
         closeCameraModal();
@@ -9895,9 +9813,9 @@ function resetCameraState() {
 
 function syncCameraActionIcons() {
     if (btnCameraSwitch) btnCameraSwitch.innerHTML = CAMERA_ICON_SWITCH;
- if (btnCameraFlash) btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
+    if (btnCameraFlash) btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
     if (btnCameraCapture) btnCameraCapture.innerHTML = CAMERA_ICON_PHOTO;
- if (btnCameraRecord) btnCameraRecord.innerHTML = isCameraRecording ? CAMERA_ICON_STOP : CAMERA_ICON_VIDEO;
+    if (btnCameraRecord) btnCameraRecord.innerHTML = isCameraRecording ? CAMERA_ICON_STOP : CAMERA_ICON_VIDEO;
     if (btnCameraCancel) btnCameraCancel.innerHTML = CAMERA_ICON_CLOSE;
 }
 
@@ -9909,18 +9827,18 @@ function getActiveCameraTrack() {
 function updateCameraFlashButton() {
     if (!btnCameraFlash) return;
     const track = getActiveCameraTrack();
- const caps = track.getCapabilities ? track.getCapabilities() : null;
-    const supportsTorch = !!caps.torch;
+    const caps = track?.getCapabilities ? track.getCapabilities() : null;
+    const supportsTorch = !!caps?.torch;
     btnCameraFlash.classList.toggle('hidden', !supportsTorch);
     btnCameraFlash.disabled = !supportsTorch;
     btnCameraFlash.classList.toggle('active', isCameraTorchOn);
- btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
+    btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
 }
 
 async function setCameraTorch(enabled) {
     const track = getActiveCameraTrack();
- const caps = track.getCapabilities ? track.getCapabilities() : null;
-    if (!caps.torch) {
+    const caps = track?.getCapabilities ? track.getCapabilities() : null;
+    if (!caps?.torch) {
         updateCameraFlashButton();
         return false;
     }
@@ -9963,16 +9881,16 @@ function updateCameraSwitchVisibility() {
 
 async function switchCameraFacing() {
     if (isCameraRecording) return;
- currentCameraFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
+    currentCameraFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
     isCameraTorchOn = false;
     stopCameraStream();
-    if (cameraStatus) cameraStatus.textContent = 'Alternando cmera...';
+    if (cameraStatus) cameraStatus.textContent = 'Alternando câmera...';
     await startCameraStream();
 }
 
 async function startCameraStream() {
-    if (!cameraPreview || !navigator.mediaDevices.getUserMedia) {
-        if (cameraStatus) cameraStatus.textContent = 'Cmera no suportada.';
+    if (!cameraPreview || !navigator.mediaDevices?.getUserMedia) {
+        if (cameraStatus) cameraStatus.textContent = 'Câmera não suportada.';
         return;
     }
     if (cameraStream) return;
@@ -9992,7 +9910,7 @@ async function startCameraStream() {
                 audio: false
             });
             if (cameraStatus) {
-                cameraStatus.textContent = 'Cmera aberta (sem udio).';
+                cameraStatus.textContent = 'Câmera aberta (sem áudio).';
             }
         } catch (fallbackError) {
             try {
@@ -10001,15 +9919,15 @@ async function startCameraStream() {
                     audio: false
                 });
             } catch (finalError) {
-                if (cameraStatus) cameraStatus.textContent = 'No foi possvel acessar a cmera.';
-                alert('No foi possvel acessar a cmera.');
+                if (cameraStatus) cameraStatus.textContent = 'Não foi possível acessar a câmera.';
+                alert('Não foi possível acessar a câmera.');
                 closeCameraModal();
                 return;
             }
         }
     }
     cameraPreview.srcObject = cameraStream;
-    if (cameraStatus && cameraStatus.textContent === 'Abrindo cmera...') {
+    if (cameraStatus && cameraStatus.textContent === 'Abrindo câmera...') {
         cameraStatus.textContent = 'Pronto para capturar.';
     }
     isCameraTorchOn = false;
@@ -10060,8 +9978,8 @@ async function toggleCameraRecording() {
     const mimeType = getPreferredVideoMimeType();
     try {
         cameraRecorder = mimeType
-              ? new MediaRecorder(cameraStream, { mimeType, ...CAMERA_RECORDING_OPTIONS })
- : new MediaRecorder(cameraStream, { ...CAMERA_RECORDING_OPTIONS });
+            ? new MediaRecorder(cameraStream, { mimeType, ...CAMERA_RECORDING_OPTIONS })
+            : new MediaRecorder(cameraStream, { ...CAMERA_RECORDING_OPTIONS });
     } catch (error) {
         cameraRecorder = new MediaRecorder(cameraStream);
     }
@@ -10074,7 +9992,7 @@ async function toggleCameraRecording() {
     };
     cameraRecorder.onstop = async () => {
         cameraRecorder = null;
-        const chosenMime = recorder.mimeType || mimeType || 'video/webm';
+        const chosenMime = recorder?.mimeType || mimeType || 'video/webm';
         const blob = new Blob(cameraRecorderChunks, { type: chosenMime });
         cameraRecorderChunks = [];
         isCameraRecording = false;
@@ -10090,23 +10008,23 @@ async function toggleCameraRecording() {
         try {
             await handleChatFile(file);
         } catch (error) {
-            console.warn('Falha ao enviar vdeo gravado.', error);
-            alert('No foi possvel enviar o vdeo gravado.');
+            console.warn('Falha ao enviar vídeo gravado.', error);
+            alert('Não foi possível enviar o vídeo gravado.');
         }
         closeCameraModal();
     };
     try {
         cameraRecorder.start();
     } catch (error) {
-        console.warn('Falha ao iniciar gravao de vdeo.', error);
+        console.warn('Falha ao iniciar gravação de vídeo.', error);
         cameraRecorder = null;
         cameraRecorderChunks = [];
-        alert('No foi possvel iniciar a gravao de vdeo.');
+        alert('Não foi possível iniciar a gravação de vídeo.');
         return;
     }
     isCameraRecording = true;
     syncCameraActionIcons();
-    if (cameraStatus) cameraStatus.textContent = 'Gravando vdeo...';
+    if (cameraStatus) cameraStatus.textContent = 'Gravando vídeo...';
 }
 
 function getPreferredAudioMimeType() {
@@ -10177,8 +10095,8 @@ function updateComposerPrimaryAction() {
 function updateVoiceButtonUI() {
     if (!btnVoice) return;
     btnVoice.classList.toggle('recording', isRecordingAudio);
- btnVoice.title = isRecordingAudio ? 'Parar gravao' : 'Enviar udio';
- btnVoice.innerHTML = isRecordingAudio ? VOICE_ICON_RECORDING : VOICE_ICON_IDLE;
+    btnVoice.title = isRecordingAudio ? 'Parar gravação' : 'Enviar áudio';
+    btnVoice.innerHTML = isRecordingAudio ? VOICE_ICON_RECORDING : VOICE_ICON_IDLE;
     if (voiceRecordingStatus) {
         voiceRecordingStatus.classList.toggle('hidden', !isRecordingAudio);
     }
@@ -10247,19 +10165,19 @@ async function stopAudioRecording(sendAfterStop = true) {
 
 async function startAudioRecording() {
     if (!selectedUserId) {
-        alert('Selecione um usurio para conversar.');
+        alert('Selecione um usuário para conversar.');
         return;
     }
     if (isFriendBlocked(selectedUserId)) {
-        alert('Voc bloqueou este usurio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
     if (!window.isSecureContext) {
-        alert('A gravao de udio requer HTTPS.');
+        alert('A gravação de áudio requer HTTPS.');
         return;
     }
-    if (!navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
-        alert('Seu navegador no suporta gravao de udio.');
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+        alert('Seu navegador não suporta gravação de áudio.');
         return;
     }
     if (isRecordingAudio) {
@@ -10272,18 +10190,18 @@ async function startAudioRecording() {
     try {
         audioRecorderStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (error) {
-        alert('No foi possvel acessar o microfone.');
+        alert('Não foi possível acessar o microfone.');
         return;
     }
 
     const mimeType = getPreferredAudioMimeType();
     try {
- audioRecorder = mimeType ? new MediaRecorder(audioRecorderStream, { mimeType }) : new MediaRecorder(audioRecorderStream);
+        audioRecorder = mimeType ? new MediaRecorder(audioRecorderStream, { mimeType }) : new MediaRecorder(audioRecorderStream);
     } catch (error) {
         try {
             audioRecorder = new MediaRecorder(audioRecorderStream);
         } catch (finalError) {
-            alert('No foi possvel iniciar a gravao.');
+            alert('Não foi possível iniciar a gravação.');
             audioRecorderStream.getTracks().forEach(track => track.stop());
             audioRecorderStream = null;
             return;
@@ -10312,7 +10230,7 @@ async function startAudioRecording() {
             audioRecorderChunks = [];
             return;
         }
-        const blob = new Blob(audioRecorderChunks, { type: recorder.mimeType || mimeType || 'audio/webm' });
+        const blob = new Blob(audioRecorderChunks, { type: recorder?.mimeType || mimeType || 'audio/webm' });
         audioRecorderChunks = [];
         if (!blob.size) return;
         const extension = getAudioFileExtension(blob.type);
@@ -10320,14 +10238,14 @@ async function startAudioRecording() {
         try {
             await handleChatFile(file);
         } catch (error) {
-            console.warn('Falha ao enviar udio gravado.', error);
-            alert('No foi possvel enviar o udio gravado.');
+            console.warn('Falha ao enviar áudio gravado.', error);
+            alert('Não foi possível enviar o áudio gravado.');
         }
     };
     try {
         audioRecorder.start();
     } catch (error) {
-        alert('No foi possvel iniciar a gravao.');
+        alert('Não foi possível iniciar a gravação.');
         audioRecorderStream.getTracks().forEach(track => track.stop());
         audioRecorderStream = null;
         audioRecorder = null;
@@ -10344,13 +10262,13 @@ async function startAudioRecording() {
 async function handleChatFile(file, targetUid = selectedUserId, targetFriend = selectedFriendData) {
     if (!file || !targetUid) return;
     if (isFriendBlocked(targetUid)) {
-        alert('Voc bloqueou este usurio.');
+        alert('Você bloqueou este usuário.');
         return;
     }
 
     const maxSize = MAX_CHAT_FILE_SIZE_BYTES;
     if (file.size > maxSize) {
-        alert(`O arquivo deve ter no mximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
+        alert(`O arquivo deve ter no máximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
         return;
     }
 
@@ -10363,8 +10281,8 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
     if (isVideo) messageType = 'video';
     if (isAudio) messageType = 'audio';
     const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
- const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
- const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
+    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
+    const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
     try {
         const fileUrl = await uploadChatFile(file, { uid: currentUser.uid });
@@ -10379,14 +10297,14 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
             fileName: file.name,
             fileType: file.type || 'application/octet-stream',
             fileSize: file.size,
- imageUrl: isImage ? fileUrl : null,
+            imageUrl: isImage ? fileUrl : null,
             senderId: currentUser.uid,
             receiverId: targetUid,
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             type: messageType,
             read: false,
             delivered: delivered,
- deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+            deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
             replyTo: replyPayload || null
         };
 
@@ -10403,7 +10321,7 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
 }
 
 async function handleFileInputChange(input) {
-    const files = Array.from(input.files || []);
+    const files = Array.from(input?.files || []);
     if (input) input.value = '';
     if (!files.length) return;
     await Promise.allSettled(files.map(file => handleChatFile(file)));
@@ -10451,8 +10369,8 @@ function clearActiveConversation() {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
                 <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
-                <h3>Bem-vindo ao CameChat! </h3>
-                <p>Selecione um usurio para comear a conversar.</p>
+                <h3>Bem-vindo ao CameChat! 👋</h3>
+                <p>Selecione um usuário para começar a conversar.</p>
             </div>
         `;
     }
@@ -10460,7 +10378,7 @@ function clearActiveConversation() {
     ensureVoiceRecordingBanner();
     resetMessageSelectionState();
 
-    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usurio';
+    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usuário';
     if (chatPartnerStatus) {
         chatPartnerStatus.textContent = '';
         chatPartnerStatus.classList.remove('chat-partner-status-activity');
@@ -10530,7 +10448,7 @@ function handleAndroidBackPress() {
         resetFriendSelectionState();
         return true;
     }
-    if (app.classList.contains('sidebar-open')) {
+    if (app?.classList.contains('sidebar-open')) {
         setSidebarOpen(false);
         return true;
     }
@@ -10553,8 +10471,8 @@ function resetChatUI() {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
                 <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
-                <h3>Bem-vindo ao CameChat! </h3>
-                <p>Selecione um usurio para comear a conversar.</p>
+                <h3>Bem-vindo ao CameChat! 👋</h3>
+                <p>Selecione um usuário para começar a conversar.</p>
             </div>
         `;
     }
@@ -10578,7 +10496,7 @@ function resetChatUI() {
     if (messageInput) messageInput.value = '';
     if (searchUser) searchUser.value = '';
     if (friendEmailInput) friendEmailInput.value = '';
-    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usurio';
+    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usuário';
     if (chatPartnerStatus) {
         chatPartnerStatus.textContent = '';
         chatPartnerStatus.classList.remove('chat-partner-status-activity');
@@ -10636,7 +10554,7 @@ function resetProfileModal() {
 
 function openProfileModal() {
     if (!profileModal) return;
-    const currentPhoto = currentUserProfile.photoData || currentUserProfile.photoURL || userPhoto.src || '';
+    const currentPhoto = currentUserProfile?.photoData || currentUserProfile?.photoURL || userPhoto?.src || '';
     renderCurrentUserIdentity(currentUserProfile);
     if (currentPhoto) {
         loadCropImage(currentPhoto);
@@ -10653,7 +10571,7 @@ function closeProfileModal() {
 function openFriendModal() {
     if (!friendModal || !selectedFriendData) return;
     if (friendPreviewImage) {
-        applyProfilePhoto(friendPreviewImage, selectedFriendData, 'https://via.placeholder.com/120/cccccc/666666text=User');
+        applyProfilePhoto(friendPreviewImage, selectedFriendData, 'https://via.placeholder.com/120/cccccc/666666?text=User');
     }
     if (friendDetailName) friendDetailName.textContent = getFriendDisplayName(selectedFriendData);
     if (friendDetailHandle) friendDetailHandle.textContent = getUserTagValue(selectedFriendData);
@@ -10683,7 +10601,7 @@ function renderFriendDetailStatus(friend) {
 
 function updateFriendModalState() {
     if (!selectedFriendData) return;
-    const blockedSet = new Set(currentUserProfile.blocked || []);
+    const blockedSet = new Set(currentUserProfile?.blocked || []);
     const isBlocked = blockedSet.has(selectedFriendData.uid);
     const isSelf = currentUser && selectedFriendData.uid === currentUser.uid;
 
@@ -10702,7 +10620,7 @@ function updateFriendModalState() {
 }
 
 function isFriendBlocked(friendId) {
-    return (currentUserProfile.blocked || []).includes(friendId);
+    return (currentUserProfile?.blocked || []).includes(friendId);
 }
 
 // Enviar mensagem de texto
@@ -10915,7 +10833,7 @@ if (btnCameraFlash) {
     btnCameraFlash.addEventListener('click', async () => {
         const success = await setCameraTorch(!isCameraTorchOn);
         if (!success) {
-            alert('Flash indisponvel para esta cmera.');
+            alert('Flash indisponível para esta câmera.');
         }
     });
 }
@@ -10940,9 +10858,9 @@ if (emojiPicker) {
 
 if (btnAddFriend) {
     btnAddFriend.addEventListener('click', async () => {
- const email = friendEmailInput ? friendEmailInput.value.trim() : '';
+        const email = friendEmailInput ? friendEmailInput.value.trim() : '';
         if (!email) {
-            alert('Digite o e-mail ou @primeironome do usurio.');
+            alert('Digite o e-mail ou @primeironome do usuário.');
             return;
         }
         try {
@@ -10958,7 +10876,7 @@ if (friendEmailInput) {
     friendEmailInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            btnAddFriend.click();
+            btnAddFriend?.click();
         }
     });
 }
@@ -11020,7 +10938,7 @@ if (userTagMatchClose) {
 if (friendRemoveBtn) {
     friendRemoveBtn.addEventListener('click', async () => {
         if (!selectedFriendData) return;
-        const confirmed = confirm('Deseja remover este amigo da sua lista');
+        const confirmed = confirm('Deseja remover este amigo da sua lista?');
         if (!confirmed) return;
         try {
             await removeFriend(selectedFriendData.uid);
@@ -11034,12 +10952,12 @@ if (friendRemoveBtn) {
 if (friendBlockBtn) {
     friendBlockBtn.addEventListener('click', async () => {
         if (!selectedFriendData) return;
-        const confirmed = confirm('Deseja bloquear este amigo Ele no aparecer mais na sua lista.');
+        const confirmed = confirm('Deseja bloquear este amigo? Ele não aparecerá mais na sua lista.');
         if (!confirmed) return;
         try {
             await blockFriend(selectedFriendData.uid);
             if (!currentUserProfile) currentUserProfile = {};
- currentUserProfile.blocked = Array.isArray(currentUserProfile.blocked) ? currentUserProfile.blocked : [];
+            currentUserProfile.blocked = Array.isArray(currentUserProfile.blocked) ? currentUserProfile.blocked : [];
             if (!currentUserProfile.blocked.includes(selectedFriendData.uid)) {
                 currentUserProfile.blocked.push(selectedFriendData.uid);
             }
@@ -11059,7 +10977,7 @@ if (friendUnblockBtn) {
         if (!selectedFriendData) return;
         try {
             await unblockFriend(selectedFriendData.uid);
-            if (currentUserProfile.blocked) {
+            if (currentUserProfile?.blocked) {
                 currentUserProfile.blocked = currentUserProfile.blocked.filter(id => id !== selectedFriendData.uid);
             }
             updateFriendModalState();
@@ -11462,7 +11380,7 @@ if (callMini) {
     callMini.addEventListener('pointerdown', (event) => {
         if (callMini.classList.contains('hidden')) return;
         if (event.button !== undefined && event.button !== 0) return;
-        if (event.target.closest?.('button')) return;
+        if (event.target?.closest?.('button')) return;
         callMiniDragPointerId = event.pointerId;
         startCallMiniDrag(event.clientX, event.clientY);
         if (typeof callMini.setPointerCapture === 'function') {
@@ -11478,7 +11396,7 @@ if (callMini) {
         callMini.addEventListener('touchstart', (event) => {
             if (callMini.classList.contains('hidden')) return;
             if (!event.touches || event.touches.length !== 1) return;
-            if (event.target.closest?.('button')) return;
+            if (event.target?.closest?.('button')) return;
             const touch = event.touches[0];
             callMiniDragTouchId = touch.identifier;
             startCallMiniDrag(touch.clientX, touch.clientY);
@@ -11624,7 +11542,7 @@ if (btnThemeToggle) {
     btnThemeToggle.addEventListener('click', (event) => {
         event.stopPropagation();
         const isDark = document.body.classList.contains('theme-dark');
- applyTheme(isDark ? 'light' : 'dark', true);
+        applyTheme(isDark ? 'light' : 'dark', true);
     });
 }
 
@@ -11639,7 +11557,7 @@ if (btnMessageTone) {
     btnMessageTone.addEventListener('click', (event) => {
         event.stopPropagation();
         if (messageToneDataUrl) {
-            const shouldReset = confirm('Deseja voltar ao toque padro Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
+            const shouldReset = confirm('Deseja voltar ao toque padrão? Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
             if (shouldReset) {
                 applyMessageToneSetting('', true);
                 return;
@@ -11661,7 +11579,7 @@ if (messageToneInput) {
             const dataUrl = await readToneFileAsDataUrl(file);
             applyMessageToneSetting(dataUrl, true);
         } catch (error) {
-            alert('No foi possvel aplicar o toque de mensagem.');
+            alert('Não foi possível aplicar o toque de mensagem.');
         }
     });
 }
@@ -11670,7 +11588,7 @@ if (btnCallTone) {
     btnCallTone.addEventListener('click', (event) => {
         event.stopPropagation();
         if (callToneDataUrl) {
-            const shouldReset = confirm('Deseja voltar ao toque padro Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
+            const shouldReset = confirm('Deseja voltar ao toque padrão? Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
             if (shouldReset) {
                 applyCallToneSetting('', true);
                 return;
@@ -11692,7 +11610,7 @@ if (callToneInput) {
             const dataUrl = await readToneFileAsDataUrl(file);
             applyCallToneSetting(dataUrl, true);
         } catch (error) {
-            alert('No foi possvel aplicar o toque de chamada.');
+            alert('Não foi possível aplicar o toque de chamada.');
         }
     });
 }
@@ -11732,7 +11650,7 @@ if (btnDesktopNotificationsToggle) {
         } else {
             applyDesktopNotificationsSetting(false, true);
             if (permission === 'denied') {
-                alert('Notificaes bloqueadas pelo navegador. Libere nas configuraes do site para ativar.');
+                alert('Notificações bloqueadas pelo navegador. Libere nas configurações do site para ativar.');
             }
         }
     });
@@ -11750,7 +11668,7 @@ if (btnOnlineStatusToggle) {
 if (btnChatFontToggle) {
     btnChatFontToggle.addEventListener('click', (event) => {
         event.stopPropagation();
- const nextSize = chatFontSizePreference === 'large' ? 'normal' : 'large';
+        const nextSize = chatFontSizePreference === 'large' ? 'normal' : 'large';
         applyChatFontSizeSetting(nextSize, true);
     });
 }
@@ -11773,7 +11691,7 @@ if (chatBackgroundUpload) {
             return;
         }
         if (file.size > 20 * 1024 * 1024) {
-            alert('A imagem deve ter no mximo 20MB.');
+            alert('A imagem deve ter no máximo 20MB.');
             return;
         }
 
@@ -11781,7 +11699,7 @@ if (chatBackgroundUpload) {
             const dataUrl = await buildChatBackgroundDataUrl(file);
             applyChatBackground(dataUrl, true);
         } catch (error) {
-            alert('No foi possvel aplicar este plano de fundo.');
+            alert('Não foi possível aplicar este plano de fundo.');
         }
     });
 }
@@ -11822,7 +11740,7 @@ if (btnLastSeenToggle) {
 if (btnLanguageToggle) {
     btnLanguageToggle.addEventListener('click', (event) => {
         event.stopPropagation();
- const nextLanguage = selectedLanguage === 'en-US' ? 'pt-BR' : 'en-US';
+        const nextLanguage = selectedLanguage === 'en-US' ? 'pt-BR' : 'en-US';
         applyLanguageSetting(nextLanguage, true);
     });
 }
@@ -11884,7 +11802,7 @@ if (profilePhotoInput) {
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            alert('A foto deve ter no mximo 5MB.');
+            alert('A foto deve ter no máximo 5MB.');
             profilePhotoInput.value = '';
             pendingProfilePhotoFile = null;
             return;
@@ -11905,19 +11823,19 @@ if (profileSaveBtn) {
 
         const canvas = createCroppedCanvas(256);
         if (!canvas) {
-            alert('No foi possvel processar a foto. Tente outra imagem.');
+            alert('Não foi possível processar a foto. Tente outra imagem.');
             return;
         }
 
         const photoData = canvas.toDataURL('image/jpeg', 0.85);
         const blob = await canvasToBlob(canvas, 'image/jpeg', 0.85);
- const croppedFile = blob ? new File([blob], 'profile.jpg', { type: 'image/jpeg' }) : null;
+        const croppedFile = blob ? new File([blob], 'profile.jpg', { type: 'image/jpeg' }) : null;
 
         let photoUrl = '';
         if (croppedFile) {
             try {
                 photoUrl = await uploadProfilePhotoViaBackend(croppedFile, {
-                    displayName: currentUserProfile.name || currentUser.displayName || 'usuario',
+                    displayName: currentUserProfile?.name || currentUser.displayName || 'usuario',
                     uid: currentUser.uid
                 });
             } catch (error) {
@@ -11936,7 +11854,7 @@ if (profileSaveBtn) {
                 await currentUser.updateProfile({ photoURL: photoUrl });
             }
 
-            const fallbackPhoto = photoData || 'https://via.placeholder.com/45/002776/fffffftext=User';
+            const fallbackPhoto = photoData || 'https://via.placeholder.com/45/002776/ffffff?text=User';
             userPhoto.src = fallbackPhoto;
             if (photoUrl) hydratePhotoFromUrl(userPhoto, photoUrl, fallbackPhoto);
 
