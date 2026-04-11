@@ -1,4 +1,4 @@
-// Configuraï¿½ï¿½o do Firebase
+// Configurao do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls",
     authDomain: "camechat-4fb88.firebaseapp.com",
@@ -22,7 +22,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 db.enablePersistence({ synchronizeTabs: true }).catch((error) => {
-    console.warn('Persistï¿½ncia offline do Firestore indisponï¿½vel.', error);
+    console.warn('Persistncia offline do Firestore indisponvel.', error);
 });
 
 // Mantem sessao ativa ate o usuario clicar em "Sair"
@@ -51,7 +51,7 @@ const closeModal = document.getElementById('forgot-close-modal');
 const btnResetPassword = document.getElementById('btn-reset-password');
 const resetEmail = document.getElementById('reset-email');
 const rememberMe = document.getElementById('remember-me');
-const rememberMeContainer = rememberMe?.closest('.checkbox-container');
+const rememberMeContainer = rememberMe.closest('.checkbox-container');
 
 if (rememberMe) {
     rememberMe.checked = true;
@@ -80,7 +80,7 @@ const chatPartnerName = document.getElementById('chat-partner-name');
 const chatPartnerPhoto = document.getElementById('chat-partner-photo');
 const chatPartnerStatus = document.getElementById('chat-partner-status');
 const chatPartnerActivity = document.getElementById('chat-partner-activity');
-const defaultChatPartnerPhoto = chatPartnerPhoto?.dataset?.defaultSrc || chatPartnerPhoto?.src || '';
+const defaultChatPartnerPhoto = chatPartnerPhoto.dataset.defaultSrc || chatPartnerPhoto.src || '';
 const messagesContainer = document.getElementById('messages-container');
 const messageInput = document.getElementById('message-input');
 const btnSend = document.getElementById('btn-send');
@@ -305,7 +305,7 @@ const editPreview = document.getElementById('edit-preview');
 const editPreviewLabel = document.getElementById('edit-preview-label');
 const editPreviewText = document.getElementById('edit-preview-text');
 const btnEditCancel = document.getElementById('btn-edit-cancel');
-const DEFAULT_MESSAGE_INPUT_PLACEHOLDER = messageInput?.getAttribute('placeholder') || 'Digite sua mensagem...';
+const DEFAULT_MESSAGE_INPUT_PLACEHOLDER = messageInput.getAttribute('placeholder') || 'Digite sua mensagem...';
 
 const CALL_ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>';
 const CALL_ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line><line x1="3" y1="3" x2="21" y2="21"></line></svg>';
@@ -319,13 +319,13 @@ const CALL_ICON_SWITCH_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="cur
 const CALL_ICON_SWITCH_AUDIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.78.58 2.63a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.45-1.1a2 2 0 0 1 2.11-.45c.85.26 1.73.46 2.63.58a2 2 0 0 1 1.72 1.98z"></path><path d="M19 5h-4"></path><path d="M17 3v4"></path></svg>';
 const VOICE_ICON_IDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line></svg>';
 const VOICE_ICON_RECORDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><rect x="10" y="7" width="4" height="8" rx="2"></rect><path d="M7 11v1a5 5 0 0 0 10 0v-1"></path><line x1="12" y1="16" x2="12" y2="19"></line><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle></svg>';
-const CAMERA_ICON_SWITCH = '??';
-const CAMERA_ICON_FLASH_ON = '?';
-const CAMERA_ICON_FLASH_OFF = '?';
-const CAMERA_ICON_PHOTO = '??';
-const CAMERA_ICON_VIDEO = '??';
-const CAMERA_ICON_STOP = '?';
-const CAMERA_ICON_CLOSE = '?';
+const CAMERA_ICON_SWITCH = '';
+const CAMERA_ICON_FLASH_ON = '';
+const CAMERA_ICON_FLASH_OFF = '';
+const CAMERA_ICON_PHOTO = '';
+const CAMERA_ICON_VIDEO = '';
+const CAMERA_ICON_STOP = '';
+const CAMERA_ICON_CLOSE = '';
 const RECORDING_HEARTBEAT_MS = 5000;
 const ONLINE_HEARTBEAT_MS = 30000;
 const ONLINE_STALE_MS = (ONLINE_HEARTBEAT_MS * 2) + 10000;
@@ -341,7 +341,7 @@ const MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD = 90;
 const MEDIA_VIEWER_SWIPE_NAV_THRESHOLD = 80;
 const APP_BOOTSTRAP_FALLBACK_MS = 1200;
 
-// ========== VARIï¿½VEIS DE ESTADO ==========
+// ========== VARIVEIS DE ESTADO ==========
 let currentUser = null;
 let currentUserProfile = null;
 let currentUserRole = 'user_chat';
@@ -559,7 +559,7 @@ if (registerPhotoInput) {
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            alert('A foto deve ter no mï¿½ximo 5MB.');
+            alert('A foto deve ter no mximo 5MB.');
             registerPhotoInput.value = '';
             if (registerPhotoPreview) {
                 registerPhotoPreview.src = '';
@@ -577,7 +577,7 @@ if (registerPhotoInput) {
 }
 
 async function checkAdminExists() {
-    if (!auth?.currentUser) return null;
+    if (!auth.currentUser) return null;
     try {
         const snapshot = await db.collection('users')
             .where('role', '==', 'administrador')
@@ -585,7 +585,7 @@ async function checkAdminExists() {
             .get();
         return !snapshot.empty;
     } catch (error) {
-        if (error?.code !== 'permission-denied' && error?.code !== 'unauthenticated') {
+        if (error.code !== 'permission-denied' && error.code !== 'unauthenticated') {
             console.warn('Erro ao verificar administrador:', error);
         }
         return null;
@@ -593,7 +593,7 @@ async function checkAdminExists() {
 }
 
 async function resolveRoleForSignup(requestedRole) {
-    const normalizedRole = requestedRole === 'administrador' ? 'administrador' : 'user_chat';
+ const normalizedRole = requestedRole === 'administrador' ? 'administrador' : 'user_chat';
     const adminExists = await checkAdminExists();
     if (adminExists === false) {
         return 'administrador';
@@ -612,7 +612,7 @@ async function updateRegisterRoleAvailability() {
     const adminExists = await checkAdminExists();
     const disableAdmin = adminExists !== false;
     registerRoleAdminOption.disabled = disableAdmin;
-    registerRoleAdminOption.textContent = disableAdmin ? 'Administrador (indisponï¿½vel)' : 'Administrador';
+ registerRoleAdminOption.textContent = disableAdmin ? 'Administrador (indisponvel)' : 'Administrador';
     if (disableAdmin && registerRole && registerRole.value === 'administrador') {
         registerRole.value = 'user_chat';
     }
@@ -683,7 +683,7 @@ function getSearchableUserTag(entity) {
     if (!entity) return '';
     const sourceName = entity.name || entity.displayName || '';
     const canonicalTag = sourceName
-        ? normalizeUserTagInput(buildGeneratedUserTag(sourceName, entity.uid || entity.id || ''))
+         ? normalizeUserTagInput(buildGeneratedUserTag(sourceName, entity.uid || entity.id || ''))
         : '';
     if (canonicalTag) {
         return canonicalTag;
@@ -693,24 +693,24 @@ function getSearchableUserTag(entity) {
 
 function sortUsersByNameAndEmail(users) {
     return [...users].sort((a, b) => {
-        const nameA = String(a?.name || '').toLowerCase();
-        const nameB = String(b?.name || '').toLowerCase();
+        const nameA = String(a.name || '').toLowerCase();
+        const nameB = String(b.name || '').toLowerCase();
         if (nameA !== nameB) return nameA.localeCompare(nameB, 'pt-BR');
-        const emailA = String(a?.email || '').toLowerCase();
-        const emailB = String(b?.email || '').toLowerCase();
+        const emailA = String(a.email || '').toLowerCase();
+        const emailB = String(b.email || '').toLowerCase();
         return emailA.localeCompare(emailB, 'pt-BR');
     });
 }
 
 function getUserTagMatchOptionMeta(user) {
-    if (!user?.uid || !currentUser) {
+    if (!user.uid || !currentUser) {
         return { selectable: true, buttonLabel: 'Escolher' };
     }
     if (user.uid === currentUser.uid) {
         const alreadyAdded = Array.isArray(currentFriends) && currentFriends.includes(user.uid);
         return {
             selectable: !alreadyAdded,
-            buttonLabel: alreadyAdded ? 'Adicionado' : 'Adicionar vocï¿½'
+ buttonLabel: alreadyAdded ? 'Adicionado' : 'Adicionar voc'
         };
     }
     if (currentFriends.includes(user.uid)) {
@@ -725,21 +725,21 @@ function buildUserTagMatchItem(user) {
     item.dataset.uid = user.uid;
     const optionMeta = getUserTagMatchOptionMeta(user);
 
-    const safeName = escapeHtml(user.name || 'Usuï¿½rio');
-    const safeEmail = escapeHtml(user.email || 'E-mail nï¿½o informado');
+    const safeName = escapeHtml(user.name || 'Usurio');
+    const safeEmail = escapeHtml(user.email || 'E-mail no informado');
 
     item.innerHTML = `
-        <img src="https://via.placeholder.com/40/cccccc/666666?text=User" alt="avatar">
+        <img src="https://via.placeholder.com/40/cccccc/666666text=User" alt="avatar">
         <div class="share-message-friend-info">
             <strong>${safeName}</strong>
             <small>${safeEmail}</small>
         </div>
-        <button type="button" class="btn-primary share-message-pick-btn"${optionMeta.selectable ? '' : ' disabled'}>${optionMeta.buttonLabel}</button>
+ <button type="button" class="btn-primary share-message-pick-btn"${optionMeta.selectable ? '' : ' disabled'}>${optionMeta.buttonLabel}</button>
     `;
 
     const avatar = item.querySelector('img');
     if (avatar) {
-        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666?text=User');
+        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666text=User');
     }
 
     return item;
@@ -767,7 +767,7 @@ async function askUserTagMatchSelection(identifier, users) {
 
     const normalizedIdentifier = normalizeUserTagInput(identifier);
     if (userTagMatchText) {
-        userTagMatchText.textContent = `Mais de um usuï¿½rio foi encontrado com @${normalizedIdentifier}. Escolha o usuï¿½rio correto abaixo.`;
+        userTagMatchText.textContent = `Mais de um usurio foi encontrado com @${normalizedIdentifier}. Escolha o usurio correto abaixo.`;
     }
 
     userTagMatchList.innerHTML = '';
@@ -810,8 +810,8 @@ function renderCurrentUserIdentity(profile) {
     }
 }
 
-function getMutedFriendsStorageKey(uid = currentUser?.uid) {
-    return uid ? `${MUTED_FRIENDS_STORAGE_KEY_PREFIX}${uid}` : '';
+function getMutedFriendsStorageKey(uid = currentUser.uid) {
+ return uid ? `${MUTED_FRIENDS_STORAGE_KEY_PREFIX}${uid}` : '';
 }
 
 function loadMutedFriendsForCurrentUser() {
@@ -823,8 +823,8 @@ function loadMutedFriendsForCurrentUser() {
 
     try {
         const raw = localStorage.getItem(key);
-        const parsed = raw ? JSON.parse(raw) : [];
-        mutedFriendIds = new Set(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
+ const parsed = raw ? JSON.parse(raw) : [];
+ mutedFriendIds = new Set(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
     } catch (error) {
         mutedFriendIds = new Set();
     }
@@ -841,12 +841,12 @@ function persistMutedFriendsForCurrentUser() {
     }
 }
 
-function getFriendsCacheStorageKey(uid = currentUser?.uid) {
-    return uid ? `${FRIENDS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
+function getFriendsCacheStorageKey(uid = currentUser.uid) {
+ return uid ? `${FRIENDS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
 }
 
-function getUsersCacheStorageKey(uid = currentUser?.uid) {
-    return uid ? `${USERS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
+function getUsersCacheStorageKey(uid = currentUser.uid) {
+ return uid ? `${USERS_CACHE_STORAGE_KEY_PREFIX}${uid}` : '';
 }
 
 function loadCachedFriendsForCurrentUser() {
@@ -854,7 +854,7 @@ function loadCachedFriendsForCurrentUser() {
     if (!key) return [];
     try {
         const raw = localStorage.getItem(key);
-        const parsed = raw ? JSON.parse(raw) : null;
+ const parsed = raw ? JSON.parse(raw) : null;
         if (Array.isArray(parsed)) return parsed.filter(Boolean);
         if (parsed && Array.isArray(parsed.data)) return parsed.data.filter(Boolean);
     } catch (error) {
@@ -866,7 +866,7 @@ function loadCachedFriendsForCurrentUser() {
 function persistFriendsCache(friends) {
     const key = getFriendsCacheStorageKey();
     if (!key) return;
-    const safeFriends = Array.isArray(friends) ? friends.filter(Boolean) : [];
+ const safeFriends = Array.isArray(friends) ? friends.filter(Boolean) : [];
     try {
         localStorage.setItem(key, JSON.stringify({ data: safeFriends, updatedAt: Date.now() }));
     } catch (error) {
@@ -879,8 +879,8 @@ function sanitizeUserForCache(user) {
     const photoData = typeof user.photoData === 'string'
         && user.photoData.startsWith('data:image/')
         && user.photoData.length <= USERS_CACHE_MAX_PHOTO_DATA_LENGTH
-        ? user.photoData
-        : null;
+          ? user.photoData
+ : null;
     return {
         uid: user.uid,
         name: user.name || '',
@@ -900,8 +900,8 @@ function loadCachedUsersForCurrentUser() {
     if (!key) return [];
     try {
         const raw = localStorage.getItem(key);
-        const parsed = raw ? JSON.parse(raw) : null;
-        const data = Array.isArray(parsed) ? parsed : (parsed?.data || []);
+ const parsed = raw ? JSON.parse(raw) : null;
+ const data = Array.isArray(parsed) ? parsed : (parsed.data || []);
         if (Array.isArray(data)) {
             return data.filter((user) => user && user.uid);
         }
@@ -915,8 +915,8 @@ function persistUsersCache(users) {
     const key = getUsersCacheStorageKey();
     if (!key) return;
     const safeUsers = Array.isArray(users)
-        ? users.map(sanitizeUserForCache).filter(Boolean)
-        : [];
+          ? users.map(sanitizeUserForCache).filter(Boolean)
+ : [];
     try {
         localStorage.setItem(key, JSON.stringify({ data: safeUsers, updatedAt: Date.now() }));
     } catch (error) {
@@ -950,7 +950,7 @@ function getSelectedFriendsData() {
 function updateFriendSelectionUI() {
     const selectedCount = selectedFriendIds.size;
     const hasSelection = isFriendSelectionMode && selectedCount > 0;
-    const selectedFriends = hasSelection ? getSelectedFriendsData() : [];
+ const selectedFriends = hasSelection ? getSelectedFriendsData() : [];
     const allMuted = selectedFriends.length > 0 && selectedFriends.every((friend) => isFriendMuted(friend.uid));
 
     if (friendSelectionCount) {
@@ -959,14 +959,14 @@ function updateFriendSelectionUI() {
     if (friendSelectionToolbar) {
         friendSelectionToolbar.classList.toggle('hidden', !hasSelection);
     }
-    const sidebarHeader = userPhoto?.closest('.sidebar-header');
+    const sidebarHeader = userPhoto.closest('.sidebar-header');
     if (sidebarHeader) {
         sidebarHeader.classList.toggle('friend-selection-active', hasSelection);
     }
     if (btnFriendMuteSelected) {
-        btnFriendMuteSelected.title = allMuted ? 'Remover silï¿½ncio' : 'Silenciar';
-        btnFriendMuteSelected.setAttribute('aria-label', allMuted ? 'Remover silï¿½ncio' : 'Silenciar');
-        btnFriendMuteSelected.setAttribute('aria-pressed', allMuted ? 'true' : 'false');
+ btnFriendMuteSelected.title = allMuted ? 'Remover silncio' : 'Silenciar';
+ btnFriendMuteSelected.setAttribute('aria-label', allMuted ? 'Remover silncio' : 'Silenciar');
+ btnFriendMuteSelected.setAttribute('aria-pressed', allMuted ? 'true' : 'false');
     }
 }
 
@@ -1052,14 +1052,14 @@ function startInitialBootstrapFallback() {
     }
 
     appBootstrapFallbackTimer = window.setTimeout(() => {
-        finishInitialBootstrap(currentUser ? 'app' : 'auth');
+ finishInitialBootstrap(currentUser ? 'app' : 'auth');
     }, APP_BOOTSTRAP_FALLBACK_MS);
 }
 
 function warmUpBackend() {
     if (backendWarmupStarted) return;
     backendWarmupStarted = true;
-    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/health` : '/api/health';
+ const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/health` : '/api/health';
     fetch(apiUrl, { method: 'GET', cache: 'no-store', credentials: 'include' }).catch(() => {});
 }
 
@@ -1071,7 +1071,7 @@ async function ensureUserDocument(user, options = {}) {
     try {
         snapshot = await userRef.get();
     } catch (error) {
-        console.warn('Falha ao ler perfil do usuï¿½rio. Usando dados bï¿½sicos da sessï¿½o.', error);
+        console.warn('Falha ao ler perfil do usurio. Usando dados bsicos da sesso.', error);
         return {
             uid: user.uid,
             name: resolvedName,
@@ -1081,15 +1081,15 @@ async function ensureUserDocument(user, options = {}) {
             photoURL: options.photoURL ?? user.photoURL ?? null,
             photoData: options.photoData ?? null,
             role: options.role || 'user_chat',
-            friends: Array.isArray(options.friends) ? options.friends : [],
-            blocked: Array.isArray(options.blocked) ? options.blocked : [],
-            friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
-            showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
+ friends: Array.isArray(options.friends) ? options.friends : [],
+ blocked: Array.isArray(options.blocked) ? options.blocked : [],
+ friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
+ showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
             online: true
         };
     }
     const emailValue = options.email || user.email || '';
-    const emailLower = emailValue ? emailValue.toLowerCase() : '';
+ const emailLower = emailValue ? emailValue.toLowerCase() : '';
     const baseData = {
         uid: user.uid,
         name: resolvedName,
@@ -1100,11 +1100,11 @@ async function ensureUserDocument(user, options = {}) {
         photoURL: options.photoURL ?? user.photoURL ?? null,
         photoData: options.photoData ?? null,
         role: options.role || 'user_chat',
-        friends: Array.isArray(options.friends) ? options.friends : [],
-        blocked: Array.isArray(options.blocked) ? options.blocked : [],
-        fcmTokens: Array.isArray(options.fcmTokens) ? options.fcmTokens : [],
-        friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
-        showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
+ friends: Array.isArray(options.friends) ? options.friends : [],
+ blocked: Array.isArray(options.blocked) ? options.blocked : [],
+ fcmTokens: Array.isArray(options.fcmTokens) ? options.fcmTokens : [],
+ friendAliases: typeof options.friendAliases === 'object' && options.friendAliases !== null ? options.friendAliases : {},
+ showOnlineStatus: typeof options.showOnlineStatus === 'boolean' ? options.showOnlineStatus : true,
         online: true,
         lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1116,7 +1116,7 @@ async function ensureUserDocument(user, options = {}) {
             await userRef.set(baseData);
             return baseData;
         } catch (error) {
-            console.warn('Falha ao criar documento do usuï¿½rio. Continuando com dados bï¿½sicos.', error);
+            console.warn('Falha ao criar documento do usurio. Continuando com dados bsicos.', error);
             return baseData;
         }
     }
@@ -1158,7 +1158,7 @@ async function ensureUserDocument(user, options = {}) {
             await userRef.update(updates);
             return { ...data, ...updates };
         } catch (error) {
-            const denied = error?.code === 'permission-denied';
+            const denied = error.code === 'permission-denied';
             if (denied && Object.prototype.hasOwnProperty.call(updates, 'showOnlineStatus')) {
                 const fallbackUpdates = { ...updates };
                 delete fallbackUpdates.showOnlineStatus;
@@ -1171,7 +1171,7 @@ async function ensureUserDocument(user, options = {}) {
                         await userRef.update(fallbackUpdates);
                         return { ...data, ...fallbackUpdates };
                     } catch (retryError) {
-                        console.warn('Falha ao atualizar perfil do usuï¿½rio.', retryError);
+                        console.warn('Falha ao atualizar perfil do usurio.', retryError);
                         return data;
                     }
                 }
@@ -1179,7 +1179,7 @@ async function ensureUserDocument(user, options = {}) {
                 return data;
             }
 
-            console.warn('Falha ao atualizar perfil do usuï¿½rio.', error);
+            console.warn('Falha ao atualizar perfil do usurio.', error);
             return data;
         }
     }
@@ -1198,21 +1198,21 @@ function normalizePhotoValue(value) {
 
 function getSafePhotoData(value) {
     const normalized = normalizePhotoValue(value);
-    return normalized.startsWith('data:image/') ? normalized : '';
+ return normalized.startsWith('data:image/') ? normalized : '';
 }
 
 function getSafePhotoUrl(value) {
     const normalized = normalizePhotoValue(value);
     if (!normalized) return '';
-    if (/^https?:\/\//i.test(normalized)) return normalized;
+    if (/^https:\/\//i.test(normalized)) return normalized;
     if (normalized.startsWith('blob:')) return normalized;
     if (normalized.startsWith('data:image/')) return normalized;
     return '';
 }
 
 function resolvePhotoSources(entity, defaultFallback) {
-    const fallback = getSafePhotoData(entity?.photoData) || defaultFallback;
-    const url = getSafePhotoUrl(entity?.photoURL);
+    const fallback = getSafePhotoData(entity.photoData) || defaultFallback;
+    const url = getSafePhotoUrl(entity.photoURL);
     return { fallback, url };
 }
 
@@ -1277,7 +1277,7 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
     if (options.displayName) formData.append('displayName', options.displayName);
     if (options.uid) formData.append('uid', options.uid);
 
-    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-profile` : '/api/upload-profile';
+ const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-profile` : '/api/upload-profile';
     const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData
@@ -1287,7 +1287,7 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
         let errorMessage = 'Erro ao enviar foto.';
         try {
             const data = await response.json();
-            if (data?.message) errorMessage = data.message;
+            if (data.message) errorMessage = data.message;
         } catch (error) {
             // ignore
         }
@@ -1295,8 +1295,8 @@ async function uploadProfilePhotoViaBackend(file, options = {}) {
     }
 
     const data = await response.json();
-    if (!data?.url) {
-        throw new Error('Resposta invï¿½lida do servidor.');
+    if (!data.url) {
+        throw new Error('Resposta invlida do servidor.');
     }
     return normalizeBackendUrl(data.url);
 }
@@ -1306,15 +1306,15 @@ async function uploadChatFileViaBackend(file, options = {}) {
     formData.append('file', file);
     if (options.uid) formData.append('uid', options.uid);
 
-    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-chat` : '/api/upload-chat';
+ const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/upload-chat` : '/api/upload-chat';
     const timeoutMs = Number(options.timeoutMs) > 0
-        ? Number(options.timeoutMs)
-        : Math.max(120000, Math.ceil((Number(file?.size || 0) / (1024 * 1024)) * 5000));
+          ? Number(options.timeoutMs)
+ : Math.max(120000, Math.ceil((Number(file.size || 0) / (1024 * 1024)) * 5000));
     let response;
     try {
         response = await uploadChatFileViaBackendWithProgress(file, formData, apiUrl, { ...options, timeoutMs });
     } catch (error) {
-        throw new Error('Nï¿½o foi possï¿½vel conectar ao backend de upload.');
+        throw new Error('No foi possvel conectar ao backend de upload.');
     }
 
     if (!response.ok) {
@@ -1324,7 +1324,7 @@ async function uploadChatFileViaBackend(file, options = {}) {
             if (rawText) {
                 try {
                     const data = JSON.parse(rawText);
-                    if (data?.message) {
+                    if (data.message) {
                         errorMessage = data.message;
                     } else if (rawText.trim()) {
                         errorMessage = rawText.trim();
@@ -1337,22 +1337,22 @@ async function uploadChatFileViaBackend(file, options = {}) {
             // ignore
         }
         if (response.status === 404) {
-            errorMessage = 'Endpoint de upload nï¿½o encontrado. Atualize o backend com /api/upload-chat.';
+            errorMessage = 'Endpoint de upload no encontrado. Atualize o backend com /api/upload-chat.';
         }
         throw new Error(errorMessage);
     }
 
     const data = await response.json();
-    if (!data?.url) {
-        throw new Error('Resposta invï¿½lida do servidor.');
+    if (!data.url) {
+        throw new Error('Resposta invlida do servidor.');
     }
     return normalizeBackendUrl(data.url);
 }
 
 async function uploadChatFile(file, options = {}) {
     const timeoutMs = Number(options.timeoutMs) > 0
-        ? Number(options.timeoutMs)
-        : Math.max(120000, Math.ceil((Number(file?.size || 0) / (1024 * 1024)) * 5000));
+          ? Number(options.timeoutMs)
+ : Math.max(120000, Math.ceil((Number(file.size || 0) / (1024 * 1024)) * 5000));
     return await uploadChatFileViaBackend(file, { ...options, timeoutMs });
 }
 
@@ -1360,7 +1360,7 @@ function normalizeBackendUrl(url) {
     if (!url) return url;
     const raw = String(url).trim();
     if (!raw) return '';
-    if (/^(https?:\/\/|data:|blob:)/i.test(raw)) return raw;
+    if (/^(https:\/\/|data:|blob:)/i.test(raw)) return raw;
 
     let path = raw;
     if (path.startsWith('./')) path = path.slice(2);
@@ -1485,13 +1485,13 @@ function markDownloadError(item, message) {
 function sanitizeDownloadFileName(fileName) {
     const value = String(fileName || '').trim();
     if (!value) return `arquivo_${Date.now()}`;
-    return value.replace(/[\\/:*?"<>|]+/g, '_');
+    return value.replace(/[\\/:*"<>|]+/g, '_');
 }
 
 let downloadNameCounter = 0;
 
 function formatDownloadTimestamp(value) {
-    const date = value instanceof Date ? value : new Date();
+ const date = value instanceof Date ? value : new Date();
     const pad = (num) => String(num).padStart(2, '0');
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
@@ -1499,10 +1499,10 @@ function formatDownloadTimestamp(value) {
 function buildCctDownloadFileName(msg, fileName, mimeType = '') {
     const safeName = sanitizeDownloadFileName(fileName);
     const mime = String(mimeType || '').toLowerCase();
-    const baseType = msg?.type
-        || (mime.startsWith('image/') ? 'image' : '')
-        || (mime.startsWith('video/') ? 'video' : '')
-        || (mime.startsWith('audio/') ? 'audio' : '')
+    const baseType = msg.type
+ || (mime.startsWith('image/') ? 'image' : '')
+ || (mime.startsWith('video/') ? 'video' : '')
+ || (mime.startsWith('audio/') ? 'audio' : '')
         || 'file';
 
     if (!['image', 'video', 'audio'].includes(baseType)) {
@@ -1513,7 +1513,7 @@ function buildCctDownloadFileName(msg, fileName, mimeType = '') {
         return safeName;
     }
 
-    const ts = timestampToDate(msg?.timestamp) || new Date();
+    const ts = timestampToDate(msg.timestamp) || new Date();
     const stamp = formatDownloadTimestamp(ts);
     downloadNameCounter += 1;
     const counter = String(downloadNameCounter).padStart(3, '0');
@@ -1536,12 +1536,12 @@ function buildCctDownloadFileName(msg, fileName, mimeType = '') {
         else ext = 'jpg';
     }
 
-    const prefix = baseType === 'image' ? 'imagem' : baseType;
+ const prefix = baseType === 'image' ? 'imagem' : baseType;
     return `${prefix}-${stamp}-CCT${counter}.${ext}`;
 }
 
 function inferAttachmentFileName(msg, url, blobType = '') {
-    const byMessage = sanitizeDownloadFileName(msg?.fileName || '');
+    const byMessage = sanitizeDownloadFileName(msg.fileName || '');
     if (byMessage && !/^arquivo_\d+$/.test(byMessage)) return byMessage;
 
     try {
@@ -1552,13 +1552,13 @@ function inferAttachmentFileName(msg, url, blobType = '') {
         // ignore
     }
 
-    const type = msg?.type || 'file';
+    const type = msg.type || 'file';
     let ext = 'bin';
     if (type === 'image') ext = 'jpg';
     if (type === 'video') ext = 'mp4';
     if (type === 'audio') ext = 'webm';
-    if (blobType?.includes('pdf')) ext = 'pdf';
-    return sanitizeDownloadFileName(`${type}_${msg?.id || Date.now()}.${ext}`);
+    if (blobType.includes('pdf')) ext = 'pdf';
+    return sanitizeDownloadFileName(`${type}_${msg.id || Date.now()}.${ext}`);
 }
 
 function normalizeUrlForCompare(url) {
@@ -1591,9 +1591,9 @@ function extractFileNameFromUrl(url) {
 }
 
 function buildFirebaseMediaUrl(storagePath) {
-    const bucket = firebaseConfig?.storageBucket;
+    const bucket = firebaseConfig.storageBucket;
     if (!bucket || !storagePath) return '';
-    return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media`;
+    return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}alt=media`;
 }
 
 function getMessageFileUrl(msg) {
@@ -1633,8 +1633,8 @@ function getAttachmentDownloadCandidates(msg) {
     const fileUrl = getMessageFileUrl(msg);
     const imageUrl = getMessageImageUrl(msg);
     const basePath = type === 'image'
-        ? (imageUrl || fileUrl || '')
-        : (fileUrl || imageUrl || '');
+          ? (imageUrl || fileUrl || '')
+ : (fileUrl || imageUrl || '');
     const primary = normalizeBackendUrl(basePath);
     const candidates = [];
     addUniqueUrl(candidates, primary);
@@ -1675,7 +1675,7 @@ async function canAccessAttachmentUrl(url) {
         }
         return false;
     } catch (error) {
-        // Quando nï¿½o for possï¿½vel validar (CORS/rede), tentamos usar a URL mesmo assim.
+        // Quando no for possvel validar (CORS/rede), tentamos usar a URL mesmo assim.
         return true;
     }
 }
@@ -1776,8 +1776,8 @@ function getConversationMediaAttachments() {
 }
 
 function getMediaViewerActiveIndex(list) {
-    if (!mediaViewerActiveMessage?.id) return -1;
-    return list.findIndex((msg) => msg?.id === mediaViewerActiveMessage.id);
+    if (!mediaViewerActiveMessage.id) return -1;
+    return list.findIndex((msg) => msg.id === mediaViewerActiveMessage.id);
 }
 
 function navigateMediaViewer(direction) {
@@ -1822,7 +1822,7 @@ function handleMediaViewerSwipeDelta(deltaX, deltaY, event) {
         if (absX < MEDIA_VIEWER_SWIPE_AXIS_LOCK && absY < MEDIA_VIEWER_SWIPE_AXIS_LOCK) {
             return false;
         }
-        mediaViewerSwipeAxis = absX > absY ? 'x' : 'y';
+ mediaViewerSwipeAxis = absX > absY ? 'x' : 'y';
     }
 
     if (mediaViewerSwipeAxis === 'y') {
@@ -1830,7 +1830,7 @@ function handleMediaViewerSwipeDelta(deltaX, deltaY, event) {
             && (isAttachmentImage(mediaViewerActiveMessage)
                 || isAttachmentVideo(mediaViewerActiveMessage)
                 || isAttachmentAudio(mediaViewerActiveMessage))) {
-            event?.preventDefault?.();
+            event.preventDefault?.();
             mediaViewerSwipeHandled = true;
             closeMediaViewer();
             resetMediaViewerSwipeState();
@@ -1839,7 +1839,7 @@ function handleMediaViewerSwipeDelta(deltaX, deltaY, event) {
     }
 
     if (mediaViewerSwipeAxis === 'x' && absX > MEDIA_VIEWER_SWIPE_NAV_THRESHOLD && absY < MEDIA_VIEWER_SWIPE_CLOSE_THRESHOLD) {
-        event?.preventDefault?.();
+        event.preventDefault?.();
         mediaViewerSwipeHandled = true;
         if (deltaX < 0) {
             navigateMediaViewer(1);
@@ -1968,7 +1968,7 @@ function bindMediaViewerImageInteractions(img) {
 
     img.addEventListener('wheel', (event) => {
         event.preventDefault();
-        const zoomDelta = event.deltaY < 0 ? 0.2 : -0.2;
+ const zoomDelta = event.deltaY < 0 ? 0.2 : -0.2;
         mediaViewerImageScale = clampValue(
             mediaViewerImageScale + zoomDelta,
             MEDIA_VIEWER_MIN_SCALE,
@@ -2031,9 +2031,9 @@ function closeMediaViewer() {
 }
 
 function isPdfFile(msg, resolvedUrl) {
-    const fileType = String(msg?.fileType || '').toLowerCase();
+    const fileType = String(msg.fileType || '').toLowerCase();
     if (fileType.includes('pdf')) return true;
-    return /\.pdf($|\?)/i.test(String(resolvedUrl || ''));
+    return /\.pdf($|\)/i.test(String(resolvedUrl || ''));
 }
 
 function isAttachmentImage(msg) {
@@ -2054,7 +2054,7 @@ function buildMediaViewerFallback(fileName, resolvedUrl) {
     return `
         <div class="media-viewer-file-fallback">
             <h3>${safeName}</h3>
-            <p>Nï¿½o foi possï¿½vel visualizar este arquivo diretamente. Toque no botï¿½o para baixar ou abrir.</p>
+            <p>No foi possvel visualizar este arquivo diretamente. Toque no boto para baixar ou abrir.</p>
             <div class="media-viewer-file-actions">
                 <a class="media-viewer-file-open" href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
                 <a class="media-viewer-file-download" href="${safeUrl}" download>Baixar arquivo</a>
@@ -2067,7 +2067,7 @@ function ensureAbsoluteUrl(url) {
     if (!url) return '';
     const raw = String(url).trim();
     if (!raw) return '';
-    if (/^(https?:\/\/|blob:|data:)/i.test(raw)) return raw;
+    if (/^(https:\/\/|blob:|data:)/i.test(raw)) return raw;
     return normalizeBackendUrl(raw);
 }
 
@@ -2076,8 +2076,8 @@ function bindMediaViewerFileActions(resolvedUrl, msg) {
     const openBtn = mediaViewerContent.querySelector('.media-viewer-file-open');
     const downloadBtn = mediaViewerContent.querySelector('.media-viewer-file-download');
     const absoluteUrl = ensureAbsoluteUrl(resolvedUrl);
-    const fileName = msg?.fileName || extractFileNameFromUrl(absoluteUrl);
-    const mimeType = msg?.fileType || inferMimeTypeFromFileName(fileName || '');
+    const fileName = msg.fileName || extractFileNameFromUrl(absoluteUrl);
+    const mimeType = msg.fileType || inferMimeTypeFromFileName(fileName || '');
 
     if (openBtn && isAndroidWebViewRuntime()) {
         openBtn.addEventListener('click', (event) => {
@@ -2096,8 +2096,9 @@ function bindMediaViewerFileActions(resolvedUrl, msg) {
                 window.location.href = absoluteUrl;
                 return;
             }
+            const previewUrl = getDocumentPreviewUrl(absoluteUrl, msg) || absoluteUrl;
             const iframe = document.createElement('iframe');
-            iframe.src = absoluteUrl;
+            iframe.src = previewUrl;
             iframe.title = fileName || 'Documento';
             mediaViewerContent.innerHTML = '';
             mediaViewerContent.appendChild(iframe);
@@ -2116,13 +2117,13 @@ function bindMediaViewerFileActions(resolvedUrl, msg) {
 
 
 function getFileExtensionInfo(msg, url) {
-    const name = String(msg?.fileName || '').trim();
-    let ext = name.split('.').pop()?.toLowerCase() || '';
+    const name = String(msg.fileName || '').trim();
+    let ext = name.split('.').pop().toLowerCase() || '';
     if (!ext) {
         try {
             const parsed = new URL(url, window.location.href);
             const last = decodeURIComponent(parsed.pathname.split('/').pop() || '');
-            ext = last.split('.').pop()?.toLowerCase() || '';
+            ext = last.split('.').pop().toLowerCase() || '';
         } catch (_) {
             ext = '';
         }
@@ -2132,18 +2133,18 @@ function getFileExtensionInfo(msg, url) {
 
 function getDocumentPreviewUrl(absoluteUrl, msg) {
     const ext = getFileExtensionInfo(msg, absoluteUrl);
-    const fileType = String(msg?.fileType || '').toLowerCase();
+    const fileType = String(msg.fileType || '').toLowerCase();
     const docExt = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'odt', 'odp', 'ods', 'rtf', 'txt']);
     if (docExt.has(ext) || fileType.includes('pdf') || fileType.includes('officedocument') || fileType.includes('msword') || fileType.includes('ms-powerpoint') || fileType.includes('ms-excel')) {
-        return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(absoluteUrl)}`;
+        return `https://docs.google.com/gviewembedded=1&url=${encodeURIComponent(absoluteUrl)}`;
     }
     return '';
 }
 
 function buildDocumentThumbInfo(msg, absoluteUrl) {
     const ext = getFileExtensionInfo(msg, absoluteUrl);
-    const fileType = String(msg?.fileType || '').toLowerCase();
-    let label = ext ? ext.toUpperCase() : 'FILE';
+    const fileType = String(msg.fileType || '').toLowerCase();
+ let label = ext ? ext.toUpperCase() : 'FILE';
     let theme = 'file';
     if (ext === 'pdf' || fileType.includes('pdf')) {
         label = 'PDF';
@@ -2183,7 +2184,7 @@ function openMediaViewer(msg, resolvedUrl) {
         mediaViewerContent.classList.add('media-viewer-image-mode');
         const img = document.createElement('img');
         img.src = resolvedUrl;
-        img.alt = msg?.fileName || 'Imagem';
+        img.alt = msg.fileName || 'Imagem';
         mediaViewerContent.appendChild(img);
         bindMediaViewerImageInteractions(img);
     } else if (isAttachmentVideo(msg)) {
@@ -2203,13 +2204,13 @@ function openMediaViewer(msg, resolvedUrl) {
         mediaViewerContent.appendChild(audio);
     } else if (isPdfFile(msg, resolvedUrl)) {
         if (isAndroidWebViewRuntime()) {
-            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento PDF', resolvedUrl);
+            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg.fileName || 'Documento PDF', resolvedUrl);
             bindMediaViewerFileActions(resolvedUrl, msg);
         } else {
             const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg) || resolvedUrl;
             const iframe = document.createElement('iframe');
             iframe.src = previewUrl;
-            iframe.title = msg?.fileName || 'Documento PDF';
+            iframe.title = msg.fileName || 'Documento PDF';
             mediaViewerContent.appendChild(iframe);
             bindMediaViewerFileActions(resolvedUrl, msg);
         }
@@ -2218,11 +2219,11 @@ function openMediaViewer(msg, resolvedUrl) {
         if (previewUrl) {
             const iframe = document.createElement('iframe');
             iframe.src = previewUrl;
-            iframe.title = msg?.fileName || 'Documento';
+            iframe.title = msg.fileName || 'Documento';
             mediaViewerContent.appendChild(iframe);
             bindMediaViewerFileActions(resolvedUrl, msg);
         } else {
-            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento', resolvedUrl);
+            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg.fileName || 'Documento', resolvedUrl);
             bindMediaViewerFileActions(resolvedUrl, msg);
         }
     }
@@ -2235,13 +2236,13 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
     const fallbackUrl = preferredUrl || getMessageFileUrl(msg) || getMessageImageUrl(msg) || '';
     const resolvedUrl = await resolveAttachmentUrl(msg, fallbackUrl);
     if (!resolvedUrl) {
-        alert('Arquivo de mï¿½dia indisponï¿½vel. Peï¿½a para o contato reenviar.');
+        alert('Arquivo de mdia indisponvel. Pea para o contato reenviar.');
         return;
     }
     const absoluteUrl = ensureAbsoluteUrl(resolvedUrl);
     const messageType = resolveMessageType(msg);
-    const inferredName = msg?.fileName || extractFileNameFromUrl(absoluteUrl);
-    const inferredMime = msg?.fileType || inferMimeTypeFromFileName(inferredName || '');
+    const inferredName = msg.fileName || extractFileNameFromUrl(absoluteUrl);
+    const inferredMime = msg.fileType || inferMimeTypeFromFileName(inferredName || '');
     const previewUrl = getDocumentPreviewUrl(absoluteUrl, msg);
 
     if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, absoluteUrl))) {
@@ -2265,28 +2266,28 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         mediaViewerActiveMessage = msg || null;
         mediaViewerActiveUrl = absoluteUrl || '';
         syncMediaViewerSaveButton();
-        mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || '', absoluteUrl);
+        mediaViewerContent.innerHTML = buildMediaViewerFallback(msg.fileName || '', absoluteUrl);
         mediaViewerModal.classList.remove('hidden');
         document.body.classList.add('media-viewer-open');
         return;
     }
 
-    openMediaViewer(msg, previewUrl || absoluteUrl);
+    openMediaViewer(msg, absoluteUrl);
 }
 
 async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
     const resolvedUrl = await resolveAttachmentUrl(msg, preferredUrl);
     if (!resolvedUrl) {
-        throw new Error('Arquivo indisponï¿½vel');
+        throw new Error('Arquivo indisponvel');
     }
 
     const allowInteractiveFolderSetup = !!options.allowInteractiveFolderSetup;
     const scope = resolveLocalMediaScope(msg, options.scope);
-    const mimeType = msg?.fileType || '';
+    const mimeType = msg.fileType || '';
     const inferredName = inferAttachmentFileName(msg, resolvedUrl, mimeType);
     const downloadName = buildCctDownloadFileName(msg, inferredName, mimeType);
-    const isLargeFile = Number(msg?.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
-    const progressItem = isLargeFile ? createDownloadProgressItem(downloadName || 'arquivo') : null;
+    const isLargeFile = Number(msg.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
+ const progressItem = isLargeFile ? createDownloadProgressItem(downloadName || 'arquivo') : null;
 
     try {
         if (isAndroidWebViewRuntime() && !String(resolvedUrl).startsWith('blob:')) {
@@ -2331,8 +2332,8 @@ async function saveCurrentMediaViewerAttachment() {
             allowInteractiveFolderSetup: true
         });
     } catch (error) {
-        console.warn('Falha ao salvar mï¿½dia manualmente.', error);
-        alert('Nï¿½o foi possï¿½vel salvar esta mï¿½dia agora. Tente novamente.');
+        console.warn('Falha ao salvar mdia manualmente.', error);
+        alert('No foi possvel salvar esta mdia agora. Tente novamente.');
     } finally {
         isManualMediaSaveInProgress = false;
         syncMediaViewerSaveButton();
@@ -2343,7 +2344,7 @@ function shouldAutoDownloadIncomingAttachment(msg) {
     if (!msg || !currentUser) return false;
     if (!autoMediaSaveEnabled) return false;
     if (msg.senderId === currentUser.uid) return false;
-    const type = msg.type || (msg.imageUrl ? 'image' : 'text');
+ const type = msg.type || (msg.imageUrl ? 'image' : 'text');
     if (!['image', 'video', 'audio'].includes(type)) return false;
     return !!getAttachmentDownloadUrl(msg);
 }
@@ -2377,9 +2378,9 @@ function syncAndroidAudioMessageProximityFromPlayback() {
 }
 
 function getDownloadCategory(msg, fileName = '', mimeType = '') {
-    const messageType = (msg?.type || '').toLowerCase();
-    const mime = String(mimeType || msg?.fileType || '').toLowerCase();
-    const extension = String(fileName || '').split('.').pop()?.toLowerCase() || '';
+    const messageType = (msg.type || '').toLowerCase();
+    const mime = String(mimeType || msg.fileType || '').toLowerCase();
+    const extension = String(fileName || '').split('.').pop().toLowerCase() || '';
 
     if (messageType === 'image' || mime.startsWith('image/')) return 'Images';
     if (messageType === 'video' || mime.startsWith('video/')) return 'Video';
@@ -2397,7 +2398,7 @@ function getDownloadCategory(msg, fileName = '', mimeType = '') {
 function resolveLocalMediaScope(msg, explicitScope = '') {
     if (explicitScope === 'sent') return 'sent';
     if (explicitScope === 'received') return 'received';
-    if (currentUser && msg?.senderId === currentUser.uid) return 'sent';
+    if (currentUser && msg.senderId === currentUser.uid) return 'sent';
     return 'received';
 }
 
@@ -2418,7 +2419,7 @@ function callAndroidBridgeMethod(methodName, ...args) {
         const method = window.CameChatAndroid[methodName];
         if (typeof method === 'function') {
             const result = method.call(window.CameChatAndroid, ...args);
-            return typeof result === 'undefined' ? true : !!result;
+ return typeof result === 'undefined' ? true : !!result;
         }
     } catch (error) {
         console.warn(`Falha ao chamar o bridge Android: ${methodName}`, error);
@@ -2524,28 +2525,28 @@ async function handleNativeGoogleSignInResult(payload = {}) {
         } catch (error) {
             handleAuthError({
                 code: 'auth/native-google-invalid-response',
-                message: 'Resposta invï¿½lida do login Google nativo.'
+                message: 'Resposta invlida do login Google nativo.'
             });
             nativeGoogleSignInRequestedRole = '';
             return;
         }
     }
 
-    const requestedRole = data?.requestedRole || nativeGoogleSignInRequestedRole || '';
+    const requestedRole = data.requestedRole || nativeGoogleSignInRequestedRole || '';
     nativeGoogleSignInRequestedRole = '';
 
-    if (!data?.ok) {
+    if (!data.ok) {
         handleAuthError({
-            code: data?.code || 'auth/native-google-failed',
-            message: data?.message || 'Nï¿½o foi possï¿½vel concluir o login com Google no Android.'
+            code: data.code || 'auth/native-google-failed',
+            message: data.message || 'No foi possvel concluir o login com Google no Android.'
         });
         return;
     }
 
-    if (!data?.idToken) {
+    if (!data.idToken) {
         handleAuthError({
             code: 'auth/native-google-token-missing',
-            message: 'O Google nï¿½o retornou um token de autenticaï¿½ï¿½o vï¿½lido.'
+            message: 'O Google no retornou um token de autenticao vlido.'
         });
         return;
     }
@@ -2556,7 +2557,7 @@ async function handleNativeGoogleSignInResult(payload = {}) {
         const userCredential = await auth.signInWithCredential(credential);
         const resolvedRole = await resolveRoleForSignup(requestedRole);
         await ensureUserDocument(userCredential.user, {
-            name: userCredential.user.displayName || data.displayName || data.email?.split('@')[0] || 'Usuï¿½rio',
+            name: userCredential.user.displayName || data.displayName || data.email.split('@')[0] || 'Usurio',
             email: userCredential.user.email || data.email || '',
             role: resolvedRole,
             photoURL: userCredential.user.photoURL || data.photoURL || null
@@ -2570,7 +2571,7 @@ function buildDeviceDownloadPath(msg, fileName, mimeType = '', options = {}) {
     const safeName = buildCctDownloadFileName(msg, fileName, mimeType);
     const category = getDownloadCategory(msg, safeName, mimeType);
     const scope = resolveLocalMediaScope(msg, options.scope);
-    const scopePrefix = scope === 'sent' ? 'Enviados/' : '';
+ const scopePrefix = scope === 'sent' ? 'Enviados/' : '';
     return `CameChat/Media/${scopePrefix}${category}/${safeName}`;
 }
 
@@ -2597,7 +2598,7 @@ function triggerBlobDownload(blob, fileName, msg = null, mimeType = '', options 
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = objectUrl;
-    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType || blob?.type || '', options);
+    anchor.download = buildDeviceDownloadPath(msg, fileName, mimeType || blob.type || '', options);
     anchor.rel = 'noopener';
     anchor.style.display = 'none';
     document.body.appendChild(anchor);
@@ -2655,7 +2656,7 @@ async function fetchBlobWithProgress(url, onProgress) {
 }
 
 async function autoDownloadIncomingAttachment(conversationId, msg) {
-    if (!conversationId || !msg?.id) return;
+    if (!conversationId || !msg.id) return;
     if (!shouldAutoDownloadIncomingAttachment(msg)) return;
 
     const key = `${conversationId}:${msg.id}`;
@@ -2668,16 +2669,16 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
 
     autoDownloadingAttachmentKeys.add(key);
     const isLargeFile = Number(msg.fileSize || 0) >= LARGE_AUTO_DOWNLOAD_BYTES;
-    const progressItem = isLargeFile ? createDownloadProgressItem(msg.fileName || 'arquivo') : null;
+ const progressItem = isLargeFile ? createDownloadProgressItem(msg.fileName || 'arquivo') : null;
 
     try {
         if (isAndroidWebViewRuntime()) {
             const resolvedUrl = await resolveAttachmentUrl(msg);
             if (!resolvedUrl) {
-                throw new Error('Arquivo indisponï¿½vel');
+                throw new Error('Arquivo indisponvel');
             }
-            const fileName = inferAttachmentFileName(msg, resolvedUrl, msg?.fileType || '');
-            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg?.fileType || '', { scope: 'received' });
+            const fileName = inferAttachmentFileName(msg, resolvedUrl, msg.fileType || '');
+            triggerDirectUrlDownload(resolvedUrl, fileName, msg, msg.fileType || '', { scope: 'received' });
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
             return;
@@ -2696,12 +2697,12 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
                 resolvedUrl = candidate;
                 break;
             } catch (candidateError) {
-                // tenta o prï¿½ximo candidato
+                // tenta o prximo candidato
             }
         }
 
         if (!resolvedBlob || !resolvedUrl) {
-            throw new Error('Arquivo indisponï¿½vel');
+            throw new Error('Arquivo indisponvel');
         }
 
         const fileName = inferAttachmentFileName(msg, resolvedUrl, resolvedBlob.type);
@@ -2719,11 +2720,11 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
         const fallbackUrl = candidates[0];
         const fallbackName = inferAttachmentFileName(msg, fallbackUrl, '');
         try {
-            triggerDirectUrlDownload(fallbackUrl, fallbackName, msg, msg?.fileType || '', { scope: 'received' });
+            triggerDirectUrlDownload(fallbackUrl, fallbackName, msg, msg.fileType || '', { scope: 'received' });
             autoDownloadedAttachmentKeys.add(key);
             if (progressItem) finalizeDownloadItem(progressItem);
         } catch (fallbackError) {
-            console.warn('Falha ao baixar mï¿½dia automaticamente.', error || fallbackError);
+            console.warn('Falha ao baixar mdia automaticamente.', error || fallbackError);
             if (progressItem) markDownloadError(progressItem, 'Falha no download');
         }
     } finally {
@@ -2732,7 +2733,7 @@ async function autoDownloadIncomingAttachment(conversationId, msg) {
 }
 
 async function autoSaveOutgoingAttachment(msg, file) {
-    if (!msg?.id || !file || !autoMediaSaveEnabled) return false;
+    if (!msg.id || !file || !autoMediaSaveEnabled) return false;
 
     const mimeType = String(file.type || msg.fileType || 'application/octet-stream');
     const fileName = sanitizeDownloadFileName(file.name || msg.fileName || inferAttachmentFileName(msg, msg.fileUrl || msg.imageUrl || '', mimeType));
@@ -2754,7 +2755,7 @@ async function autoSaveOutgoingAttachment(msg, file) {
         triggerBlobDownload(file, fileName, msg, mimeType, { scope: 'sent' });
         return true;
     } catch (error) {
-        console.warn('Falha ao salvar mï¿½dia enviada localmente.', error);
+        console.warn('Falha ao salvar mdia enviada localmente.', error);
         return false;
     }
 }
@@ -2763,7 +2764,7 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         const item = createUploadProgressItem(file.name || 'arquivo');
-        xhr.timeout = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000;
+ xhr.timeout = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000;
         xhr.open('POST', apiUrl, true);
         xhr.upload.onprogress = (event) => {
             if (!event.lengthComputable) return;
@@ -2790,8 +2791,8 @@ function uploadChatFileViaBackendWithProgress(file, formData, apiUrl, options = 
             }
         };
         xhr.onerror = () => {
-            markUploadError(item, 'Falha na conexï¿½o');
-            reject(new Error('Nï¿½o foi possï¿½vel conectar ao backend de upload.'));
+            markUploadError(item, 'Falha na conexo');
+            reject(new Error('No foi possvel conectar ao backend de upload.'));
         };
         xhr.ontimeout = () => {
             markUploadError(item, 'Tempo esgotado');
@@ -2830,8 +2831,8 @@ registerForm.addEventListener('submit', async (e) => {
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
     const confirmPassword = document.getElementById('register-confirm-password').value;
-    const requestedRole = registerRole ? registerRole.value : 'user_chat';
-    const photoFile = registerPhotoInput ? registerPhotoInput.files[0] : null;
+ const requestedRole = registerRole ? registerRole.value : 'user_chat';
+ const photoFile = registerPhotoInput ? registerPhotoInput.files[0] : null;
 
     if (!photoFile) {
         alert('Selecione uma foto de perfil.');
@@ -2844,17 +2845,17 @@ registerForm.addEventListener('submit', async (e) => {
     }
 
     if (photoFile.size > 5 * 1024 * 1024) {
-        alert('A foto deve ter no mï¿½ximo 5MB.');
+        alert('A foto deve ter no mximo 5MB.');
         return;
     }
     
     if (password.length < 6) {
-        alert('A senha deve ter no mï¿½nimo 6 caracteres.');
+        alert('A senha deve ter no mnimo 6 caracteres.');
         return;
     }
     
     if (password !== confirmPassword) {
-        alert('As senhas nï¿½o conferem.');
+        alert('As senhas no conferem.');
         return;
     }
     
@@ -2884,7 +2885,7 @@ registerForm.addEventListener('submit', async (e) => {
             photoData = await createProfileImageDataUrl(photoFile);
         } catch (error) {
             console.error('Erro ao processar a foto:', error);
-            alert('Nï¿½o foi possï¿½vel processar a foto. Tente outra imagem.');
+            alert('No foi possvel processar a foto. Tente outra imagem.');
             return;
         }
 
@@ -2914,7 +2915,7 @@ async function handleGoogleLogin(requestedRole) {
         if (!started) {
             handleAuthError({
                 code: 'auth/native-google-unavailable',
-                message: 'O login Google nativo nï¿½o estï¿½ disponï¿½vel nesta versï¿½o do aplicativo Android.'
+                message: 'O login Google nativo no est disponvel nesta verso do aplicativo Android.'
             });
         }
         return;
@@ -2928,7 +2929,7 @@ async function handleGoogleLogin(requestedRole) {
         
         const resolvedRole = await resolveRoleForSignup(requestedRole);
         await ensureUserDocument(result.user, {
-            name: result.user.displayName || result.user.email?.split('@')[0] || 'Usuï¿½rio',
+            name: result.user.displayName || result.user.email.split('@')[0] || 'Usurio',
             email: result.user.email,
             role: resolvedRole,
             photoURL: result.user.photoURL || null
@@ -2945,7 +2946,7 @@ async function handleGoogleLogin(requestedRole) {
 btnGoogleLogin.addEventListener('click', () => handleGoogleLogin());
 btnGoogleRegister.addEventListener('click', () => handleGoogleLogin(registerRole ? registerRole.value : 'user_chat'));
 
-// Recuperaï¿½ï¿½o de senha
+// Recuperao de senha
 forgotPasswordLink.addEventListener('click', (e) => {
     e.preventDefault();
     forgotModal.classList.add('show');
@@ -2993,7 +2994,7 @@ btnResetPassword.addEventListener('click', async () => {
     
     try {
         await auth.sendPasswordResetEmail(email);
-        alert('E-mail de recuperaï¿½ï¿½o enviado!');
+        alert('E-mail de recuperao enviado!');
         forgotModal.classList.remove('show');
         resetEmail.value = '';
     } catch (error) {
@@ -3001,27 +3002,27 @@ btnResetPassword.addEventListener('click', async () => {
     }
 });
 
-// Tratamento de erros de autenticaï¿½ï¿½o
+// Tratamento de erros de autenticao
 function handleAuthError(error) {
-    let message = 'Erro de autenticaï¿½ï¿½o. ';
+    let message = 'Erro de autenticao. ';
     switch (error.code) {
         case 'auth/user-not-found':
-            message += 'Usuï¿½rio nï¿½o encontrado.';
+            message += 'Usurio no encontrado.';
             break;
         case 'auth/wrong-password':
             message += 'Senha incorreta.';
             break;
         case 'auth/email-already-in-use':
-            message += 'Este e-mail jï¿½ estï¿½ em uso.';
+            message += 'Este e-mail j est em uso.';
             break;
         case 'auth/invalid-email':
-            message += 'E-mail invï¿½lido.';
+            message += 'E-mail invlido.';
             break;
         case 'auth/weak-password':
             message += 'Senha muito fraca.';
             break;
         case 'auth/unauthorized-domain':
-            message += 'Domï¿½nio nï¿½o autorizado. Adicione este domï¿½nio em Authentication > Settings > Authorized domains.';
+            message += 'Domnio no autorizado. Adicione este domnio em Authentication > Settings > Authorized domains.';
             break;
         case 'auth/popup-blocked':
             message += 'Pop-up bloqueado pelo navegador. Libere o pop-up e tente novamente.';
@@ -3030,25 +3031,25 @@ function handleAuthError(error) {
             message += 'Pop-up fechado antes de concluir o login.';
             break;
         case 'auth/cancelled-popup-request':
-            message += 'Outra solicitaï¿½ï¿½o de login jï¿½ estï¿½ em andamento.';
+            message += 'Outra solicitao de login j est em andamento.';
             break;
         case 'auth/operation-not-allowed':
-            message += 'Operaï¿½ï¿½o nï¿½o permitida. Verifique se o provedor estï¿½ habilitado no Firebase.';
+            message += 'Operao no permitida. Verifique se o provedor est habilitado no Firebase.';
             break;
         case 'auth/native-google-unavailable':
-            message += 'O login Google nativo nï¿½o estï¿½ disponï¿½vel no aplicativo Android.';
+            message += 'O login Google nativo no est disponvel no aplicativo Android.';
             break;
         case 'auth/native-google-unconfigured':
-            message += 'O login Google do Android ainda nï¿½o foi configurado. Adicione o Web Client ID do Firebase para o app Android.';
+            message += 'O login Google do Android ainda no foi configurado. Adicione o Web Client ID do Firebase para o app Android.';
             break;
         case 'auth/native-google-cancelled':
             message += 'Login com Google cancelado.';
             break;
         case 'auth/native-google-token-missing':
-            message += 'O Google nï¿½o retornou um token de autenticaï¿½ï¿½o vï¿½lido.';
+            message += 'O Google no retornou um token de autenticao vlido.';
             break;
         case 'auth/native-google-invalid-response':
-            message += 'O app Android retornou uma resposta invï¿½lida no login Google.';
+            message += 'O app Android retornou uma resposta invlida no login Google.';
             break;
         case 'auth/native-google-failed':
             message += 'Falha ao concluir o login com Google no Android.';
@@ -3082,7 +3083,7 @@ auth.onAuthStateChanged(async (user) => {
                 photoURL: user.photoURL || null
             });
         } catch (error) {
-            console.warn('Falha ao preparar documento do usuï¿½rio. Continuando com dados bï¿½sicos.', error);
+            console.warn('Falha ao preparar documento do usurio. Continuando com dados bsicos.', error);
         }
         currentUserProfile = ensuredProfile || {
             uid: user.uid,
@@ -3099,7 +3100,7 @@ auth.onAuthStateChanged(async (user) => {
         };
         currentUserRole = currentUserProfile.role || fallbackRole || 'user_chat';
         loadMutedFriendsForCurrentUser();
-        currentFriends = Array.isArray(currentUserProfile.friends) ? currentUserProfile.friends : [];
+ currentFriends = Array.isArray(currentUserProfile.friends) ? currentUserProfile.friends : [];
         const cachedFriends = loadCachedFriendsForCurrentUser();
         if (!currentFriends.length && cachedFriends.length > 0) {
             currentFriends = cachedFriends;
@@ -3117,14 +3118,14 @@ auth.onAuthStateChanged(async (user) => {
             applyOnlineStatusVisibilitySetting(showOnlineStatusEnabled, true, true);
         }
 
-        // Atualizar interface do usuï¿½rio
+        // Atualizar interface do usurio
         applyProfilePhoto(
             userPhoto,
             currentUserProfile,
-            'https://via.placeholder.com/45/002776/ffffff?text=User',
+            'https://via.placeholder.com/45/002776/fffffftext=User',
             user.photoURL || ''
         );
-        userName.textContent = currentUserProfile.name || user.displayName || 'Usuï¿½rio';
+        userName.textContent = currentUserProfile.name || user.displayName || 'Usurio';
         userStatus.textContent = 'Online';
         renderCurrentUserIdentity(currentUserProfile);
         setOnlineStatusClass(userStatus, true);
@@ -3148,7 +3149,7 @@ auth.onAuthStateChanged(async (user) => {
         // Configurar heartbeat para manter status online
         setupOnlineStatus();
         
-        // Carregar usuï¿½rios e conversas
+        // Carregar usurios e conversas
         loadUsers();
 
         listenForIncomingCalls();
@@ -3159,12 +3160,12 @@ auth.onAuthStateChanged(async (user) => {
         processPendingAndroidMessageOpen();
         finishInitialBootstrap('app');
         
-        // Atualizar lastSeen ao fechar a pï¿½gina
+        // Atualizar lastSeen ao fechar a pgina
         window.addEventListener('beforeunload', () => {
             updateUserOnlineStatus(false);
         });
     } else {
-        // Usuï¿½rio deslogado
+        // Usurio deslogado
         autoDownloadedAttachmentKeys = new Set();
         autoDownloadingAttachmentKeys = new Set();
         currentUser = null;
@@ -3225,7 +3226,7 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// Atualizar status online do usuï¿½rio
+// Atualizar status online do usurio
 async function updateUserOnlineStatus(online) {
     if (!currentUser) return;
     
@@ -3235,7 +3236,7 @@ async function updateUserOnlineStatus(online) {
             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
     } catch (error) {
-        console.error('Erro ao atualizar status:', error?.code || '', error?.message || error);
+        console.error('Erro ao atualizar status:', error.code || '', error.message || error);
     }
 }
 
@@ -3271,7 +3272,7 @@ function subscribeToCurrentUserDoc() {
             }
             currentUserProfile = { ...(currentUserProfile || {}), ...data };
             currentUserRole = data.role || currentUserRole || 'user_chat';
-            currentFriends = Array.isArray(data.friends) ? data.friends : [];
+ currentFriends = Array.isArray(data.friends) ? data.friends : [];
             persistFriendsCache(currentFriends);
             if (!Array.isArray(currentUserProfile.blocked)) {
                 currentUserProfile.blocked = [];
@@ -3288,8 +3289,8 @@ function subscribeToCurrentUserDoc() {
             applyProfilePhoto(
                 userPhoto,
                 data,
-                'https://via.placeholder.com/45/002776/ffffff?text=User',
-                currentUser?.photoURL || ''
+                'https://via.placeholder.com/45/002776/fffffftext=User',
+                currentUser.photoURL || ''
             );
 
             updateRoleBadge(currentUserRole);
@@ -3344,7 +3345,7 @@ function initCropper() {
     if (!profileCropImage || !profileCropFrame) return;
     const frameSize = profileCropFrame.clientWidth;
     cropBaseScale = Math.max(frameSize / profileCropImage.naturalWidth, frameSize / profileCropImage.naturalHeight);
-    const sliderValue = profileZoom ? parseFloat(profileZoom.value) || 1 : 1;
+ const sliderValue = profileZoom ? parseFloat(profileZoom.value) || 1 : 1;
     cropScale = cropBaseScale * sliderValue;
     resetCropPosition();
 }
@@ -3394,7 +3395,7 @@ function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.85) {
 }
 
 function getCallTypeLabel(type) {
-    return type === 'video' ? 'vï¿½deo' : 'voz';
+ return type === 'video' ? 'vdeo' : 'voz';
 }
 
 function updateCallIndicator(phase, type) {
@@ -3501,7 +3502,7 @@ function moveCallMedia(target) {
 function applyVideoSwapState() {
     if (!callMedia) return;
     callMedia.classList.toggle('swap', isVideoSwapped);
-    const currentMainVideo = isVideoSwapped ? localVideo : remoteVideo;
+ const currentMainVideo = isVideoSwapped ? localVideo : remoteVideo;
     resetVideoOverlayPosition(currentMainVideo);
 }
 
@@ -3539,7 +3540,7 @@ function startProximitySensor() {
             proximitySensor = new ProximitySensor();
             proximitySensor.addEventListener('reading', () => {
                 const maxDistance = proximitySensor.max || 0;
-                const near = maxDistance ? proximitySensor.distance < maxDistance : proximitySensor.distance === 0;
+ const near = maxDistance ? proximitySensor.distance < maxDistance : proximitySensor.distance === 0;
                 handleProximityState(near);
             });
             proximitySensor.addEventListener('error', () => {
@@ -3595,7 +3596,7 @@ function updateProximityHandling() {
         && (currentCallType === 'audio' || currentCallType === null);
     const shouldEnable = isAudioCall && isMobileDevice();
     setAndroidVoiceCallProximityEnabled(shouldEnable);
-    setAndroidSpeakerphoneEnabled(shouldEnable ? isSpeakerOn : false);
+ setAndroidSpeakerphoneEnabled(shouldEnable ? isSpeakerOn : false);
     if (!shouldEnable) {
         stopProximitySensor();
         return;
@@ -3613,21 +3614,21 @@ async function resolveSpeakerOutputDevice() {
     const outputs = devices.filter(device => device.kind === 'audiooutput');
     if (!outputs.length) return null;
     const speaker = outputs.find(device => /speaker|alto|viva|loud|speakerphone/i.test(device.label));
-    return speaker?.deviceId || outputs[0].deviceId;
+    return speaker.deviceId || outputs[0].deviceId;
 }
 
 async function applySpeakerOutput(enable) {
     if (!remoteAudio) return;
     if (typeof remoteAudio.setSinkId !== 'function') {
-        remoteAudio.volume = enable ? 1 : 0.7;
+ remoteAudio.volume = enable ? 1 : 0.7;
         return;
     }
     let targetId = 'default';
     if (enable) {
-        if (!speakerOutputDeviceId && navigator.mediaDevices?.selectAudioOutput) {
+        if (!speakerOutputDeviceId && navigator.mediaDevices.selectAudioOutput) {
             try {
                 const selection = await navigator.mediaDevices.selectAudioOutput();
-                speakerOutputDeviceId = selection?.deviceId || null;
+                speakerOutputDeviceId = selection.deviceId || null;
             } catch (error) {
                 speakerOutputDeviceId = null;
             }
@@ -3648,7 +3649,7 @@ async function applySpeakerOutput(enable) {
 
 async function toggleSpeakerphone() {
     isSpeakerOn = !isSpeakerOn;
-    setAndroidSpeakerphoneEnabled((callPhase === 'outgoing' || callPhase === 'active') ? isSpeakerOn : false);
+ setAndroidSpeakerphoneEnabled((callPhase === 'outgoing' || callPhase === 'active') ? isSpeakerOn : false);
     await applySpeakerOutput(isSpeakerOn);
     updateCallControls();
 }
@@ -3657,10 +3658,10 @@ function getActiveCallFriend() {
     if (selectedFriendData) return selectedFriendData;
     if (!activeCallData || !currentUser) return null;
     const isCaller = activeCallData.callerId === currentUser.uid;
-    const friendId = isCaller ? activeCallData.calleeId : activeCallData.callerId;
-    const friendName = isCaller ? activeCallData.calleeName : activeCallData.callerName;
-    const friendPhotoURL = isCaller ? activeCallData.calleePhotoURL : activeCallData.callerPhotoURL;
-    const friendPhotoData = isCaller ? activeCallData.calleePhotoData : activeCallData.callerPhotoData;
+ const friendId = isCaller ? activeCallData.calleeId : activeCallData.callerId;
+ const friendName = isCaller ? activeCallData.calleeName : activeCallData.callerName;
+ const friendPhotoURL = isCaller ? activeCallData.calleePhotoURL : activeCallData.callerPhotoURL;
+ const friendPhotoData = isCaller ? activeCallData.calleePhotoData : activeCallData.callerPhotoData;
     const displayName = getFriendDisplayName({ uid: friendId, name: friendName });
     return {
         uid: friendId,
@@ -3700,7 +3701,7 @@ async function addLocalVideoTrack() {
     track.enabled = true;
     isVideoMuted = false;
     localStream.addTrack(track);
-    const settings = track.getSettings ? track.getSettings() : {};
+ const settings = track.getSettings ? track.getSettings() : {};
     currentCallCameraDeviceId = settings.deviceId || currentCallCameraDeviceId;
     if (settings.facingMode) {
         currentCallCameraFacing = settings.facingMode;
@@ -3774,19 +3775,19 @@ async function handleRenegotiationOffer(renegotiate) {
     lastRenegotiationId = renegotiate.id || null;
     renegotiationInProgress = true;
 
-    const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
+ const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
     const friend = getActiveCallFriend();
-    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vï¿½deo...' : 'Mudando para chamada de voz...');
+ setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vdeo...' : 'Mudando para chamada de voz...');
     updateCallModal({
-        title: targetType === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
-        status: targetType === 'video' ? 'Mudando para chamada de vï¿½deo...' : 'Mudando para chamada de voz...',
+ title: targetType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+ status: targetType === 'video' ? 'Mudando para chamada de vdeo...' : 'Mudando para chamada de voz...',
         user: friend || selectedFriendData
     });
 
     const ready = await prepareLocalTracksForType(targetType);
     if (!ready) {
         renegotiationInProgress = false;
-        alert('Nï¿½o foi possï¿½vel acessar a cï¿½mera.');
+        alert('No foi possvel acessar a cmera.');
         setRenegotiationUI(false);
         return;
     }
@@ -3812,7 +3813,7 @@ async function handleRenegotiationOffer(renegotiate) {
         updateCallMediaVisibility(targetType);
         updateCallIndicator('active', targetType);
         updateCallModal({
-            title: targetType === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
+ title: targetType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
             status: 'Conectado',
             user: friend || selectedFriendData
         });
@@ -3835,14 +3836,14 @@ async function handleRenegotiationAnswer(renegotiate) {
     try {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(renegotiate.answer));
     } catch (error) {
-        console.warn('Falha ao aplicar resposta de renegociaï¿½ï¿½o.', error);
+        console.warn('Falha ao aplicar resposta de renegociao.', error);
     }
-    const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
+ const targetType = renegotiate.type === 'video' ? 'video' : 'audio';
     currentCallType = targetType;
     updateCallMediaVisibility(targetType);
     updateCallIndicator('active', targetType);
     updateCallModal({
-        title: targetType === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
+ title: targetType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
         status: 'Conectado',
         user: getActiveCallFriend() || selectedFriendData
     });
@@ -3855,10 +3856,10 @@ async function handleRenegotiationAnswer(renegotiate) {
 function handleRenegotiationSnapshot(data) {
     if (!data || !data.renegotiate) return;
     const renegotiate = data.renegotiate;
-    if (renegotiate.offer && renegotiate.from && renegotiate.from !== currentUser?.uid) {
+    if (renegotiate.offer && renegotiate.from && renegotiate.from !== currentUser.uid) {
         handleRenegotiationOffer(renegotiate);
     }
-    if (renegotiate.answer && renegotiate.from && renegotiate.from === currentUser?.uid) {
+    if (renegotiate.answer && renegotiate.from && renegotiate.from === currentUser.uid) {
         handleRenegotiationAnswer(renegotiate);
     }
 }
@@ -3873,24 +3874,24 @@ async function switchCallType(targetType) {
     if (currentType === targetType) return;
 
     const confirmMessage = targetType === 'video'
-        ? 'Deseja mudar para chamada de vï¿½deo?'
-        : 'Deseja mudar para chamada de voz?';
+          ? 'Deseja mudar para chamada de vdeo'
+ : 'Deseja mudar para chamada de voz';
     if (!confirm(confirmMessage)) return;
 
     renegotiationInProgress = true;
     renegotiationFallbackUsed = false;
     const friend = getActiveCallFriend();
-    setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vï¿½deo...' : 'Mudando para chamada de voz...');
+ setRenegotiationUI(true, targetType === 'video' ? 'Mudando para chamada de vdeo...' : 'Mudando para chamada de voz...');
     updateCallModal({
-        title: targetType === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
-        status: targetType === 'video' ? 'Mudando para chamada de vï¿½deo...' : 'Mudando para chamada de voz...',
+ title: targetType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+ status: targetType === 'video' ? 'Mudando para chamada de vdeo...' : 'Mudando para chamada de voz...',
         user: friend || selectedFriendData
     });
 
     const ready = await prepareLocalTracksForType(targetType);
     if (!ready) {
         renegotiationInProgress = false;
-        alert('Nï¿½o foi possï¿½vel acessar a cï¿½mera.');
+        alert('No foi possvel acessar a cmera.');
         setRenegotiationUI(false);
         return;
     }
@@ -3898,14 +3899,14 @@ async function switchCallType(targetType) {
     try {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        const renegotiationId = `${currentUser?.uid || 'user'}_${Date.now()}`;
+        const renegotiationId = `${currentUser.uid || 'user'}_${Date.now()}`;
         pendingRenegotiationId = renegotiationId;
         pendingRenegotiationTarget = targetType;
         await callDocRef.set({
             type: targetType,
             renegotiate: {
                 id: renegotiationId,
-                from: currentUser?.uid || '',
+                from: currentUser.uid || '',
                 type: targetType,
                 offer: {
                     type: offer.type,
@@ -3922,8 +3923,8 @@ async function switchCallType(targetType) {
                 renegotiationInProgress = false;
                 setRenegotiationUI(false);
                 updateCallModal({
-                    title: currentType === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
-                    status: 'Nï¿½o foi possï¿½vel mudar a chamada.',
+ title: currentType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+                    status: 'No foi possvel mudar a chamada.',
                     user: friend || selectedFriendData
                 });
                 updateCallControls();
@@ -3933,7 +3934,7 @@ async function switchCallType(targetType) {
     } catch (error) {
         renegotiationInProgress = false;
         console.warn('Falha ao renegociar chamada.', error);
-        alert('Nï¿½o foi possï¿½vel mudar o tipo da chamada.');
+        alert('No foi possvel mudar o tipo da chamada.');
         setRenegotiationUI(false);
         fallbackRestartCall(targetType, friend);
     }
@@ -3948,33 +3949,33 @@ function updateCallControls() {
     if (btnCallMute) {
         btnCallMute.classList.toggle('hidden', !showControls);
         btnCallMute.disabled = !hasAudio;
-        btnCallMute.innerHTML = isAudioMuted ? CALL_ICON_MIC_OFF : CALL_ICON_MIC_ON;
-        btnCallMute.title = isAudioMuted ? 'Ativar microfone' : 'Desativar microfone';
+ btnCallMute.innerHTML = isAudioMuted ? CALL_ICON_MIC_OFF : CALL_ICON_MIC_ON;
+ btnCallMute.title = isAudioMuted ? 'Ativar microfone' : 'Desativar microfone';
         btnCallMute.setAttribute('aria-pressed', String(isAudioMuted));
-        btnCallMute.setAttribute('aria-label', isAudioMuted ? 'Ativar microfone' : 'Desativar microfone');
+ btnCallMute.setAttribute('aria-label', isAudioMuted ? 'Ativar microfone' : 'Desativar microfone');
     }
     if (btnCallVideoToggle) {
         btnCallVideoToggle.classList.toggle('hidden', !showControls || !isVideoCall);
         btnCallVideoToggle.disabled = !hasVideo || !isVideoCall;
-        btnCallVideoToggle.innerHTML = isVideoMuted ? CALL_ICON_VIDEO_OFF : CALL_ICON_VIDEO_ON;
-        btnCallVideoToggle.title = isVideoMuted ? 'Ativar vï¿½deo' : 'Desativar vï¿½deo';
+ btnCallVideoToggle.innerHTML = isVideoMuted ? CALL_ICON_VIDEO_OFF : CALL_ICON_VIDEO_ON;
+ btnCallVideoToggle.title = isVideoMuted ? 'Ativar vdeo' : 'Desativar vdeo';
         btnCallVideoToggle.setAttribute('aria-pressed', String(isVideoMuted));
-        btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vï¿½deo' : 'Desativar vï¿½deo');
+ btnCallVideoToggle.setAttribute('aria-label', isVideoMuted ? 'Ativar vdeo' : 'Desativar vdeo');
     }
     if (btnCallCameraSwitch) {
         const showCameraSwitch = showControls && isVideoCall && isAndroidDevice();
         btnCallCameraSwitch.classList.toggle('hidden', !showCameraSwitch);
         btnCallCameraSwitch.disabled = !hasVideo || !isVideoCall;
         btnCallCameraSwitch.innerHTML = CALL_ICON_CAMERA_SWITCH;
-        btnCallCameraSwitch.style.display = showCameraSwitch ? 'inline-flex' : '';
+ btnCallCameraSwitch.style.display = showCameraSwitch ? 'inline-flex' : '';
     }
     if (btnCallSpeaker) {
         btnCallSpeaker.classList.toggle('hidden', !showControls);
         btnCallSpeaker.disabled = !remoteStream || remoteStream.getAudioTracks().length === 0;
-        btnCallSpeaker.innerHTML = isSpeakerOn ? CALL_ICON_SPEAKER_ON : CALL_ICON_SPEAKER_OFF;
-        btnCallSpeaker.title = isSpeakerOn ? 'Desativar viva-voz' : 'Ativar viva-voz';
+ btnCallSpeaker.innerHTML = isSpeakerOn ? CALL_ICON_SPEAKER_ON : CALL_ICON_SPEAKER_OFF;
+ btnCallSpeaker.title = isSpeakerOn ? 'Desativar viva-voz' : 'Ativar viva-voz';
         btnCallSpeaker.setAttribute('aria-pressed', String(isSpeakerOn));
-        btnCallSpeaker.setAttribute('aria-label', isSpeakerOn ? 'Desativar viva-voz' : 'Ativar viva-voz');
+ btnCallSpeaker.setAttribute('aria-label', isSpeakerOn ? 'Desativar viva-voz' : 'Ativar viva-voz');
     }
     if (btnCallSwitchVideo) {
         btnCallSwitchVideo.classList.toggle('hidden', !showControls || isVideoCall);
@@ -4024,10 +4025,10 @@ function toggleLocalVideo() {
 }
 
 async function getCallCameraStreamForFacing(facingMode) {
-    if (!navigator.mediaDevices?.getUserMedia) return null;
+    if (!navigator.mediaDevices.getUserMedia) return null;
     const supported = navigator.mediaDevices.getSupportedConstraints
-        ? navigator.mediaDevices.getSupportedConstraints()
-        : {};
+          ? navigator.mediaDevices.getSupportedConstraints()
+ : {};
     const supportsFacing = !!supported.facingMode;
     const attempts = [];
     const baseConstraints = { ...CAMERA_VIDEO_CONSTRAINTS };
@@ -4050,7 +4051,7 @@ async function getCallCameraStreamForFacing(facingMode) {
 }
 
 async function getCallCameraStreamForDevice(deviceId) {
-    if (!navigator.mediaDevices?.getUserMedia || !deviceId) return null;
+    if (!navigator.mediaDevices.getUserMedia || !deviceId) return null;
     const attempts = [];
     const baseConstraints = {
         ...CAMERA_VIDEO_CONSTRAINTS,
@@ -4071,7 +4072,7 @@ async function getCallCameraStreamForDevice(deviceId) {
 }
 
 async function getNextCallCameraDeviceId(currentTrack, fallbackDeviceId = '') {
-    if (!navigator.mediaDevices?.enumerateDevices) {
+    if (!navigator.mediaDevices.enumerateDevices) {
         return { nextDeviceId: '', hasMultiple: false, deviceCount: 0 };
     }
     try {
@@ -4083,7 +4084,7 @@ async function getNextCallCameraDeviceId(currentTrack, fallbackDeviceId = '') {
         if (uniqueInputs.length <= 1) {
             return { nextDeviceId: '', hasMultiple: false, deviceCount: uniqueInputs.length };
         }
-        const currentId = currentTrack?.getSettings ? (currentTrack.getSettings().deviceId || '') : '';
+ const currentId = currentTrack.getSettings ? (currentTrack.getSettings().deviceId || '') : '';
         const activeId = currentId || fallbackDeviceId;
         let currentIndex = uniqueInputs.findIndex((device) => device.deviceId === activeId);
         if (currentIndex < 0) currentIndex = 0;
@@ -4100,16 +4101,16 @@ async function switchCallCamera() {
     const currentTrack = localStream.getVideoTracks()[0];
     if (!currentTrack) return;
 
-    const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
+ const currentSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
     const activeFacing = currentSettings.facingMode || currentCallCameraFacing || 'user';
     const currentDeviceId = currentSettings.deviceId || currentCallCameraDeviceId || '';
-    const nextFacing = activeFacing === 'environment' ? 'user' : 'environment';
+ const nextFacing = activeFacing === 'environment' ? 'user' : 'environment';
 
     // Tenta trocar via applyConstraints primeiro (mais leve)
     if (typeof currentTrack.applyConstraints === 'function') {
         try {
             await currentTrack.applyConstraints({ facingMode: { ideal: nextFacing } });
-            const updatedSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
+ const updatedSettings = currentTrack.getSettings ? currentTrack.getSettings() : {};
             const facingFromTrack = updatedSettings.facingMode || '';
             const deviceFromTrack = updatedSettings.deviceId || '';
             const switchedDevice = deviceFromTrack && deviceFromTrack !== currentDeviceId;
@@ -4127,8 +4128,8 @@ async function switchCallCamera() {
     }
 
     const sender = peerConnection
-        ? peerConnection.getSenders().find(s => s.track && s.track.kind === 'video')
-        : null;
+          ? peerConnection.getSenders().find(s => s.track && s.track.kind === 'video')
+ : null;
 
     const { nextDeviceId, hasMultiple } = await getNextCallCameraDeviceId(currentTrack, currentDeviceId);
 
@@ -4162,15 +4163,15 @@ async function switchCallCamera() {
         newStream = await getCallCameraStreamForFacing(activeFacing);
     }
     if (!newStream) {
-        console.warn('Falha ao alternar cï¿½mera.', {
+        console.warn('Falha ao alternar cmera.', {
             hasMultiple,
             currentDeviceId,
             nextDeviceId,
             error: lastCallCameraSwitchError
         });
-        const baseMessage = hasMultiple ? 'Nï¿½o foi possï¿½vel alternar a cï¿½mera.' : 'Apenas uma cï¿½mera disponï¿½vel no dispositivo.';
-        const errorDetails = lastCallCameraSwitchError ? `${lastCallCameraSwitchError.name || 'Erro'}: ${lastCallCameraSwitchError.message || ''}`.trim() : '';
-        alert(errorDetails ? `${baseMessage}\n${errorDetails}` : baseMessage);
+ const baseMessage = hasMultiple ? 'No foi possvel alternar a cmera.' : 'Apenas uma cmera disponvel no dispositivo.';
+ const errorDetails = lastCallCameraSwitchError ? `${lastCallCameraSwitchError.name || 'Erro'}: ${lastCallCameraSwitchError.message || ''}`.trim() : '';
+ alert(errorDetails ? `${baseMessage}\n${errorDetails}` : baseMessage);
         return;
     }
 
@@ -4203,7 +4204,7 @@ async function switchCallCamera() {
         peerConnection.addTrack(newTrack, localStream);
     }
     if (localVideo) localVideo.srcObject = localStream;
-    const settingsFromTrack = newTrack.getSettings ? newTrack.getSettings() : {};
+ const settingsFromTrack = newTrack.getSettings ? newTrack.getSettings() : {};
     const facingFromTrack = settingsFromTrack.facingMode || '';
     const deviceFromTrack = settingsFromTrack.deviceId || '';
     currentCallCameraFacing = facingFromTrack || nextFacing;
@@ -4277,7 +4278,7 @@ function resetVideoOverlayPosition(videoElement) {
 function getCurrentMiniPreviewVideo() {
     if (currentCallType !== 'video' || callPhase !== 'active') return null;
     if (!callMedia || callMedia.classList.contains('hidden')) return null;
-    return isVideoSwapped ? remoteVideo : localVideo;
+ return isVideoSwapped ? remoteVideo : localVideo;
 }
 
 function startCallMiniDrag(clientX, clientY) {
@@ -4396,13 +4397,13 @@ function startRingtone(mode = 'incoming') {
         if (ringtoneContext.state === 'suspended') {
             ringtoneContext.resume();
         }
-        const interval = mode === 'incoming' ? 1800 : 2200;
+ const interval = mode === 'incoming' ? 1800 : 2200;
         const beep = () => {
             if (!ringtoneContext) return;
             const osc = ringtoneContext.createOscillator();
             const gain = ringtoneContext.createGain();
             osc.type = 'sine';
-            osc.frequency.value = mode === 'incoming' ? 440 : 520;
+ osc.frequency.value = mode === 'incoming' ? 440 : 520;
             gain.gain.value = 0.18;
             osc.connect(gain);
             gain.connect(ringtoneContext.destination);
@@ -4412,7 +4413,7 @@ function startRingtone(mode = 'incoming') {
         beep();
         ringtoneInterval = setInterval(beep, interval);
     } catch (error) {
-        console.warn('Nï¿½o foi possï¿½vel tocar o toque da chamada.', error);
+        console.warn('No foi possvel tocar o toque da chamada.', error);
     }
 }
 
@@ -4514,10 +4515,10 @@ function updateCallModal({ title, status, user }) {
     if (callTitle) callTitle.textContent = title || 'Chamada de voz';
     if (callStatus) callStatus.textContent = status || '';
     if (callUserName) {
-        callUserName.textContent = user?.uid ? getFriendDisplayName(user) : (user?.name || 'Usuï¿½rio');
+ callUserName.textContent = user.uid ? getFriendDisplayName(user) : (user.name || 'Usurio');
     }
     if (callUserPhoto) {
-        applyProfilePhoto(callUserPhoto, user, 'https://via.placeholder.com/90/cccccc/666666?text=User');
+        applyProfilePhoto(callUserPhoto, user, 'https://via.placeholder.com/90/cccccc/666666text=User');
     }
     if (callModal && !isCallMinimized) callModal.classList.add('show');
 }
@@ -4593,7 +4594,7 @@ async function preparePeerConnection(options = {}) {
 
     localStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: wantsVideo ? getCallVideoConstraints() : false
+ video: wantsVideo ? getCallVideoConstraints() : false
     });
     if (localAudio) localAudio.srcObject = localStream;
     if (localVideo) localVideo.srcObject = localStream;
@@ -4602,21 +4603,21 @@ async function preparePeerConnection(options = {}) {
     });
     const videoTrack = localStream.getVideoTracks()[0];
     if (videoTrack) {
-        const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+ const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
         currentCallCameraDeviceId = settings.deviceId || currentCallCameraDeviceId;
         if (settings.facingMode) {
             currentCallCameraFacing = settings.facingMode;
         }
     }
 
-    updateCallMediaVisibility(wantsVideo ? 'video' : 'audio');
+ updateCallMediaVisibility(wantsVideo ? 'video' : 'audio');
 }
 
 async function notifyFriendIncomingCall(callId, callType, friend) {
     if (!callId || !friend || !currentUser) return;
     const tokens = Array.isArray(friend.fcmTokens)
-        ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
-        : [];
+          ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
+ : [];
     if (!tokens.length) return;
 
     const payload = {
@@ -4624,11 +4625,11 @@ async function notifyFriendIncomingCall(callId, callType, friend) {
         callId,
         callType: callType || 'audio',
         callerId: currentUser.uid,
-        callerName: currentUserProfile?.name || currentUser.displayName || 'Usuï¿½rio',
-        callerPhotoURL: currentUserProfile?.photoURL || null
+        callerName: currentUserProfile.name || currentUser.displayName || 'Usurio',
+        callerPhotoURL: currentUserProfile.photoURL || null
     };
 
-    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/call-notify` : '/api/call-notify';
+ const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/call-notify` : '/api/call-notify';
     try {
         await fetch(apiUrl, {
             method: 'POST',
@@ -4636,13 +4637,13 @@ async function notifyFriendIncomingCall(callId, callType, friend) {
             body: JSON.stringify(payload)
         });
     } catch (error) {
-        console.warn('Falha ao enviar notificaï¿½ï¿½o de chamada.', error);
+        console.warn('Falha ao enviar notificao de chamada.', error);
     }
 }
 
 function buildOutgoingMessageNotificationBody(messagePayload, count = 1) {
     if (count > 1) {
-        return `Vocï¿½ recebeu ${count} itens`;
+        return `Voc recebeu ${count} itens`;
     }
     return buildIncomingNotificationBody(messagePayload);
 }
@@ -4650,28 +4651,28 @@ function buildOutgoingMessageNotificationBody(messagePayload, count = 1) {
 async function notifyFriendIncomingMessage(friend, messagePayload, options = {}) {
     if (!friend || !friend.uid || !currentUser) return;
     const tokens = Array.isArray(friend.fcmTokens)
-        ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
-        : [];
+          ? friend.fcmTokens.filter((token) => typeof token === 'string' && token.trim())
+ : [];
     if (!tokens.length) return;
 
     const count = Number(options.count || 1) || 1;
     const notificationBody = String(options.body || buildOutgoingMessageNotificationBody(messagePayload, count));
-    const messageType = String(messagePayload?.type || 'text');
+    const messageType = String(messagePayload.type || 'text');
 
     const payload = {
         tokens,
         messageType,
-        messageText: String(messagePayload?.text || ''),
-        fileName: String(messagePayload?.fileName || ''),
+        messageText: String(messagePayload.text || ''),
+        fileName: String(messagePayload.fileName || ''),
         senderId: currentUser.uid,
-        senderName: currentUserProfile?.name || currentUser.displayName || 'Usuï¿½rio',
-        senderPhotoURL: currentUserProfile?.photoURL || null,
+        senderName: currentUserProfile.name || currentUser.displayName || 'Usurio',
+        senderPhotoURL: currentUserProfile.photoURL || null,
         conversationId: getConversationId(currentUser.uid, friend.uid),
         notificationBody,
         count
     };
 
-    const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/message-notify` : '/api/message-notify';
+ const apiUrl = BACKEND_BASE_URL ? `${BACKEND_BASE_URL}/api/message-notify` : '/api/message-notify';
     try {
         await fetch(apiUrl, {
             method: 'POST',
@@ -4679,22 +4680,22 @@ async function notifyFriendIncomingMessage(friend, messagePayload, options = {})
             body: JSON.stringify(payload)
         });
     } catch (error) {
-        console.warn('Falha ao enviar notificaï¿½ï¿½o de mensagem.', error);
+        console.warn('Falha ao enviar notificao de mensagem.', error);
     }
 }
 
 async function startCall(callType = 'audio') {
     if (!selectedFriendData || !currentUser) return;
     if (selectedFriendData.uid === currentUser.uid) {
-        alert('Nï¿½o ï¿½ possï¿½vel iniciar chamadas com o seu prï¿½prio contato.');
+        alert('No  possvel iniciar chamadas com o seu prprio contato.');
         return;
     }
     if (isFriendBlocked(selectedFriendData.uid)) {
-        alert('Vocï¿½ bloqueou este usuï¿½rio.');
+        alert('Voc bloqueou este usurio.');
         return;
     }
     if (currentCallId) {
-        alert('Jï¿½ existe uma chamada em andamento.');
+        alert('J existe uma chamada em andamento.');
         return;
     }
 
@@ -4710,7 +4711,7 @@ async function startCall(callType = 'audio') {
         await preparePeerConnection({ video: callType === 'video' });
     } catch (error) {
         if (callType === 'video') {
-            const fallback = confirm('Nï¿½o foi possï¿½vel acessar a cï¿½mera. Deseja iniciar uma chamada de voz?');
+            const fallback = confirm('No foi possvel acessar a cmera. Deseja iniciar uma chamada de voz');
             if (!fallback) {
                 return;
             }
@@ -4719,22 +4720,22 @@ async function startCall(callType = 'audio') {
             try {
                 await preparePeerConnection({ video: false });
             } catch (audioError) {
-                alert('Nï¿½o foi possï¿½vel acessar o microfone.');
+                alert('No foi possvel acessar o microfone.');
                 return;
             }
         } else {
-            alert('Nï¿½o foi possï¿½vel acessar o microfone.');
+            alert('No foi possvel acessar o microfone.');
             return;
         }
     }
 
     const callData = {
         callerId: currentUser.uid,
-        callerName: currentUserProfile?.name || currentUser.displayName || 'Usuï¿½rio',
-        callerPhotoURL: currentUserProfile?.photoURL || null,
-        callerPhotoData: currentUserProfile?.photoData || null,
+        callerName: currentUserProfile.name || currentUser.displayName || 'Usurio',
+        callerPhotoURL: currentUserProfile.photoURL || null,
+        callerPhotoData: currentUserProfile.photoData || null,
         calleeId: selectedFriendData.uid,
-        calleeName: selectedFriendData.name || 'Usuï¿½rio',
+        calleeName: selectedFriendData.name || 'Usurio',
         calleePhotoURL: selectedFriendData.photoURL || null,
         calleePhotoData: selectedFriendData.photoData || null,
         type: callType,
@@ -4791,7 +4792,7 @@ async function startCall(callType = 'audio') {
             clearCallCountdown();
             updateCallIndicator('active', currentCallType || callType);
             updateCallModal({
-                title: callType === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
+ title: callType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
                 status: 'Conectado',
                 user: selectedFriendData
             });
@@ -4808,7 +4809,7 @@ async function startCall(callType = 'audio') {
     setCallButtonsVisibility('outgoing');
     updateCallIndicator('outgoing', callType);
     updateCallModal({
-        title: callType === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
+ title: callType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
         status: 'Aguardando resposta',
         user: selectedFriendData
     });
@@ -4876,8 +4877,8 @@ async function handleIncomingCall(callDoc) {
     setCallButtonsVisibility('incoming');
     updateCallIndicator('incoming', currentCallType);
     updateCallModal({
-        title: currentCallType === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
-        status: 'Deseja atender?',
+ title: currentCallType === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
+        status: 'Deseja atender',
         user: {
             name: data.callerName,
             photoURL: data.callerPhotoURL,
@@ -4898,7 +4899,7 @@ async function acceptIncomingCall() {
         await preparePeerConnection({ video: wantsVideo });
     } catch (error) {
         if ((currentCallType || activeCallData.type) === 'video') {
-            const fallback = confirm('Nï¿½o foi possï¿½vel acessar a cï¿½mera. Deseja atender apenas com ï¿½udio?');
+            const fallback = confirm('No foi possvel acessar a cmera. Deseja atender apenas com udio');
             if (!fallback) {
                 await rejectIncomingCall();
                 return;
@@ -4907,12 +4908,12 @@ async function acceptIncomingCall() {
             try {
                 await preparePeerConnection({ video: false });
             } catch (audioError) {
-                alert('Nï¿½o foi possï¿½vel acessar o microfone.');
+                alert('No foi possvel acessar o microfone.');
                 await rejectIncomingCall();
                 return;
             }
         } else {
-            alert('Nï¿½o foi possï¿½vel acessar o microfone.');
+            alert('No foi possvel acessar o microfone.');
             await rejectIncomingCall();
             return;
         }
@@ -4928,7 +4929,7 @@ async function acceptIncomingCall() {
     if (!resolvedOffer && callDocRef) {
         try {
             const freshDoc = await callDocRef.get();
-            resolvedOffer = freshDoc.data()?.offer || null;
+            resolvedOffer = freshDoc.data().offer || null;
         } catch (error) {
             resolvedOffer = null;
         }
@@ -4937,7 +4938,7 @@ async function acceptIncomingCall() {
         resolvedOffer = await waitForOffer(5000);
     }
     if (!resolvedOffer) {
-        alert('Nï¿½o foi possï¿½vel atender esta chamada.');
+        alert('No foi possvel atender esta chamada.');
         resetCallState();
         return;
     }
@@ -4981,7 +4982,7 @@ async function acceptIncomingCall() {
     clearCallCountdown();
     updateCallIndicator('active', currentCallType || activeCallData.type || 'audio');
     updateCallModal({
-        title: (currentCallType || activeCallData.type) === 'video' ? 'Chamada de vï¿½deo' : 'Chamada de voz',
+ title: (currentCallType || activeCallData.type) === 'video' ? 'Chamada de vdeo' : 'Chamada de voz',
         status: 'Conectado',
         user: {
             name: activeCallData.callerName,
@@ -5034,7 +5035,7 @@ function listenForIncomingCalls() {
 }
 
 function looksLikeEmail(value) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+    return /^[^\s@]+@[^\s@]+\?.[^\s@]+$/.test(String(value || '').trim());
 }
 
 async function findUsersByIdentifier(identifier) {
@@ -5058,7 +5059,7 @@ async function findUsersByIdentifier(identifier) {
         if (!snapshot.empty) {
             const doc = snapshot.docs[0];
             const data = { id: doc.id, ...doc.data() };
-            return data.disabled ? [] : [data];
+ return data.disabled ? [] : [data];
         }
 
         return [];
@@ -5083,8 +5084,8 @@ async function findUsersByIdentifier(identifier) {
     snapshot.forEach((doc) => appendMatch({ id: doc.id, ...doc.data() }));
 
     const availableUsers = Array.isArray(allUsersCache) && allUsersCache.length
-        ? allUsersCache
-        : (await db.collection('users').get()).docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          ? allUsersCache
+ : (await db.collection('users').get()).docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     availableUsers.forEach((user) => appendMatch(user));
 
     return sortUsersByNameAndEmail(Array.from(matchedUsersMap.values()));
@@ -5094,17 +5095,17 @@ async function addFriendByEmail(email) {
     if (!currentUser) return;
     const matchedUsers = await findUsersByIdentifier(email);
     if (!matchedUsers.length) {
-        alert('Usuï¿½rio nï¿½o encontrado. Informe um e-mail ou @primeironome vï¿½lido.');
+        alert('Usurio no encontrado. Informe um e-mail ou @primeironome vlido.');
         return;
     }
 
     const addableUsers = matchedUsers.filter((user) => getUserTagMatchOptionMeta(user).selectable);
     if (!addableUsers.length) {
         if (matchedUsers.some((user) => user.uid === currentUser.uid)) {
-            alert('Vocï¿½ jï¿½ adicionou o seu prï¿½prio contato.');
+            alert('Voc j adicionou o seu prprio contato.');
             return;
         }
-        alert('Os usuï¿½rios encontrados jï¿½ estï¿½o na sua lista de amigos.');
+        alert('Os usurios encontrados j esto na sua lista de amigos.');
         return;
     }
 
@@ -5176,15 +5177,15 @@ async function blockSelectedFriends() {
     if (!selectedIds.length) return;
 
     const confirmed = confirm(selectedIds.length === 1
-        ? 'Deseja bloquear este amigo?'
-        : `Deseja bloquear ${selectedIds.length} amigos selecionados?`);
+          ? 'Deseja bloquear este amigo'
+ : `Deseja bloquear ${selectedIds.length} amigos selecionados`);
     if (!confirmed) return;
 
     for (const friendId of selectedIds) {
         await blockFriend(friendId);
     }
 
-    if (!Array.isArray(currentUserProfile?.blocked)) {
+    if (!Array.isArray(currentUserProfile.blocked)) {
         currentUserProfile = { ...(currentUserProfile || {}), blocked: [] };
     }
     selectedIds.forEach((id) => {
@@ -5214,8 +5215,8 @@ async function removeSelectedFriends() {
     if (!selectedIds.length) return;
 
     const confirmed = confirm(selectedIds.length === 1
-        ? 'Deseja remover este amigo da sua lista?'
-        : `Deseja remover ${selectedIds.length} amigos da sua lista?`);
+          ? 'Deseja remover este amigo da sua lista'
+ : `Deseja remover ${selectedIds.length} amigos da sua lista`);
     if (!confirmed) return;
 
     for (const friendId of selectedIds) {
@@ -5242,7 +5243,7 @@ function setAdminPanelVisible(show) {
     adminPanel.classList.toggle('hidden', !show);
     chatPanel.classList.toggle('hidden', show);
     if (btnAdminPanel) {
-        btnAdminPanel.textContent = show ? 'Chat' : 'Admin';
+ btnAdminPanel.textContent = show ? 'Chat' : 'Admin';
     }
     if (show) {
         const storedTab = getStoredAdminTab();
@@ -5302,7 +5303,7 @@ function toggleLogoutButtonVisible() {
 function getStoredTheme() {
     try {
         const value = localStorage.getItem(THEME_STORAGE_KEY);
-        return value === 'dark' ? 'dark' : 'light';
+ return value === 'dark' ? 'dark' : 'light';
     } catch (error) {
         return 'light';
     }
@@ -5331,7 +5332,7 @@ function getStoredChatFontSize(defaultValue = 'normal') {
 function getStoredLanguage(defaultValue = 'pt-BR') {
     try {
         const value = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-        return value === 'en-US' ? 'en-US' : defaultValue;
+ return value === 'en-US' ? 'en-US' : defaultValue;
     } catch (error) {
         return defaultValue;
     }
@@ -5375,7 +5376,7 @@ function supportsPcLocalMediaFolder() {
 function openMediaHandleDb() {
     return new Promise((resolve, reject) => {
         if (typeof window.indexedDB === 'undefined') {
-            reject(new Error('IndexedDB indisponï¿½vel'));
+            reject(new Error('IndexedDB indisponvel'));
             return;
         }
 
@@ -5395,7 +5396,7 @@ function openMediaHandleDb() {
 }
 
 function getAttachmentCacheKey(msg) {
-    if (!msg?.id) return '';
+    if (!msg.id) return '';
     const senderId = String(msg.senderId || '').trim();
     const receiverId = String(msg.receiverId || '').trim();
     if (senderId && receiverId) {
@@ -5414,17 +5415,17 @@ async function saveAttachmentBlobToCache(msg, blob) {
             const tx = dbRef.transaction(MEDIA_CACHE_STORE_NAME, 'readwrite');
             tx.objectStore(MEDIA_CACHE_STORE_NAME).put({
                 blob,
-                fileName: String(msg?.fileName || '').trim(),
-                fileType: String(blob.type || msg?.fileType || '').trim(),
+                fileName: String(msg.fileName || '').trim(),
+                fileType: String(blob.type || msg.fileType || '').trim(),
                 updatedAt: Date.now()
             }, cacheKey);
             tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error || new Error('Falha ao salvar cache local da mï¿½dia'));
+            tx.onerror = () => reject(tx.error || new Error('Falha ao salvar cache local da mdia'));
         });
         dbRef.close();
         return true;
     } catch (error) {
-        console.warn('Falha ao salvar blob da mï¿½dia em cache local.', error);
+        console.warn('Falha ao salvar blob da mdia em cache local.', error);
         return false;
     }
 }
@@ -5439,12 +5440,12 @@ async function loadAttachmentBlobFromCache(msg) {
             const tx = dbRef.transaction(MEDIA_CACHE_STORE_NAME, 'readonly');
             const req = tx.objectStore(MEDIA_CACHE_STORE_NAME).get(cacheKey);
             req.onsuccess = () => resolve(req.result || null);
-            req.onerror = () => reject(req.error || new Error('Falha ao carregar cache local da mï¿½dia'));
+            req.onerror = () => reject(req.error || new Error('Falha ao carregar cache local da mdia'));
         });
         dbRef.close();
-        return cachedEntry?.blob || null;
+        return cachedEntry.blob || null;
     } catch (error) {
-        console.warn('Falha ao carregar blob da mï¿½dia do cache local.', error);
+        console.warn('Falha ao carregar blob da mdia do cache local.', error);
         return null;
     }
 }
@@ -5475,7 +5476,7 @@ async function savePcMediaRootHandle(handle) {
         });
         dbRef.close();
     } catch (error) {
-        console.warn('Nï¿½o foi possï¿½vel salvar referï¿½ncia da pasta local.', error);
+        console.warn('No foi possvel salvar referncia da pasta local.', error);
     }
 }
 
@@ -5495,7 +5496,7 @@ async function loadPcMediaRootHandle() {
         pcMediaRootHandle = handle || null;
         return pcMediaRootHandle;
     } catch (error) {
-        console.warn('Nï¿½o foi possï¿½vel carregar referï¿½ncia da pasta local.', error);
+        console.warn('No foi possvel carregar referncia da pasta local.', error);
         pcMediaRootHandle = null;
         return null;
     }
@@ -5507,8 +5508,8 @@ async function ensureHandleWritePermission(handle, interactive = false) {
     try {
         const mode = { mode: 'readwrite' };
         let permission = typeof handle.queryPermission === 'function'
-            ? await handle.queryPermission(mode)
-            : 'prompt';
+              ? await handle.queryPermission(mode)
+ : 'prompt';
 
         if (permission === 'granted') return true;
         if (permission === 'prompt' && interactive && typeof handle.requestPermission === 'function') {
@@ -5516,7 +5517,7 @@ async function ensureHandleWritePermission(handle, interactive = false) {
             return permission === 'granted';
         }
     } catch (error) {
-        console.warn('Falha ao verificar permissï¿½o da pasta local.', error);
+        console.warn('Falha ao verificar permisso da pasta local.', error);
     }
 
     return false;
@@ -5527,8 +5528,8 @@ async function ensurePcMediaDirectoryHandle(rootHandle, msg, fileName, mimeType 
     const category = getDownloadCategory(msg, fileName, mimeType);
     const scope = resolveLocalMediaScope(msg, options.scope);
     const targetDir = scope === 'sent'
-        ? await mediaDir.getDirectoryHandle('Enviados', { create: true })
-        : mediaDir;
+          ? await mediaDir.getDirectoryHandle('Enviados', { create: true })
+ : mediaDir;
     const categoryDir = await targetDir.getDirectoryHandle(category, { create: true });
     return { categoryDir };
 }
@@ -5594,7 +5595,7 @@ function setPcLocalMediaFolderReady(ready, persist = true) {
 
     if (!persist) return;
     try {
-        localStorage.setItem(MEDIA_PC_FOLDER_READY_STORAGE_KEY, pcLocalMediaFolderReady ? 'true' : 'false');
+ localStorage.setItem(MEDIA_PC_FOLDER_READY_STORAGE_KEY, pcLocalMediaFolderReady ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -5637,7 +5638,7 @@ async function configurePcLocalMediaFolder() {
         setPcLocalMediaFolderReady(true);
         return true;
     } catch (error) {
-        console.warn('Falha ao preparar pasta local de mï¿½dia no PC.', error);
+        console.warn('Falha ao preparar pasta local de mdia no PC.', error);
         setPcLocalMediaFolderReady(false);
         return false;
     }
@@ -5649,46 +5650,46 @@ const UI_TEXT = {
         themeLight: 'Tema claro',
         soundOn: 'Som: ligado',
         soundOff: 'Som: desligado',
-        messageToneDefault: 'Toque de mensagem: padrï¿½o',
+        messageToneDefault: 'Toque de mensagem: padro',
         messageToneCustom: 'Toque de mensagem: personalizado',
-        callToneDefault: 'Toque de chamada: padrï¿½o',
+        callToneDefault: 'Toque de chamada: padro',
         callToneCustom: 'Toque de chamada: personalizado',
-        notificationsOff: 'Notificaï¿½ï¿½es: desligadas',
-        notificationsOn: 'Notificaï¿½ï¿½es: ligadas',
-        notificationsBlocked: 'Notificaï¿½ï¿½es: bloqueadas',
-        notificationsPending: 'Notificaï¿½ï¿½es: pendentes',
-        notificationsUnavailable: 'Notificaï¿½ï¿½es: indisponï¿½veis',
+        notificationsOff: 'Notificaes: desligadas',
+        notificationsOn: 'Notificaes: ligadas',
+        notificationsBlocked: 'Notificaes: bloqueadas',
+        notificationsPending: 'Notificaes: pendentes',
+        notificationsUnavailable: 'Notificaes: indisponveis',
         readOn: 'Leitura: ligada',
         readOff: 'Leitura: desligada',
-        statusVisible: 'Status: visï¿½vel',
+        statusVisible: 'Status: visvel',
         statusHidden: 'Status: oculto',
         chatFontNormal: 'Fonte do chat: normal',
         chatFontLarge: 'Fonte do chat: grande',
         chatBackgroundDefault: 'Plano de fundo do chat',
         chatBackgroundCustom: 'Plano de fundo: personalizado',
-        mediaSaveAuto: 'Salvamento de mï¿½dia: automï¿½tico',
-        mediaSaveManual: 'Salvamento de mï¿½dia: manual',
-        mediaSaveAction: 'Salvar mï¿½dia',
-        mediaPcFolderConfigure: 'Pasta de mï¿½dia (PC): configurar',
-        mediaPcFolderReady: 'Pasta de mï¿½dia (PC): pronta',
-        mediaPcFolderUnavailable: 'Pasta de mï¿½dia (PC): indisponï¿½vel',
-        mediaPcFolderSaved: 'Pasta local de mï¿½dia configurada com sucesso no PC.',
-        mediaPcFolderSaveFailed: 'Nï¿½o foi possï¿½vel configurar a pasta local de mï¿½dia no PC.',
+        mediaSaveAuto: 'Salvamento de mdia: automtico',
+        mediaSaveManual: 'Salvamento de mdia: manual',
+        mediaSaveAction: 'Salvar mdia',
+        mediaPcFolderConfigure: 'Pasta de mdia (PC): configurar',
+        mediaPcFolderReady: 'Pasta de mdia (PC): pronta',
+        mediaPcFolderUnavailable: 'Pasta de mdia (PC): indisponvel',
+        mediaPcFolderSaved: 'Pasta local de mdia configurada com sucesso no PC.',
+        mediaPcFolderSaveFailed: 'No foi possvel configurar a pasta local de mdia no PC.',
         callsAllowed: 'Chamadas: permitidas',
         callsBlocked: 'Chamadas: bloqueadas',
-        lastSeenVisible: 'Visto por ï¿½ltimo: visï¿½vel',
-        lastSeenHidden: 'Visto por ï¿½ltimo: oculto',
-        languagePt: 'Idioma: portuguï¿½s',
-        languageEn: 'Idioma: inglï¿½s',
-        settingsTitle: 'Configuraï¿½ï¿½es',
+        lastSeenVisible: 'Visto por ltimo: visvel',
+        lastSeenHidden: 'Visto por ltimo: oculto',
+        languagePt: 'Idioma: portugus',
+        languageEn: 'Idioma: ingls',
+        settingsTitle: 'Configuraes',
         about: 'Sobre',
         logout: 'Sair',
         presenceHidden: 'Status oculto',
-        presenceLastSeen: 'Visto por ï¿½ltimo ï¿½s {time}',
+        presenceLastSeen: 'Visto por ltimo s {time}',
         presenceOffline: 'Offline',
         presenceBlocked: 'Bloqueado',
-        typingActivity: '{name} estï¿½ escrevendo...',
-        recordingActivity: '{name} estï¿½ gravando ï¿½udio...',
+        typingActivity: '{name} est escrevendo...',
+        recordingActivity: '{name} est gravando udio...',
         callAutoBlockedToast: 'Chamada recusada automaticamente: chamadas bloqueadas.'
     },
     'en-US': {
@@ -5765,14 +5766,14 @@ const ABOUT_CONTENT_HTML = `
     <h4>Plataformas</h4>
     <p>Versao Web e versao Android (WebView) com os mesmos recursos principais.</p>
     <h4>Desenvolvedor</h4>
-    <p><strong>Luiz Sï¿½rgio Garcia Carvalho</strong></p>
+    <p><strong>Luiz Srgio Garcia Carvalho</strong></p>
     <p>Formado em Sistemas de Informacao e Licenciatura em Matematica.</p>
     <p>Contato: (91) 993064354 (WhatsApp)</p>
     <p>E-mail: luizynho27@gmail.com</p>
 `;
 
 function getUiText(key) {
-    const lang = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
+ const lang = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
     return UI_TEXT[lang]?.[key] || UI_TEXT['pt-BR']?.[key] || '';
 }
 
@@ -5797,19 +5798,19 @@ function closeAboutModal() {
 function refreshSettingsMenuLabels() {
     if (btnThemeToggle) {
         const isDark = document.body.classList.contains('theme-dark');
-        btnThemeToggle.textContent = isDark ? getUiText('themeLight') : getUiText('themeDark');
+ btnThemeToggle.textContent = isDark ? getUiText('themeLight') : getUiText('themeDark');
     }
 
     if (btnSoundToggle) {
-        btnSoundToggle.textContent = soundNotificationsEnabled ? getUiText('soundOn') : getUiText('soundOff');
+ btnSoundToggle.textContent = soundNotificationsEnabled ? getUiText('soundOn') : getUiText('soundOff');
     }
 
     if (btnMessageTone) {
-        btnMessageTone.textContent = messageToneDataUrl ? getUiText('messageToneCustom') : getUiText('messageToneDefault');
+ btnMessageTone.textContent = messageToneDataUrl ? getUiText('messageToneCustom') : getUiText('messageToneDefault');
     }
 
     if (btnCallTone) {
-        btnCallTone.textContent = callToneDataUrl ? getUiText('callToneCustom') : getUiText('callToneDefault');
+ btnCallTone.textContent = callToneDataUrl ? getUiText('callToneCustom') : getUiText('callToneDefault');
     }
 
     if (btnDesktopNotificationsToggle) {
@@ -5830,23 +5831,23 @@ function refreshSettingsMenuLabels() {
     }
 
     if (btnReadReceiptsToggle) {
-        btnReadReceiptsToggle.textContent = readReceiptsEnabled ? getUiText('readOn') : getUiText('readOff');
+ btnReadReceiptsToggle.textContent = readReceiptsEnabled ? getUiText('readOn') : getUiText('readOff');
     }
 
     if (btnOnlineStatusToggle) {
-        btnOnlineStatusToggle.textContent = showOnlineStatusEnabled ? getUiText('statusVisible') : getUiText('statusHidden');
+ btnOnlineStatusToggle.textContent = showOnlineStatusEnabled ? getUiText('statusVisible') : getUiText('statusHidden');
     }
 
     if (btnChatFontToggle) {
-        btnChatFontToggle.textContent = chatFontSizePreference === 'large' ? getUiText('chatFontLarge') : getUiText('chatFontNormal');
+ btnChatFontToggle.textContent = chatFontSizePreference === 'large' ? getUiText('chatFontLarge') : getUiText('chatFontNormal');
     }
 
     if (btnChatBackground) {
-        btnChatBackground.textContent = chatBackgroundDataUrl ? getUiText('chatBackgroundCustom') : getUiText('chatBackgroundDefault');
+ btnChatBackground.textContent = chatBackgroundDataUrl ? getUiText('chatBackgroundCustom') : getUiText('chatBackgroundDefault');
     }
 
     if (btnMediaSaveModeToggle) {
-        btnMediaSaveModeToggle.textContent = autoMediaSaveEnabled ? getUiText('mediaSaveAuto') : getUiText('mediaSaveManual');
+ btnMediaSaveModeToggle.textContent = autoMediaSaveEnabled ? getUiText('mediaSaveAuto') : getUiText('mediaSaveManual');
     }
 
     if (btnMediaFolderPc) {
@@ -5863,15 +5864,15 @@ function refreshSettingsMenuLabels() {
     }
 
     if (btnCallBlockToggle) {
-        btnCallBlockToggle.textContent = blockIncomingCallsEnabled ? getUiText('callsBlocked') : getUiText('callsAllowed');
+ btnCallBlockToggle.textContent = blockIncomingCallsEnabled ? getUiText('callsBlocked') : getUiText('callsAllowed');
     }
 
     if (btnLastSeenToggle) {
-        btnLastSeenToggle.textContent = showLastSeenEnabled ? getUiText('lastSeenVisible') : getUiText('lastSeenHidden');
+ btnLastSeenToggle.textContent = showLastSeenEnabled ? getUiText('lastSeenVisible') : getUiText('lastSeenHidden');
     }
 
     if (btnLanguageToggle) {
-        btnLanguageToggle.textContent = selectedLanguage === 'en-US' ? getUiText('languageEn') : getUiText('languagePt');
+ btnLanguageToggle.textContent = selectedLanguage === 'en-US' ? getUiText('languageEn') : getUiText('languagePt');
     }
 
     if (btnAbout) {
@@ -5898,7 +5899,7 @@ function refreshSettingsMenuLabels() {
 function refreshPresenceDisplay() {
     renderFriendUsers();
     renderChatPartnerStatus();
-    if (friendModal?.classList.contains('show') && selectedFriendData) {
+    if (friendModal.classList.contains('show') && selectedFriendData) {
         renderFriendDetailStatus(selectedFriendData);
     }
 }
@@ -5906,11 +5907,11 @@ function refreshPresenceDisplay() {
 try {
     initializeUserPreferences();
 } catch (error) {
-    console.warn('Falha ao inicializar preferï¿½ncias locais:', error);
+    console.warn('Falha ao inicializar preferncias locais:', error);
 }
 
 initializePcLocalMediaFolderState().catch((error) => {
-    console.warn('Falha ao inicializar pasta local de mï¿½dia no PC.', error);
+    console.warn('Falha ao inicializar pasta local de mdia no PC.', error);
 });
 
 startInitialBootstrapFallback();
@@ -5932,7 +5933,7 @@ async function syncOnlineStatusVisibilityPreference() {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
     } catch (error) {
-        console.warn('Falha ao salvar preferï¿½ncia de status online.', error);
+        console.warn('Falha ao salvar preferncia de status online.', error);
     }
 }
 
@@ -5942,14 +5943,14 @@ function applyTheme(theme, persist = false) {
     applyChatBackground(chatBackgroundDataUrl, false);
 
     if (btnThemeToggle) {
-        btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+ btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
-        localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
+ localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
     } catch (error) {
         // ignore
     }
@@ -5959,14 +5960,14 @@ function applySoundNotificationsSetting(isEnabled, persist = false) {
     soundNotificationsEnabled = !!isEnabled;
 
     if (btnSoundToggle) {
-        btnSoundToggle.setAttribute('aria-pressed', soundNotificationsEnabled ? 'true' : 'false');
+ btnSoundToggle.setAttribute('aria-pressed', soundNotificationsEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
-        localStorage.setItem(SOUND_NOTIFICATIONS_STORAGE_KEY, soundNotificationsEnabled ? 'true' : 'false');
+ localStorage.setItem(SOUND_NOTIFICATIONS_STORAGE_KEY, soundNotificationsEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -5984,7 +5985,7 @@ function applyMessageToneSetting(dataUrl, persist = false) {
             localStorage.removeItem(MESSAGE_TONE_STORAGE_KEY);
         }
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel salvar o toque de mensagem.');
+        alert('No foi possvel salvar o toque de mensagem.');
     }
 }
 
@@ -6000,7 +6001,7 @@ function applyCallToneSetting(dataUrl, persist = false) {
             localStorage.removeItem(CALL_TONE_STORAGE_KEY);
         }
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel salvar o toque de chamada.');
+        alert('No foi possvel salvar o toque de chamada.');
     }
 }
 
@@ -6014,7 +6015,7 @@ function isValidToneFile(file) {
     }
     const sizeLimit = 5 * 1024 * 1024;
     if (file.size > sizeLimit) {
-        alert('O arquivo de toque deve ter no mï¿½ximo 5MB.');
+        alert('O arquivo de toque deve ter no mximo 5MB.');
         return false;
     }
     return true;
@@ -6033,14 +6034,14 @@ function applyReadReceiptsSetting(isEnabled, persist = false) {
     readReceiptsEnabled = !!isEnabled;
 
     if (btnReadReceiptsToggle) {
-        btnReadReceiptsToggle.setAttribute('aria-pressed', readReceiptsEnabled ? 'true' : 'false');
+ btnReadReceiptsToggle.setAttribute('aria-pressed', readReceiptsEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
-        localStorage.setItem(READ_RECEIPTS_STORAGE_KEY, readReceiptsEnabled ? 'true' : 'false');
+ localStorage.setItem(READ_RECEIPTS_STORAGE_KEY, readReceiptsEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -6061,7 +6062,7 @@ function applyDesktopNotificationsSetting(isEnabled, persist = false) {
     const permission = getDesktopNotificationPermission();
 
     if (btnDesktopNotificationsToggle) {
-        btnDesktopNotificationsToggle.setAttribute('aria-pressed', desktopNotificationsEnabled && permission === 'granted' ? 'true' : 'false');
+ btnDesktopNotificationsToggle.setAttribute('aria-pressed', desktopNotificationsEnabled && permission === 'granted' ? 'true' : 'false');
         btnDesktopNotificationsToggle.disabled = false;
     }
     refreshSettingsMenuLabels();
@@ -6069,7 +6070,7 @@ function applyDesktopNotificationsSetting(isEnabled, persist = false) {
     if (!persist) return;
 
     try {
-        localStorage.setItem(DESKTOP_NOTIFICATIONS_STORAGE_KEY, desktopNotificationsEnabled ? 'true' : 'false');
+ localStorage.setItem(DESKTOP_NOTIFICATIONS_STORAGE_KEY, desktopNotificationsEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -6079,14 +6080,14 @@ function applyOnlineStatusVisibilitySetting(isEnabled, persist = false, syncRemo
     showOnlineStatusEnabled = !!isEnabled;
 
     if (btnOnlineStatusToggle) {
-        btnOnlineStatusToggle.setAttribute('aria-pressed', showOnlineStatusEnabled ? 'true' : 'false');
+ btnOnlineStatusToggle.setAttribute('aria-pressed', showOnlineStatusEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
     refreshPresenceDisplay();
 
     if (persist) {
         try {
-            localStorage.setItem(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, showOnlineStatusEnabled ? 'true' : 'false');
+ localStorage.setItem(ONLINE_STATUS_VISIBILITY_STORAGE_KEY, showOnlineStatusEnabled ? 'true' : 'false');
         } catch (error) {
             // ignore
         }
@@ -6098,12 +6099,12 @@ function applyOnlineStatusVisibilitySetting(isEnabled, persist = false, syncRemo
 }
 
 function applyChatFontSizeSetting(size, persist = false) {
-    const normalizedSize = size === 'large' ? 'large' : 'normal';
+ const normalizedSize = size === 'large' ? 'large' : 'normal';
     chatFontSizePreference = normalizedSize;
     document.body.classList.toggle('chat-font-large', normalizedSize === 'large');
 
     if (btnChatFontToggle) {
-        btnChatFontToggle.setAttribute('aria-pressed', normalizedSize === 'large' ? 'true' : 'false');
+ btnChatFontToggle.setAttribute('aria-pressed', normalizedSize === 'large' ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
@@ -6120,14 +6121,14 @@ function applyMediaAutoSaveSetting(isEnabled, persist = false) {
     autoMediaSaveEnabled = !!isEnabled;
 
     if (btnMediaSaveModeToggle) {
-        btnMediaSaveModeToggle.setAttribute('aria-pressed', autoMediaSaveEnabled ? 'true' : 'false');
+ btnMediaSaveModeToggle.setAttribute('aria-pressed', autoMediaSaveEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
-        localStorage.setItem(MEDIA_AUTO_SAVE_STORAGE_KEY, autoMediaSaveEnabled ? 'true' : 'false');
+ localStorage.setItem(MEDIA_AUTO_SAVE_STORAGE_KEY, autoMediaSaveEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -6137,14 +6138,14 @@ function applyCallBlockingSetting(isEnabled, persist = false) {
     blockIncomingCallsEnabled = !!isEnabled;
 
     if (btnCallBlockToggle) {
-        btnCallBlockToggle.setAttribute('aria-pressed', blockIncomingCallsEnabled ? 'true' : 'false');
+ btnCallBlockToggle.setAttribute('aria-pressed', blockIncomingCallsEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
 
     if (!persist) return;
 
     try {
-        localStorage.setItem(CALL_BLOCK_STORAGE_KEY, blockIncomingCallsEnabled ? 'true' : 'false');
+ localStorage.setItem(CALL_BLOCK_STORAGE_KEY, blockIncomingCallsEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
@@ -6154,7 +6155,7 @@ function applyLastSeenVisibilitySetting(isEnabled, persist = false) {
     showLastSeenEnabled = !!isEnabled;
 
     if (btnLastSeenToggle) {
-        btnLastSeenToggle.setAttribute('aria-pressed', showLastSeenEnabled ? 'true' : 'false');
+ btnLastSeenToggle.setAttribute('aria-pressed', showLastSeenEnabled ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
     refreshPresenceDisplay();
@@ -6162,17 +6163,17 @@ function applyLastSeenVisibilitySetting(isEnabled, persist = false) {
     if (!persist) return;
 
     try {
-        localStorage.setItem(LAST_SEEN_VISIBILITY_STORAGE_KEY, showLastSeenEnabled ? 'true' : 'false');
+ localStorage.setItem(LAST_SEEN_VISIBILITY_STORAGE_KEY, showLastSeenEnabled ? 'true' : 'false');
     } catch (error) {
         // ignore
     }
 }
 
 function applyLanguageSetting(language, persist = false) {
-    selectedLanguage = language === 'en-US' ? 'en-US' : 'pt-BR';
+ selectedLanguage = language === 'en-US' ? 'en-US' : 'pt-BR';
 
     if (btnLanguageToggle) {
-        btnLanguageToggle.setAttribute('aria-pressed', selectedLanguage === 'en-US' ? 'true' : 'false');
+ btnLanguageToggle.setAttribute('aria-pressed', selectedLanguage === 'en-US' ? 'true' : 'false');
     }
     refreshSettingsMenuLabels();
     refreshPresenceDisplay();
@@ -6256,17 +6257,17 @@ function playIncomingMessageTone(senderUid = '') {
 }
 
 function buildIncomingNotificationBody(messageData) {
-    const text = (messageData?.text || '').trim();
+    const text = (messageData.text || '').trim();
     if (text) {
-        return text.length > 120 ? `${text.slice(0, 117)}...` : text;
+ return text.length > 120 ? `${text.slice(0, 117)}...` : text;
     }
 
-    const fileType = (messageData?.fileType || '').toLowerCase();
+    const fileType = (messageData.fileType || '').toLowerCase();
     if (fileType.startsWith('image/')) return 'Enviou uma imagem';
-    if (fileType.startsWith('video/')) return 'Enviou um vï¿½deo';
-    if (fileType.startsWith('audio/')) return 'Enviou um ï¿½udio';
+    if (fileType.startsWith('video/')) return 'Enviou um vdeo';
+    if (fileType.startsWith('audio/')) return 'Enviou um udio';
     if (fileType.includes('pdf')) return 'Enviou um PDF';
-    if (messageData?.fileName) return `Enviou ${messageData.fileName}`;
+    if (messageData.fileName) return `Enviou ${messageData.fileName}`;
     return 'Nova mensagem';
 }
 
@@ -6283,10 +6284,10 @@ function showIncomingDesktopNotification(senderUid, messageData) {
     if (isFriendMuted(senderUid)) return;
 
     const sender = (selectedFriendData && selectedFriendData.uid === senderUid)
-        ? selectedFriendData
-        : getCachedUserByUid(senderUid);
-    const senderName = sender ? getFriendDisplayName(sender) : 'Usuï¿½rio';
-    const icon = getSafePhotoData(sender?.photoData) || getSafePhotoUrl(sender?.photoURL) || 'images/camechat_logo.png';
+          ? selectedFriendData
+ : getCachedUserByUid(senderUid);
+ const senderName = sender ? getFriendDisplayName(sender) : 'Usurio';
+    const icon = getSafePhotoData(sender.photoData) || getSafePhotoUrl(sender.photoURL) || 'images/camechat_logo.png';
     const body = buildIncomingNotificationBody(messageData);
 
     try {
@@ -6359,8 +6360,8 @@ function isMobileLayout() {
 }
 
 function syncMobileViewportSize() {
-    const viewportWidth = Math.round(window.visualViewport?.width || window.innerWidth || 0);
-    const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight || 0);
+    const viewportWidth = Math.round(window.visualViewport.width || window.innerWidth || 0);
+    const viewportHeight = Math.round(window.visualViewport.height || window.innerHeight || 0);
     if (!viewportWidth || !viewportHeight) return;
     document.documentElement.style.setProperty('--chat-viewport-width', `${viewportWidth}px`);
     document.documentElement.style.setProperty('--chat-viewport-height', `${viewportHeight}px`);
@@ -6372,7 +6373,7 @@ function syncMobileViewportSize() {
         if (visualViewport) {
             const diff = Math.max(0, Math.round(window.innerHeight - visualViewport.height - visualViewport.offsetTop));
             insetBottom = diff;
-        } else if (window.screen?.height) {
+        } else if (window.screen.height) {
             insetBottom = Math.max(0, Math.round(window.screen.height - window.innerHeight));
         }
         if (insetBottom > 120) {
@@ -6420,10 +6421,10 @@ function renderAdminUsers(users) {
         const isDisabled = user.disabled === true;
         li.innerHTML = `
             <div class="admin-user-meta">
-                <strong>${user.name || 'Usuï¿½rio'}</strong>
+                <strong>${user.name || 'Usurio'}</strong>
                 <span>${user.email || ''}</span>
                 <span class="admin-role-pill">${user.role || 'user_chat'}</span>
-                ${isDisabled ? '<span class="admin-status-pill">Desativado</span>' : ''}
+ ${isDisabled ? '<span class="admin-status-pill">Desativado</span>' : ''}
             </div>
             <div class="admin-user-actions">
                 <button class="admin-edit-btn" type="button">Editar</button>
@@ -6483,7 +6484,7 @@ async function createUserAsAdmin({ name, email, password, role }) {
         try {
             await secondary.auth().signOut();
         } catch (error) {
-            console.warn('Erro ao sair do auth secundï¿½rio:', error);
+            console.warn('Erro ao sair do auth secundrio:', error);
         }
         await secondary.delete();
     }
@@ -6520,11 +6521,11 @@ async function removeUserFromFriends(userId) {
 async function handleAdminDeleteUser(user) {
     if (!user || currentUserRole !== 'administrador') return;
     if (user.uid === currentUser.uid) {
-        alert('Vocï¿½ nï¿½o pode excluir o seu prï¿½prio usuï¿½rio.');
+        alert('Voc no pode excluir o seu prprio usurio.');
         return;
     }
 
-    const confirmed = confirm(`Deseja excluir o usuï¿½rio ${user.name || user.email || ''}?`);
+    const confirmed = confirm(`Deseja excluir o usurio ${user.name || user.email || ''}`);
     if (!confirmed) return;
 
     try {
@@ -6535,9 +6536,9 @@ async function handleAdminDeleteUser(user) {
         }, { merge: true });
 
         await removeUserFromFriends(user.uid);
-        alert('Usuï¿½rio desativado com sucesso.');
+        alert('Usurio desativado com sucesso.');
     } catch (error) {
-        alert('Erro ao excluir usuï¿½rio: ' + error.message);
+        alert('Erro ao excluir usurio: ' + error.message);
     }
 }
 
@@ -6590,7 +6591,7 @@ document.addEventListener('touchend', (event) => {
     if (deltaY > 80) return;
     const swipeDistance = 70;
     const fromLeftEdge = touchStartX < 30;
-    const sidebarIsOpen = app?.classList.contains('sidebar-open');
+    const sidebarIsOpen = app.classList.contains('sidebar-open');
 
     if (deltaX > swipeDistance && fromLeftEdge && !sidebarIsOpen) {
         setSidebarOpen(true);
@@ -6607,7 +6608,7 @@ if (adminTabs) {
             setAdminTab(tabButton.dataset.tab);
         });
     });
-    setAdminTab(getStoredAdminTab() || adminPanel?.dataset?.activeTab || 'metrics');
+    setAdminTab(getStoredAdminTab() || adminPanel.dataset.activeTab || 'metrics');
 }
 
 if (adminEditClose) {
@@ -6618,10 +6619,10 @@ if (adminEditSave) {
     adminEditSave.addEventListener('click', async () => {
         if (!editingUserId || currentUserRole !== 'administrador') return;
         const name = adminEditName.value.trim();
-        const role = adminEditRole.value === 'administrador' ? 'administrador' : 'user_chat';
+ const role = adminEditRole.value === 'administrador' ? 'administrador' : 'user_chat';
 
         if (!name) {
-            alert('Digite um nome vï¿½lido.');
+            alert('Digite um nome vlido.');
             return;
         }
 
@@ -6648,7 +6649,7 @@ if (adminEditSave) {
 
             closeAdminEditModal();
         } catch (error) {
-            alert('Erro ao atualizar usuï¿½rio: ' + error.message);
+            alert('Erro ao atualizar usurio: ' + error.message);
         }
     });
 }
@@ -6661,7 +6662,7 @@ if (adminCreateForm) {
         const name = adminCreateName.value.trim();
         const email = adminCreateEmail.value.trim();
         const password = adminCreatePassword.value;
-        const role = adminCreateRole.value === 'administrador' ? 'administrador' : 'user_chat';
+ const role = adminCreateRole.value === 'administrador' ? 'administrador' : 'user_chat';
 
         if (!name || !email || !password) {
             alert('Preencha todos os campos.');
@@ -6669,7 +6670,7 @@ if (adminCreateForm) {
         }
 
         if (password.length < 6) {
-            alert('A senha deve ter no mï¿½nimo 6 caracteres.');
+            alert('A senha deve ter no mnimo 6 caracteres.');
             return;
         }
 
@@ -6677,16 +6678,16 @@ if (adminCreateForm) {
             await createUserAsAdmin({ name, email, password, role });
             adminCreateForm.reset();
             adminCreateRole.value = 'user_chat';
-            alert('Usuï¿½rio criado com sucesso!');
+            alert('Usurio criado com sucesso!');
         } catch (error) {
             handleAuthError(error);
         }
     });
 }
 
-// ========== FUNï¿½ï¿½ES DO CHAT ==========
+// ========== FUNES DO CHAT ==========
 
-// Carregar lista de usuï¿½rios
+// Carregar lista de usurios
 function loadUsers() {
     if (usersUnsubscribe) usersUnsubscribe();
     const cachedUsers = loadCachedUsersForCurrentUser();
@@ -6701,7 +6702,7 @@ function loadUsers() {
             const users = [];
             snapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
             if (snapshot.empty) {
-                if (snapshot.metadata?.fromCache) {
+                if (snapshot.metadata.fromCache) {
                     if (allUsersCache.length === 0 && cachedUsers.length > 0) {
                         allUsersCache = cachedUsers;
                         renderFriendUsers();
@@ -6721,7 +6722,7 @@ function loadUsers() {
 function renderFriendUsers() {
     if (!Array.isArray(allUsersCache)) return;
     const friendSet = new Set(currentFriends || []);
-    const blockedSet = new Set(currentUserProfile?.blocked || []);
+    const blockedSet = new Set(currentUserProfile.blocked || []);
     const friends = allUsersCache.filter(user => friendSet.has(user.uid) && !user.disabled && !blockedSet.has(user.uid));
 
     if (currentUser && friendSet.has(currentUser.uid)) {
@@ -6729,10 +6730,10 @@ function renderFriendUsers() {
             ...(currentUserProfile || {}),
             uid: currentUser.uid,
             id: currentUser.uid,
-            name: (currentUserProfile?.name || currentUser.displayName || currentUser.email || 'Usuï¿½rio'),
-            email: currentUserProfile?.email || currentUser.email || '',
-            photoURL: currentUserProfile?.photoURL || currentUser.photoURL || null,
-            photoData: currentUserProfile?.photoData || null
+            name: (currentUserProfile.name || currentUser.displayName || currentUser.email || 'Usurio'),
+            email: currentUserProfile.email || currentUser.email || '',
+            photoURL: currentUserProfile.photoURL || currentUser.photoURL || null,
+            photoData: currentUserProfile.photoData || null
         };
         const existingIndex = friends.findIndex((user) => user.uid === currentUser.uid);
         if (existingIndex >= 0) {
@@ -6749,12 +6750,12 @@ function renderFriendUsers() {
         const aLast = getFriendLastMessageTimestampMs(a.uid);
         const bLast = getFriendLastMessageTimestampMs(b.uid);
         if (aLast !== bLast) return bLast - aLast;
-        return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
+        return (b.lastSeen.seconds || 0) - (a.lastSeen.seconds || 0);
     });
 
     renderUsers(friends);
     if (totalUsers) {
-        totalUsers.textContent = `${friends.length} contato${friends.length !== 1 ? 's' : ''}`;
+ totalUsers.textContent = `${friends.length} contato${friends.length !== 1 ? 's' : ''}`;
     }
 
     if (selectedFriendData) {
@@ -6762,7 +6763,7 @@ function renderFriendUsers() {
         if (updatedFriend) {
             selectedFriendData = updatedFriend;
         }
-        if (friendModal?.classList.contains('show')) {
+        if (friendModal.classList.contains('show')) {
             renderFriendDetailStatus(selectedFriendData);
             updateFriendModalState();
         }
@@ -6779,7 +6780,7 @@ function renderFriendUsers() {
         if (defaultChatPartnerPhoto) {
             chatPartnerPhoto.src = defaultChatPartnerPhoto;
         }
-        chatPartnerName.textContent = 'Selecione um usuï¿½rio';
+        chatPartnerName.textContent = 'Selecione um usurio';
         if (chatPartnerStatus) {
             chatPartnerStatus.textContent = '';
             chatPartnerStatus.classList.remove('chat-partner-status-activity');
@@ -6823,7 +6824,7 @@ function renderFriendUsers() {
 }
 
 function bindFriendSelectionInteractions(friendEl, user) {
-    if (!friendEl || !user?.uid) return;
+    if (!friendEl || !user.uid) return;
 
     let longPressTimer = null;
     let longPressTriggered = false;
@@ -6842,12 +6843,12 @@ function bindFriendSelectionInteractions(friendEl, user) {
         clearTimer();
         longPressTriggered = false;
 
-        if (event?.touches?.[0]) {
+        if (event.touches?.[0]) {
             pressClientX = event.touches[0].clientX;
             pressClientY = event.touches[0].clientY;
         } else {
-            pressClientX = event?.clientX ?? 0;
-            pressClientY = event?.clientY ?? 0;
+            pressClientX = event.clientX ?? 0;
+            pressClientY = event.clientY ?? 0;
         }
 
         longPressTimer = setTimeout(() => {
@@ -6858,7 +6859,7 @@ function bindFriendSelectionInteractions(friendEl, user) {
     };
 
     const cancelLongPressOnMove = (event) => {
-        if (event?.touches?.[0]) {
+        if (event.touches?.[0]) {
             const deltaX = Math.abs(event.touches[0].clientX - pressClientX);
             const deltaY = Math.abs(event.touches[0].clientY - pressClientY);
             if (deltaX > 12 || deltaY > 12) {
@@ -6897,9 +6898,9 @@ function bindFriendSelectionInteractions(friendEl, user) {
     });
 }
 
-// Renderizar lista de usuï¿½rios
+// Renderizar lista de usurios
 function renderUsers(users) {
-    const previousScrollTop = usersList ? usersList.scrollTop : 0;
+ const previousScrollTop = usersList ? usersList.scrollTop : 0;
     usersList.innerHTML = '';
 
     if (!users || users.length === 0) {
@@ -6917,7 +6918,7 @@ function renderUsers(users) {
 
     users.forEach(user => {
         const li = document.createElement('li');
-        li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
+ li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
         if (isFriendSelectionMode) {
             li.classList.add('user-item-select-mode');
             li.classList.toggle('user-item-selected', selectedFriendIds.has(user.uid));
@@ -6925,11 +6926,11 @@ function renderUsers(users) {
         li.dataset.uid = user.uid;
         
         const status = getUserPresenceStatusText(user);
-        const statusClass = status === 'Online' ? 'status-online-text' : '';
+ const statusClass = status === 'Online' ? 'status-online-text' : '';
         
         const { fallback: fallbackPhoto, url: photoUrl } = resolvePhotoSources(
             user,
-            'https://via.placeholder.com/45/cccccc/666666?text=User'
+            'https://via.placeholder.com/45/cccccc/666666text=User'
         );
         const displayName = getFriendDisplayName(user);
         li.innerHTML = `
@@ -6954,10 +6955,10 @@ function renderUsers(users) {
     }
 }
 
-// Formatar ï¿½ltima visualizaï¿½ï¿½o
+// Formatar ltima visualizao
 function formatLastSeen(date) {
     if (!date) return '';
-    const locale = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
+ const locale = selectedLanguage === 'en-US' ? 'en-US' : 'pt-BR';
     const now = new Date();
     const diffMs = now - date;
     const timeText = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
@@ -6972,19 +6973,19 @@ function formatLastSeen(date) {
 function timestampToDate(value) {
     if (!value) return null;
     if (value instanceof Date) return value;
-    if (value?.toDate) return value.toDate();
+    if (value.toDate) return value.toDate();
     return null;
 }
 
 function isUserEffectivelyOnline(user) {
-    if (!user?.online) return false;
+    if (!user.online) return false;
     const lastSeenDate = timestampToDate(user.lastSeen);
     if (!lastSeenDate) return false;
     return Date.now() - lastSeenDate.getTime() <= ONLINE_STALE_MS;
 }
 
 function isUserPresenceVisible(user) {
-    return user?.showOnlineStatus !== false;
+    return user.showOnlineStatus !== false;
 }
 
 function getUserPresenceStatusText(user) {
@@ -6994,30 +6995,30 @@ function getUserPresenceStatusText(user) {
     if (!showLastSeenEnabled) return getUiText('presenceOffline');
 
     const lastSeenDate = timestampToDate(user.lastSeen);
-    const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
-    return lastSeen ? formatUiText('presenceLastSeen', { time: lastSeen }) : getUiText('presenceOffline');
+ const lastSeen = lastSeenDate ? formatLastSeen(lastSeenDate) : '';
+ return lastSeen ? formatUiText('presenceLastSeen', { time: lastSeen }) : getUiText('presenceOffline');
 }
 
 function getFriendAlias(friendId) {
-    if (!friendId || !currentUserProfile?.friendAliases) return '';
+    if (!friendId || !currentUserProfile.friendAliases) return '';
     const alias = currentUserProfile.friendAliases[friendId];
-    return typeof alias === 'string' ? alias.trim() : '';
+ return typeof alias === 'string' ? alias.trim() : '';
 }
 
 function getFriendDisplayName(user) {
-    if (!user) return 'Usuï¿½rio';
+    if (!user) return 'Usurio';
     if (currentUser && user.uid === currentUser.uid) {
-        const baseName = user.name || currentUserProfile?.name || currentUser.displayName || 'Usuï¿½rio';
-        return `${baseName} (Vocï¿½)`;
+        const baseName = user.name || currentUserProfile.name || currentUser.displayName || 'Usurio';
+        return `${baseName} (Voc)`;
     }
     const alias = getFriendAlias(user.uid);
-    return alias || user.name || 'Usuï¿½rio';
+    return alias || user.name || 'Usurio';
 }
 
 async function setFriendAlias(friendId, alias) {
     if (!currentUser || !friendId) return;
     const safeAlias = String(alias || '').trim();
-    const currentMap = { ...(currentUserProfile?.friendAliases || {}) };
+    const currentMap = { ...(currentUserProfile.friendAliases || {}) };
     if (safeAlias) {
         currentMap[friendId] = safeAlias;
     } else {
@@ -7050,7 +7051,7 @@ function closeFriendAliasModal() {
 
 async function saveFriendAlias() {
     if (!pendingFriendAliasUser || !friendAliasInput) {
-        alert('Nï¿½o foi possï¿½vel salvar o nome do contato. Tente novamente.');
+        alert('No foi possvel salvar o nome do contato. Tente novamente.');
         return;
     }
     const alias = friendAliasInput.value.trim();
@@ -7068,10 +7069,10 @@ async function saveFriendAlias() {
             openFriendModal();
         }
     } catch (error) {
-        if (error?.code === 'permission-denied') {
-            alert('Permissï¿½o negada ao salvar o nome do contato. Publique as regras do Firestore atualizadas e tente novamente.');
+        if (error.code === 'permission-denied') {
+            alert('Permisso negada ao salvar o nome do contato. Publique as regras do Firestore atualizadas e tente novamente.');
         } else {
-            alert('Nï¿½o foi possï¿½vel salvar o nome do contato: ' + (error?.message || error));
+            alert('No foi possvel salvar o nome do contato: ' + (error.message || error));
         }
     }
 }
@@ -7083,8 +7084,8 @@ function getConversationMetaForFriend(friendId) {
 
 function getFriendLastMessageTimestampMs(friendId) {
     const meta = getConversationMetaForFriend(friendId);
-    const ts = timestampToDate(meta?.lastMessageAt || meta?.updatedAt);
-    return ts ? ts.getTime() : 0;
+    const ts = timestampToDate(meta.lastMessageAt || meta.updatedAt);
+ return ts ? ts.getTime() : 0;
 }
 
 async function backfillConversationMeta(friendId) {
@@ -7104,7 +7105,7 @@ async function backfillConversationMeta(friendId) {
         const doc = snapshot.docs[0];
         const data = doc.data() || {};
         const payload = {
-            type: data.type || (data.imageUrl ? 'image' : 'text'),
+ type: data.type || (data.imageUrl ? 'image' : 'text'),
             text: data.text || '',
             fileName: data.fileName || '',
             senderId: data.senderId || '',
@@ -7168,16 +7169,16 @@ function ensureConversationMetaSubscriptions(friendIds) {
     });
 }
 
-// Filtrar usuï¿½rios
+// Filtrar usurios
 searchUser.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('.user-item').forEach(item => {
         const name = item.querySelector('h4').innerText.toLowerCase();
-        item.style.display = name.includes(term) ? 'flex' : 'none';
+ item.style.display = name.includes(term) ? 'flex' : 'none';
     });
 });
 
-// Selecionar usuï¿½rio para conversar
+// Selecionar usurio para conversar
 async function selectUser(user) {
     clearLocalTypingState();
     clearEditingMessage();
@@ -7192,14 +7193,14 @@ async function selectUser(user) {
     resetMessageSelectionState();
     clearReplyTargetMessage();
     
-    // Atualizar seleï¿½ï¿½o na lista
+    // Atualizar seleo na lista
     document.querySelectorAll('.user-item').forEach(item => {
         item.classList.toggle('active', item.dataset.uid === user.uid);
     });
     
-    // Atualizar cabeï¿½alho do chat
+    // Atualizar cabealho do chat
     chatPartnerName.textContent = getFriendDisplayName(user);
-    applyProfilePhoto(chatPartnerPhoto, user, 'https://via.placeholder.com/45/cccccc/666666?text=User');
+    applyProfilePhoto(chatPartnerPhoto, user, 'https://via.placeholder.com/45/cccccc/666666text=User');
     const isBlocked = isFriendBlocked(user.uid);
     remoteUserActivityState = null;
     setChatPartnerActivity(null);
@@ -7221,7 +7222,7 @@ async function selectUser(user) {
     if (emojiPicker) emojiPicker.classList.add('hidden');
     
     // Esconder mensagem de boas-vindas
-    document.querySelector('.welcome-message')?.remove();
+    document.querySelector('.welcome-message').remove();
     
     // Carregar mensagens
     subscribeToFriendDoc(user.uid);
@@ -7257,7 +7258,7 @@ async function loadMessages(otherUid) {
                     const incomingChanges = snapshot.docChanges().filter((change) => {
                         if (change.type !== 'added') return false;
                         const data = change.doc.data();
-                        return data?.senderId === otherUid;
+                        return data.senderId === otherUid;
                     });
 
                     if (incomingChanges.length > 0) {
@@ -7285,7 +7286,7 @@ async function loadMessages(otherUid) {
 
         currentConversationMessages = messages;
 
-        if (editingMessage?.id) {
+        if (editingMessage.id) {
             const latestEditingMessage = messages.find((msg) => msg.id === editingMessage.id);
             if (!latestEditingMessage || !canEditMessage(latestEditingMessage)) {
                 clearEditingMessage();
@@ -7360,7 +7361,7 @@ async function loadMessages(otherUid) {
 
 // Gerar ID da conversa
 function getConversationId(uid1, uid2) {
-    return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
+ return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
 }
 
 // Marcar mensagens como lidas
@@ -7390,12 +7391,12 @@ async function markMessagesAsRead(conversationId) {
 }
 
 function updateMessageDeliveryStatus(conversationId, messages) {
-    if (!currentUser || !conversationId || !messages?.length) return;
+    if (!currentUser || !conversationId || !messages.length) return;
     const batch = db.batch();
     let hasUpdates = false;
 
     messages.forEach(msg => {
-        if (!msg?.id) return;
+        if (!msg.id) return;
         if (msg.receiverId !== currentUser.uid) return;
         if (msg.delivered === true) return;
         const ref = db.collection('conversations')
@@ -7418,14 +7419,14 @@ function updateMessageDeliveryStatus(conversationId, messages) {
 
 function updateOutgoingDeliveryStatus(conversationId, messages) {
     const resolvedConversationId = conversationId || currentConversationId;
-    const resolvedMessages = messages?.length ? messages : currentConversationMessages;
-    if (!currentUser || !resolvedConversationId || !resolvedMessages?.length) return;
+ const resolvedMessages = messages.length ? messages : currentConversationMessages;
+    if (!currentUser || !resolvedConversationId || !resolvedMessages.length) return;
     if (!isUserEffectivelyOnline(selectedFriendData)) return;
     const batch = db.batch();
     let hasUpdates = false;
 
     resolvedMessages.forEach(msg => {
-        if (!msg?.id) return;
+        if (!msg.id) return;
         if (msg.senderId !== currentUser.uid) return;
         if (msg.receiverId !== selectedUserId) return;
         if (msg.delivered === true) return;
@@ -7448,12 +7449,12 @@ function updateOutgoingDeliveryStatus(conversationId, messages) {
 }
 
 function updateMessageAttachmentUrls(conversationId, messages) {
-    if (!conversationId || !messages?.length || !currentUser) return;
+    if (!conversationId || !messages.length || !currentUser) return;
     const batch = db.batch();
     let hasUpdates = false;
 
     messages.forEach(msg => {
-        if (!msg?.id) return;
+        if (!msg.id) return;
         const patch = {};
         if (msg.fileUrl && msg.fileUrl.startsWith('/')) {
             patch.fileUrl = normalizeBackendUrl(msg.fileUrl);
@@ -7479,12 +7480,12 @@ function updateMessageAttachmentUrls(conversationId, messages) {
 }
 
 function applyChatBackground(backgroundDataUrl, persist = false) {
-    const normalized = (backgroundDataUrl || '').startsWith('data:image/') ? backgroundDataUrl : '';
+ const normalized = (backgroundDataUrl || '').startsWith('data:image/') ? backgroundDataUrl : '';
     chatBackgroundDataUrl = normalized;
     const darkTheme = document.body.classList.contains('theme-dark');
     const overlay = darkTheme
-        ? 'linear-gradient(rgba(17, 24, 39, 0.72), rgba(17, 24, 39, 0.72))'
-        : 'linear-gradient(rgba(245, 247, 251, 0.68), rgba(245, 247, 251, 0.68))';
+          ? 'linear-gradient(rgba(17, 24, 39, 0.72), rgba(17, 24, 39, 0.72))'
+ : 'linear-gradient(rgba(245, 247, 251, 0.68), rgba(245, 247, 251, 0.68))';
 
     if (messagesContainer) {
         if (normalized) {
@@ -7512,7 +7513,7 @@ function applyChatBackground(backgroundDataUrl, persist = false) {
             localStorage.removeItem(CHAT_BACKGROUND_STORAGE_KEY);
         }
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel salvar o plano de fundo neste dispositivo.');
+        alert('No foi possvel salvar o plano de fundo neste dispositivo.');
     }
 }
 
@@ -7552,7 +7553,7 @@ function resetMessageSelectionState() {
 }
 
 function getMessageType(msg) {
-    return msg?.type || (msg?.imageUrl ? 'image' : 'text');
+ return msg.type || (msg.imageUrl ? 'image' : 'text');
 }
 
 function getSelectedTextMessagesData() {
@@ -7562,7 +7563,7 @@ function getSelectedTextMessagesData() {
 }
 
 function isMessageEdited(message) {
-    return !!(message?.edited || message?.editedAt);
+    return !!(message.edited || message.editedAt);
 }
 
 function canEditMessage(message) {
@@ -7581,7 +7582,7 @@ function canEditMessage(message) {
 function getSelectedEditableMessageData() {
     const selectedMessages = getSelectedMessagesData();
     if (selectedMessages.length !== 1) return null;
-    return canEditMessage(selectedMessages[0]) ? selectedMessages[0] : null;
+ return canEditMessage(selectedMessages[0]) ? selectedMessages[0] : null;
 }
 
 function canManageMessageAction(message) {
@@ -7590,7 +7591,7 @@ function canManageMessageAction(message) {
 }
 
 function canCopyMessageText(message) {
-    return getMessageType(message) === 'text' && !!String(message?.text || '').trim();
+    return getMessageType(message) === 'text' && !!String(message.text || '').trim();
 }
 
 function setSingleSelectedMessage(messageId) {
@@ -7605,7 +7606,7 @@ async function copyTextToClipboard(textPayload) {
     const text = String(textPayload || '').trim();
     if (!text) return false;
 
-    if (navigator.clipboard?.writeText) {
+    if (navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
         return true;
     }
@@ -7632,7 +7633,7 @@ function closeMessageActionMenu() {
 }
 
 function openMessageActionMenu(message, options = {}) {
-    if (!messageActionMenu || !message?.id) return;
+    if (!messageActionMenu || !message.id) return;
 
     const canReply = !!selectedUserId;
     const canCopy = canCopyMessageText(message);
@@ -7654,16 +7655,16 @@ function openMessageActionMenu(message, options = {}) {
     messageActionMenu.classList.remove('hidden');
 
     const margin = 12;
-    const rect = options.anchorEl?.getBoundingClientRect?.() || null;
+    const rect = options.anchorEl.getBoundingClientRect?.() || null;
     const menuWidth = messageActionMenu.offsetWidth || 190;
     const menuHeight = messageActionMenu.offsetHeight || 196;
 
     let left = typeof options.clientX === 'number'
-        ? options.clientX
-        : (rect ? rect.left + (rect.width / 2) - (menuWidth / 2) : window.innerWidth / 2 - menuWidth / 2);
+          ? options.clientX
+ : (rect ? rect.left + (rect.width / 2) - (menuWidth / 2) : window.innerWidth / 2 - menuWidth / 2);
     let top = typeof options.clientY === 'number'
-        ? options.clientY
-        : (rect ? rect.bottom + 8 : window.innerHeight / 2 - menuHeight / 2);
+          ? options.clientY
+ : (rect ? rect.bottom + 8 : window.innerHeight / 2 - menuHeight / 2);
 
     left = Math.max(margin, Math.min(window.innerWidth - menuWidth - margin, left));
     top = Math.max(margin, Math.min(window.innerHeight - menuHeight - margin, top));
@@ -7692,13 +7693,13 @@ async function deleteMessagesByRecords(messagesToDelete) {
 
 function syncComposerEditModeUI() {
     const isEditing = !!editingMessage;
-    const disableComposerTools = !!messageInput?.disabled || isEditing;
+    const disableComposerTools = !!messageInput.disabled || isEditing;
 
     if (btnAttach) btnAttach.disabled = disableComposerTools;
     if (btnVoice) btnVoice.disabled = disableComposerTools;
     if (btnCameraQuick) btnCameraQuick.disabled = disableComposerTools;
     if (messageInput) {
-        messageInput.placeholder = isEditing ? 'Corrija sua mensagem...' : DEFAULT_MESSAGE_INPUT_PLACEHOLDER;
+ messageInput.placeholder = isEditing ? 'Corrija sua mensagem...' : DEFAULT_MESSAGE_INPUT_PLACEHOLDER;
     }
     if (editPreview) {
         editPreview.classList.toggle('hidden', !isEditing);
@@ -7707,7 +7708,7 @@ function syncComposerEditModeUI() {
         editPreviewLabel.textContent = 'Editando mensagem';
     }
     if (editPreviewText) {
-        editPreviewText.textContent = isEditing ? String(editingMessage?.text || '') : '';
+ editPreviewText.textContent = isEditing ? String(editingMessage.text || '') : '';
     }
 }
 
@@ -7733,7 +7734,7 @@ function clearEditingMessage(options = {}) {
 
 function setEditingMessage(message) {
     if (!canEditMessage(message)) {
-        alert('Esta mensagem nï¿½o pode mais ser editada.');
+        alert('Esta mensagem no pode mais ser editada.');
         return false;
     }
 
@@ -7758,39 +7759,39 @@ function updateMessageSelectionUI() {
     const hasConversationSelected = !!selectedUserId;
     const selectedCount = selectedMessageIds.size;
     const hasSelection = hasConversationSelected && selectedCount > 0;
-    const selectedMessages = hasSelection ? getSelectedMessagesData() : [];
+ const selectedMessages = hasSelection ? getSelectedMessagesData() : [];
     const canCopyText = hasSelection
         && selectedMessages.length > 0
         && selectedMessages.every((msg) => getMessageType(msg) === 'text');
-    const editableMessage = hasSelection ? getSelectedEditableMessageData() : null;
+ const editableMessage = hasSelection ? getSelectedEditableMessageData() : null;
     const canEditSelection = !!editableMessage;
     if (btnEditSelected) {
         btnEditSelected.classList.toggle('hidden', !canEditSelection);
         btnEditSelected.disabled = !canEditSelection;
         btnEditSelected.title = canEditSelection
-            ? 'Editar mensagem selecionada'
-            : 'Editar mensagem selecionada';
+              ? 'Editar mensagem selecionada'
+ : 'Editar mensagem selecionada';
     }
     if (btnDeleteSelected) {
         btnDeleteSelected.classList.toggle('hidden', !hasSelection);
         btnDeleteSelected.disabled = !hasSelection;
         btnDeleteSelected.title = selectedCount > 0
-            ? `Excluir selecionadas (${selectedCount})`
-            : 'Excluir selecionadas';
+              ? `Excluir selecionadas (${selectedCount})`
+ : 'Excluir selecionadas';
     }
     if (btnCopySelected) {
         btnCopySelected.classList.toggle('hidden', !canCopyText);
         btnCopySelected.disabled = !canCopyText;
         btnCopySelected.title = selectedCount > 0
-            ? `Copiar selecionadas (${selectedCount})`
-            : 'Copiar selecionadas';
+              ? `Copiar selecionadas (${selectedCount})`
+ : 'Copiar selecionadas';
     }
     if (btnShareSelected) {
         btnShareSelected.classList.toggle('hidden', !hasSelection);
         btnShareSelected.disabled = !hasSelection;
         btnShareSelected.title = selectedCount > 0
-            ? `Compartilhar selecionadas (${selectedCount})`
-            : 'Compartilhar selecionadas';
+              ? `Compartilhar selecionadas (${selectedCount})`
+ : 'Compartilhar selecionadas';
     }
     updateChatSelectionSummary();
 }
@@ -7856,7 +7857,7 @@ function activateMessageSelectionByLongPress(messageId, options = {}) {
 
 function isMessageHiddenForCurrentUser(msg) {
     if (!msg || !currentUser) return false;
-    const deletedFor = Array.isArray(msg.deletedFor) ? msg.deletedFor : [];
+ const deletedFor = Array.isArray(msg.deletedFor) ? msg.deletedFor : [];
     return deletedFor.includes(currentUser.uid);
 }
 
@@ -7888,7 +7889,7 @@ function updateShareMessageConfirmButton() {
     if (!btnShareMessageConfirm) return;
     const count = shareMessageSelectedFriendIds.size;
     btnShareMessageConfirm.disabled = count === 0;
-    btnShareMessageConfirm.textContent = count > 1 ? `Compartilhar (${count})` : 'Compartilhar';
+ btnShareMessageConfirm.textContent = count > 1 ? `Compartilhar (${count})` : 'Compartilhar';
 }
 
 function toggleShareMessageFriendSelection(uid, item) {
@@ -7926,14 +7927,14 @@ function closeShareMessageModal() {
 function getShareableFriends() {
     if (!Array.isArray(allUsersCache) || !Array.isArray(currentFriends)) return [];
     const friendSet = new Set(currentFriends);
-    const blockedSet = new Set(currentUserProfile?.blocked || []);
+    const blockedSet = new Set(currentUserProfile.blocked || []);
 
     const shareable = allUsersCache.filter((user) => {
-        if (!user?.uid) return false;
+        if (!user.uid) return false;
         if (!friendSet.has(user.uid)) return false;
         if (user.disabled) return false;
         if (blockedSet.has(user.uid)) return false;
-        if (user.uid === selectedUserId && user.uid !== currentUser?.uid) return false;
+        if (user.uid === selectedUserId && user.uid !== currentUser.uid) return false;
         return true;
     });
 
@@ -7942,10 +7943,10 @@ function getShareableFriends() {
             ...(currentUserProfile || {}),
             uid: currentUser.uid,
             id: currentUser.uid,
-            name: currentUserProfile?.name || currentUser.displayName || currentUser.email || 'Usuï¿½rio',
-            email: currentUserProfile?.email || currentUser.email || '',
-            photoURL: currentUserProfile?.photoURL || currentUser.photoURL || null,
-            photoData: currentUserProfile?.photoData || null
+            name: currentUserProfile.name || currentUser.displayName || currentUser.email || 'Usurio',
+            email: currentUserProfile.email || currentUser.email || '',
+            photoURL: currentUserProfile.photoURL || currentUser.photoURL || null,
+            photoData: currentUserProfile.photoData || null
         };
         if (!shareable.some((user) => user.uid === currentUser.uid)) {
             shareable.unshift(selfUser);
@@ -7957,7 +7958,7 @@ function getShareableFriends() {
         const bOnline = isUserPresenceVisible(b) && isUserEffectivelyOnline(b);
         if (aOnline && !bOnline) return -1;
         if (!aOnline && bOnline) return 1;
-        return (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0);
+        return (b.lastSeen.seconds || 0) - (a.lastSeen.seconds || 0);
     });
 
     return shareable;
@@ -7971,7 +7972,7 @@ function buildShareFriendItem(user) {
     const safeStatus = escapeHtml(getUserPresenceStatusText(user));
 
     li.innerHTML = `
-        <img src="https://via.placeholder.com/40/cccccc/666666?text=User" alt="avatar">
+        <img src="https://via.placeholder.com/40/cccccc/666666text=User" alt="avatar">
         <div class="share-message-friend-info">
             <strong>${safeName}</strong>
             <small>${safeStatus}</small>
@@ -7981,7 +7982,7 @@ function buildShareFriendItem(user) {
 
     const avatar = li.querySelector('img');
     if (avatar) {
-        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666?text=User');
+        applyProfilePhoto(avatar, user, 'https://via.placeholder.com/40/cccccc/666666text=User');
     }
 
     return li;
@@ -7990,7 +7991,7 @@ function buildShareFriendItem(user) {
 async function askShareTargetUsers() {
     const shareableFriends = getShareableFriends();
     if (!shareableFriends.length) {
-        alert('Vocï¿½ precisa ter outro amigo disponï¿½vel para compartilhar.');
+        alert('Voc precisa ter outro amigo disponvel para compartilhar.');
         return null;
     }
 
@@ -8025,15 +8026,15 @@ async function askShareTargetUsers() {
 function normalizeAndroidSharePayload(payload) {
     if (!payload || typeof payload !== 'object') return null;
     const text = String(payload.text || '').trim();
-    const items = Array.isArray(payload.items) ? payload.items : [];
+ const items = Array.isArray(payload.items) ? payload.items : [];
     const normalizedItems = items.map((item) => ({
-        uri: String(item?.uri || '').trim(),
-        name: String(item?.name || item?.fileName || '').trim(),
-        mimeType: String(item?.mimeType || item?.type || '').trim(),
-        size: Number(item?.size || 0) || 0
+        uri: String(item.uri || '').trim(),
+        name: String(item.name || item.fileName || '').trim(),
+        mimeType: String(item.mimeType || item.type || '').trim(),
+        size: Number(item.size || 0) || 0
     })).filter((item) => item.uri);
     let filteredItems = normalizedItems;
-    const hasLink = /(https?:\/\/|www\.)/i.test(text);
+    const hasLink = /(https:\/\/|www\.)/i.test(text);
     if (hasLink && normalizedItems.length) {
         const onlyImages = normalizedItems.every((item) => item.mimeType.startsWith('image/'));
         if (onlyImages) {
@@ -8056,11 +8057,11 @@ async function ensureShareableFriendsLoaded(timeoutMs = 8000) {
 }
 
 async function uploadAndroidSharedItem(item) {
-    if (!isAndroidWebViewRuntime() || !item?.uri || !currentUser) return null;
+    if (!isAndroidWebViewRuntime() || !item.uri || !currentUser) return null;
     const cacheKey = item.uri;
     const cached = androidShareItemUploadCache.get(cacheKey);
-    if (cached?.result) return cached.result;
-    if (cached?.promise) return await cached.promise;
+    if (cached.result) return cached.result;
+    if (cached.promise) return await cached.promise;
 
     const promise = (async () => {
         try {
@@ -8100,7 +8101,7 @@ async function uploadAndroidSharedItem(item) {
 
     androidShareItemUploadCache.set(cacheKey, { promise });
     const result = await promise;
-    if (result?.url) {
+    if (result.url) {
         androidShareItemUploadCache.set(cacheKey, { result });
     } else {
         androidShareItemUploadCache.delete(cacheKey);
@@ -8112,7 +8113,7 @@ async function sendChatFileFromUrl(fileUrl, meta = {}, targetUid = selectedUserI
     if (!fileUrl || !targetUid || !currentUser) return;
     if (isFriendBlocked(targetUid)) {
         if (targetUid === selectedUserId) {
-            alert('Vocï¿½ bloqueou este usuï¿½rio.');
+            alert('Voc bloqueou este usurio.');
         }
         return;
     }
@@ -8127,22 +8128,22 @@ async function sendChatFileFromUrl(fileUrl, meta = {}, targetUid = selectedUserI
 
     const conversationId = getConversationId(currentUser.uid, targetUid);
     const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
-    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
-    const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
+ const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
+ const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
     const messagePayload = {
         fileUrl: fileUrl,
         fileName: fileName,
         fileType: fileType,
         fileSize: fileSize || null,
-        imageUrl: messageType === 'image' ? fileUrl : null,
+ imageUrl: messageType === 'image' ? fileUrl : null,
         senderId: currentUser.uid,
         receiverId: targetUid,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         type: messageType,
         read: false,
         delivered: delivered,
-        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+ deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
         replyTo: replyPayload || null
     };
 
@@ -8158,16 +8159,16 @@ async function sendChatFileFromUrl(fileUrl, meta = {}, targetUid = selectedUserI
 }
 
 async function shareAndroidFileItem(item, targetUid = selectedUserId, targetFriend = selectedFriendData) {
-    if (!item?.uri || !targetUid) return;
+    if (!item.uri || !targetUid) return;
     if (item.size && item.size > MAX_CHAT_FILE_SIZE_BYTES) {
-        alert(`O arquivo deve ter no mï¿½ximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
+        alert(`O arquivo deve ter no mximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
         return;
     }
 
     if (isAndroidWebViewRuntime()) {
         const upload = await uploadAndroidSharedItem(item);
-        if (!upload?.url) {
-            alert('Nï¿½o foi possï¿½vel importar este arquivo agora.');
+        if (!upload.url) {
+            alert('No foi possvel importar este arquivo agora.');
             return;
         }
 
@@ -8194,7 +8195,7 @@ async function processPendingAndroidSharePayload() {
         const uniqueTargets = Array.from(new Set(targetUids.filter(Boolean)));
         const validTargets = uniqueTargets.filter((uid) => !isFriendBlocked(uid));
         if (validTargets.length === 0) {
-            alert('Vocï¿½ bloqueou todos os usuï¿½rios selecionados.');
+            alert('Voc bloqueou todos os usurios selecionados.');
             return;
         }
 
@@ -8239,7 +8240,7 @@ function handleAndroidSharePayload(rawPayload) {
     if (currentUser) {
         processPendingAndroidSharePayload();
     } else {
-        alert('Faï¿½a login para compartilhar no CameChat.');
+        alert('Faa login para compartilhar no CameChat.');
     }
 }
 
@@ -8252,21 +8253,21 @@ async function handleAndroidShareUploadResult(rawPayload) {
             return;
         }
     }
-    const requestId = payload?.requestId;
+    const requestId = payload.requestId;
     if (!requestId || !pendingAndroidShareUploads.has(requestId)) return;
     const meta = pendingAndroidShareUploads.get(requestId);
     pendingAndroidShareUploads.delete(requestId);
 
-    if (typeof meta?.resolve === 'function') {
+    if (typeof meta.resolve === 'function') {
         if (!payload.ok || !payload.url) {
             meta.resolve(null);
             return;
         }
         meta.resolve({
             url: payload.url,
-            fileName: payload.fileName || meta?.item?.name || '',
-            mimeType: payload.mimeType || meta?.item?.mimeType || '',
-            size: payload.size || meta?.item?.size || 0
+            fileName: payload.fileName || meta.item.name || '',
+            mimeType: payload.mimeType || meta.item.mimeType || '',
+            size: payload.size || meta.item.size || 0
         });
         return;
     }
@@ -8289,7 +8290,7 @@ async function handleAndroidCallAction(rawPayload) {
     if (!payload || typeof payload !== 'object') return;
     if (!currentUser) {
         pendingAndroidCallAction = payload;
-        alert('Faï¿½a login para atender a chamada no CameChat.');
+        alert('Faa login para atender a chamada no CameChat.');
         return;
     }
 
@@ -8355,7 +8356,7 @@ async function handleAndroidMessageOpen(rawPayload) {
     if (!payload || typeof payload !== 'object') return;
     if (!currentUser) {
         pendingAndroidMessageOpen = payload;
-        alert('Faï¿½a login para abrir a conversa.');
+        alert('Faa login para abrir a conversa.');
         return;
     }
 
@@ -8395,20 +8396,20 @@ async function askDeleteScope(messagesToDelete) {
     if (!Array.isArray(messagesToDelete) || messagesToDelete.length === 0) return null;
     const allowDeleteForAll = messagesToDelete.every((msg) => canDeleteMessageForAll(msg));
     const total = messagesToDelete.length;
-    const noun = total === 1 ? 'item' : 'itens';
+ const noun = total === 1 ? 'item' : 'itens';
 
     if (!deleteMessageModal || !deleteMessageModalText || !btnDeleteMessageMe || !btnDeleteMessageAll) {
         if (allowDeleteForAll) {
-            const confirmedAll = confirm(`Excluir ${total} ${noun} para todos?\n\nOK = Excluir para todos\nCancelar = Excluir sï¿½ para mim`);
-            return confirmedAll ? 'all' : 'me';
+            const confirmedAll = confirm(`Excluir ${total} ${noun} para todos\n\nOK = Excluir para todos\nCancelar = Excluir s para mim`);
+ return confirmedAll ? 'all' : 'me';
         }
-        const confirmedMine = confirm(`Excluir ${total} ${noun} selecionado(s) sï¿½ para vocï¿½?`);
-        return confirmedMine ? 'me' : null;
+        const confirmedMine = confirm(`Excluir ${total} ${noun} selecionado(s) s para voc`);
+ return confirmedMine ? 'me' : null;
     }
 
     deleteMessageModalText.textContent = allowDeleteForAll
-        ? `Vocï¿½ selecionou ${total} ${noun}. Escolha como deseja excluir:`
-        : `Vocï¿½ selecionou ${total} ${noun}. Esse conteï¿½do sï¿½ pode ser excluï¿½do para vocï¿½.`;
+          ? `Voc selecionou ${total} ${noun}. Escolha como deseja excluir:`
+ : `Voc selecionou ${total} ${noun}. Esse contedo s pode ser excludo para voc.`;
     btnDeleteMessageAll.classList.toggle('hidden', !allowDeleteForAll);
 
     deleteMessageModal.classList.add('show');
@@ -8478,17 +8479,17 @@ async function deleteSelectedMessages() {
         resetMessageSelectionState();
         renderMessages(currentConversationMessages || []);
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel excluir os itens selecionados.');
+        alert('No foi possvel excluir os itens selecionados.');
     }
 }
 
 function getMessageTimestampMs(message) {
-    const date = timestampToDate(message?.timestamp);
-    return date ? date.getTime() : 0;
+    const date = timestampToDate(message.timestamp);
+ return date ? date.getTime() : 0;
 }
 
 function buildForwardMessagePayload(msg, targetUid, delivered) {
-    const messageType = msg?.type || (msg?.imageUrl ? 'image' : 'text');
+ const messageType = msg.type || (msg.imageUrl ? 'image' : 'text');
     const payload = {
         senderId: currentUser.uid,
         receiverId: targetUid,
@@ -8496,24 +8497,24 @@ function buildForwardMessagePayload(msg, targetUid, delivered) {
         type: messageType,
         read: false,
         delivered: delivered,
-        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+ deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
         forwarded: true,
-        forwardedFromUid: msg?.senderId || null,
+        forwardedFromUid: msg.senderId || null,
         forwardedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     if (messageType === 'text') {
-        payload.text = msg?.text || '';
+        payload.text = msg.text || '';
         return payload;
     }
 
-    payload.fileUrl = msg?.fileUrl || msg?.imageUrl || null;
+    payload.fileUrl = msg.fileUrl || msg.imageUrl || null;
     payload.imageUrl = messageType === 'image'
-        ? (msg?.imageUrl || msg?.fileUrl || null)
-        : null;
-    payload.fileName = msg?.fileName || null;
-    payload.fileType = msg?.fileType || null;
-    payload.fileSize = Number(msg?.fileSize || 0) || null;
+          ? (msg.imageUrl || msg.fileUrl || null)
+ : null;
+    payload.fileName = msg.fileName || null;
+    payload.fileType = msg.fileType || null;
+    payload.fileSize = Number(msg.fileSize || 0) || null;
     return payload;
 }
 
@@ -8558,7 +8559,7 @@ async function shareSelectedMessages() {
     const uniqueTargets = Array.from(new Set(targetUids.filter(Boolean)));
     const validTargets = uniqueTargets.filter((uid) => !isFriendBlocked(uid));
     if (validTargets.length === 0) {
-        alert('Vocï¿½ bloqueou todos os usuï¿½rios selecionados.');
+        alert('Voc bloqueou todos os usurios selecionados.');
         return;
     }
 
@@ -8588,7 +8589,7 @@ async function shareSelectedMessages() {
     }
 
     if (hasFailure) {
-        alert('Alguns compartilhamentos nï¿½o puderam ser concluï¿½dos.');
+        alert('Alguns compartilhamentos no puderam ser concludos.');
     }
 }
 
@@ -8600,7 +8601,7 @@ async function copySelectedTextMessages() {
     }
 
     const textPayload = selectedTextMessages
-        .map((msg) => String(msg?.text || '').trim())
+        .map((msg) => String(msg.text || '').trim())
         .filter(Boolean)
         .join('\n');
 
@@ -8609,14 +8610,14 @@ async function copySelectedTextMessages() {
     try {
         await copyTextToClipboard(textPayload);
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel copiar as mensagens selecionadas.');
+        alert('No foi possvel copiar as mensagens selecionadas.');
     }
 }
 
 async function editSelectedMessage() {
     const editableMessage = getSelectedEditableMessageData();
     if (!editableMessage) {
-        alert('Selecione apenas uma mensagem de texto enviada por vocï¿½ nos ï¿½ltimos 30 minutos.');
+        alert('Selecione apenas uma mensagem de texto enviada por voc nos ltimos 30 minutos.');
         return;
     }
 
@@ -8639,7 +8640,7 @@ async function handleMessageActionCopy() {
         await copyTextToClipboard(String(activeMessageActionTarget.text || ''));
         closeMessageActionMenu();
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel copiar esta mensagem.');
+        alert('No foi possvel copiar esta mensagem.');
     }
 }
 
@@ -8661,7 +8662,7 @@ async function handleMessageActionDelete() {
         resetMessageSelectionState();
         renderMessages(currentConversationMessages || []);
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel excluir esta mensagem.');
+        alert('No foi possvel excluir esta mensagem.');
     }
 }
 
@@ -8695,22 +8696,22 @@ function bindMessageSelectionInteractions(rowEl, messageId, options = {}) {
     };
 
     const shouldIgnoreStart = (target) => {
-        return !!target?.closest?.('a,video,audio,button,input,textarea,iframe');
+        return !!target.closest?.('a,video,audio,button,input,textarea,iframe');
     };
 
     const startLongPress = (event) => {
         if (event && typeof event.button === 'number' && event.button !== 0) return;
-        if (shouldIgnoreStart(event?.target)) return;
+        if (shouldIgnoreStart(event.target)) return;
         clearTimer();
         longPressTriggered = false;
-        startedFromTouch = event?.type?.startsWith('touch') || false;
+        startedFromTouch = event.type.startsWith('touch') || false;
 
-        if (event?.touches?.[0]) {
+        if (event.touches?.[0]) {
             pressClientX = event.touches[0].clientX;
             pressClientY = event.touches[0].clientY;
         } else {
-            pressClientX = event?.clientX ?? 0;
-            pressClientY = event?.clientY ?? 0;
+            pressClientX = event.clientX ?? 0;
+            pressClientY = event.clientY ?? 0;
         }
 
         longPressTimer = setTimeout(() => {
@@ -8725,7 +8726,7 @@ function bindMessageSelectionInteractions(rowEl, messageId, options = {}) {
     };
 
     const cancelLongPressOnMove = (event) => {
-        if (event?.touches?.[0]) {
+        if (event.touches?.[0]) {
             const deltaX = Math.abs(event.touches[0].clientX - pressClientX);
             const deltaY = Math.abs(event.touches[0].clientY - pressClientY);
             if (deltaX > 12 || deltaY > 12) {
@@ -8804,13 +8805,13 @@ function normalizeExternalLink(rawUrl) {
 
 function extractMessageLinks(text) {
     const source = String(text || '');
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+    const urlRegex = /((:https:\/\/|www\.)[^\s]+)/gi;
     const links = [];
     let match = null;
 
     while ((match = urlRegex.exec(source)) !== null) {
         let candidate = match[0];
-        while (candidate && /[),.;!?]$/.test(candidate)) {
+        while (candidate && /[),.;!]$/.test(candidate)) {
             candidate = candidate.slice(0, -1);
         }
         const normalized = normalizeExternalLink(candidate);
@@ -8824,7 +8825,7 @@ function extractMessageLinks(text) {
 
 function linkifyMessageText(text) {
     const source = String(text || '');
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+    const urlRegex = /((:https:\/\/|www\.)[^\s]+)/gi;
     let lastIndex = 0;
     let output = '';
     let match = null;
@@ -8837,7 +8838,7 @@ function linkifyMessageText(text) {
 
         let candidate = fullMatch;
         let trailing = '';
-        while (candidate && /[),.;!?]$/.test(candidate)) {
+        while (candidate && /[),.;!]$/.test(candidate)) {
             trailing = candidate.slice(-1) + trailing;
             candidate = candidate.slice(0, -1);
         }
@@ -8875,7 +8876,7 @@ function buildLinkPreviewData(url) {
     try {
         const parsed = new URL(url);
         const host = parsed.hostname.replace(/^www\./i, '');
-        const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
+ const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
         const title = `${host}${path}`;
         const youtubeId = extractYouTubeId(url);
 
@@ -8884,18 +8885,18 @@ function buildLinkPreviewData(url) {
                 url,
                 host,
                 title,
-                description: 'Prï¿½-visualizaï¿½ï¿½o do link',
+                description: 'Pr-visualizao do link',
                 thumbnailUrl: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
             };
         }
 
-        const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(host)}`;
+        const faviconUrl = `https://www.google.com/s2/faviconssz=128&domain=${encodeURIComponent(host)}`;
         const screenshotUrl = `https://image.thum.io/get/width/700/crop/360/noanimate/${url}`;
         return {
             url,
             host,
             title,
-            description: 'Prï¿½-visualizaï¿½ï¿½o do link',
+            description: 'Pr-visualizao do link',
             thumbnailUrl: screenshotUrl,
             fallbackIconUrl: faviconUrl
         };
@@ -8915,15 +8916,15 @@ function renderLinkPreviewHtml(text) {
     const safeHost = escapeHtml(preview.host || preview.url);
     const safeDescription = escapeHtml(preview.description || '');
     const thumb = preview.thumbnailUrl
-        ? `<img class="message-link-preview-thumb-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="Prï¿½via do link" loading="lazy" referrerpolicy="no-referrer">`
-        : '';
+          ? `<img class="message-link-preview-thumb-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="Prvia do link" loading="lazy" referrerpolicy="no-referrer">`
+ : '';
     const icon = preview.fallbackIconUrl
-        ? `<img class="message-link-preview-favicon" src="${escapeHtml(preview.fallbackIconUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
-        : '<span class="message-link-preview-favicon message-link-preview-favicon-placeholder">&#128279;</span>';
+          ? `<img class="message-link-preview-favicon" src="${escapeHtml(preview.fallbackIconUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+ : '<span class="message-link-preview-favicon message-link-preview-favicon-placeholder">&#128279;</span>';
 
     return `
         <a class="message-link-preview" href="${safeUrl}" target="_blank" rel="noopener noreferrer">
-            <div class="message-link-preview-thumb ${thumb ? '' : 'no-thumb'}">
+ <div class="message-link-preview-thumb ${thumb ? '' : 'no-thumb'}">
                 ${thumb}
             </div>
             <div class="message-link-preview-info">
@@ -8937,45 +8938,45 @@ function renderLinkPreviewHtml(text) {
 
 function getReplySnippetTextFromMessage(message) {
     const type = getMessageType(message);
-    if (type === 'text') return String(message?.text || '').trim() || 'Mensagem';
-    if (type === 'image') return message?.fileName ? `Foto: ${message.fileName}` : 'Foto';
-    if (type === 'video') return message?.fileName ? `Vï¿½deo: ${message.fileName}` : 'Vï¿½deo';
-    if (type === 'audio') return message?.fileName ? `ï¿½udio: ${message.fileName}` : 'ï¿½udio';
-    if (type === 'file') return message?.fileName ? `Arquivo: ${message.fileName}` : 'Arquivo';
+    if (type === 'text') return String(message.text || '').trim() || 'Mensagem';
+ if (type === 'image') return message.fileName ? `Foto: ${message.fileName}` : 'Foto';
+ if (type === 'video') return message.fileName ? `Vdeo: ${message.fileName}` : 'Vdeo';
+ if (type === 'audio') return message.fileName ? `udio: ${message.fileName}` : 'udio';
+ if (type === 'file') return message.fileName ? `Arquivo: ${message.fileName}` : 'Arquivo';
     return 'Mensagem';
 }
 
 function getReplyThumbnailUrl(message) {
     const type = getMessageType(message);
     if (type === 'image') {
-        return message?.imageUrl || message?.fileUrl || getAttachmentDownloadUrl(message);
+        return message.imageUrl || message.fileUrl || getAttachmentDownloadUrl(message);
     }
     return '';
 }
 
 function getDisplayNameByUid(uid) {
-    if (!uid || !currentUser) return 'Usuï¿½rio';
-    if (uid === currentUser.uid) return 'Vocï¿½';
+    if (!uid || !currentUser) return 'Usurio';
+    if (uid === currentUser.uid) return 'Voc';
     const alias = getFriendAlias(uid);
     if (alias) return alias;
     const cached = getCachedUserByUid(uid);
-    if (cached) return cached.name || 'Usuï¿½rio';
+    if (cached) return cached.name || 'Usurio';
     if (selectedFriendData && selectedFriendData.uid === uid) {
         return getFriendDisplayName(selectedFriendData);
     }
-    return 'Usuï¿½rio';
+    return 'Usurio';
 }
 
 function normalizeReplyReferencePayload(sourceMessage) {
-    if (!sourceMessage?.id) return null;
+    if (!sourceMessage.id) return null;
     const type = getMessageType(sourceMessage);
-    const fileUrl = sourceMessage?.fileUrl || sourceMessage?.imageUrl || getAttachmentDownloadUrl(sourceMessage) || '';
+    const fileUrl = sourceMessage.fileUrl || sourceMessage.imageUrl || getAttachmentDownloadUrl(sourceMessage) || '';
 
     return {
         id: sourceMessage.id,
         senderId: sourceMessage.senderId || null,
         type,
-        text: type === 'text' ? String(sourceMessage.text || '').slice(0, 1000) : '',
+ text: type === 'text' ? String(sourceMessage.text || '').slice(0, 1000) : '',
         fileName: sourceMessage.fileName || '',
         fileType: sourceMessage.fileType || '',
         fileUrl: fileUrl || '',
@@ -8996,7 +8997,7 @@ function clearReplyTargetMessage() {
 }
 
 function setReplyTargetMessage(message) {
-    if (!message?.id || !selectedUserId) return;
+    if (!message.id || !selectedUserId) return;
     if (editingMessage) {
         clearEditingMessage();
     }
@@ -9014,7 +9015,7 @@ function setReplyTargetMessage(message) {
     if (thumbUrl) {
         const img = document.createElement('img');
         img.src = thumbUrl;
-        img.alt = 'Mï¿½dia respondida';
+        img.alt = 'Mdia respondida';
         img.loading = 'lazy';
         img.referrerPolicy = 'no-referrer';
         img.addEventListener('error', () => {
@@ -9025,13 +9026,13 @@ function setReplyTargetMessage(message) {
     } else {
         const icon = document.createElement('span');
         icon.className = 'reply-preview-thumb-fallback';
-        icon.textContent = getMessageType(message) === 'text' ? '#' : '?';
+ icon.textContent = getMessageType(message) === 'text' ? '#' : '';
         replyPreviewThumb.appendChild(icon);
         replyPreviewThumb.classList.remove('hidden');
     }
 
     replyPreview.classList.remove('hidden');
-    messageInput?.focus();
+    messageInput.focus();
 }
 
 function getPendingReplyPayload() {
@@ -9043,10 +9044,10 @@ function getReplySummaryText(replyTo) {
     const type = getMessageType(replyTo);
     if (type === 'text') return String(replyTo.text || replyTo.previewText || 'Mensagem').trim() || 'Mensagem';
     if (replyTo.previewText) return String(replyTo.previewText);
-    if (type === 'image') return replyTo.fileName ? `Foto: ${replyTo.fileName}` : 'Foto';
-    if (type === 'video') return replyTo.fileName ? `Vï¿½deo: ${replyTo.fileName}` : 'Vï¿½deo';
-    if (type === 'audio') return replyTo.fileName ? `ï¿½udio: ${replyTo.fileName}` : 'ï¿½udio';
-    if (type === 'file') return replyTo.fileName ? `Arquivo: ${replyTo.fileName}` : 'Arquivo';
+ if (type === 'image') return replyTo.fileName ? `Foto: ${replyTo.fileName}` : 'Foto';
+ if (type === 'video') return replyTo.fileName ? `Vdeo: ${replyTo.fileName}` : 'Vdeo';
+ if (type === 'audio') return replyTo.fileName ? `udio: ${replyTo.fileName}` : 'udio';
+ if (type === 'file') return replyTo.fileName ? `Arquivo: ${replyTo.fileName}` : 'Arquivo';
     return 'Mensagem';
 }
 
@@ -9055,10 +9056,10 @@ function renderReplyReferenceHtml(replyTo) {
 
     const senderLabel = escapeHtml(getDisplayNameByUid(replyTo.senderId));
     const summary = escapeHtml(getReplySummaryText(replyTo));
-    const thumbUrl = replyTo.imageUrl || (getMessageType(replyTo) === 'image' ? replyTo.fileUrl : '');
+ const thumbUrl = replyTo.imageUrl || (getMessageType(replyTo) === 'image' ? replyTo.fileUrl : '');
     const thumbHtml = thumbUrl
-        ? `<img class="message-reply-thumb" src="${escapeHtml(thumbUrl)}" alt="Mï¿½dia respondida" loading="lazy" referrerpolicy="no-referrer">`
-        : '';
+          ? `<img class="message-reply-thumb" src="${escapeHtml(thumbUrl)}" alt="Mdia respondida" loading="lazy" referrerpolicy="no-referrer">`
+ : '';
 
     return `
         <div class="message-reply-reference">
@@ -9073,7 +9074,7 @@ function renderReplyReferenceHtml(replyTo) {
 }
 
 function bindMessageSwipeToReply(messageEl, msg) {
-    if (!messageEl || !msg?.id) return;
+    if (!messageEl || !msg.id) return;
 
     let startX = 0;
     let startY = 0;
@@ -9104,7 +9105,7 @@ function bindMessageSwipeToReply(messageEl, msg) {
 
     const onStart = (clientX, clientY, eventTarget) => {
         if (isMessageSelectionMode) return;
-        if (eventTarget?.closest?.('a,video,audio,button,input,textarea,iframe')) return;
+        if (eventTarget.closest?.('a,video,audio,button,input,textarea,iframe')) return;
         tracking = true;
         canTrack = true;
         swipeTriggered = false;
@@ -9141,7 +9142,7 @@ function bindMessageSwipeToReply(messageEl, msg) {
         messageEl.style.transform = `translateX(${visualShift}px)`;
         swipeTriggered = deltaX >= SWIPE_TRIGGER_PX;
 
-        if (event?.cancelable) {
+        if (event.cancelable) {
             event.preventDefault();
         }
     };
@@ -9173,12 +9174,12 @@ function bindMessageSwipeToReply(messageEl, msg) {
 // Renderizar mensagens
 function renderMessages(messages, options = {}) {
     if (!messagesContainer) return;
-    const safeMessages = Array.isArray(messages) ? messages : [];
+ const safeMessages = Array.isArray(messages) ? messages : [];
     const previousScrollTop = messagesContainer.scrollTop;
     const previousScrollHeight = messagesContainer.scrollHeight;
     const preserveScroll = !!options.preserveScroll;
     messagesContainer.innerHTML = '';
-    const partnerLabel = chatPartnerName ? chatPartnerName.textContent : 'seu contato';
+ const partnerLabel = chatPartnerName ? chatPartnerName.textContent : 'seu contato';
     
     if (safeMessages.length === 0) {
         messagesContainer.innerHTML = `
@@ -9197,10 +9198,10 @@ function renderMessages(messages, options = {}) {
         const row = document.createElement('div');
         const div = document.createElement('div');
         try {
-            const isSent = msg.senderId === currentUser?.uid;
-            row.className = `message-row ${isSent ? 'sent' : 'received'}`;
+            const isSent = msg.senderId === currentUser.uid;
+ row.className = `message-row ${isSent ? 'sent' : 'received'}`;
             row.dataset.messageId = msg.id || '';
-            div.className = `message ${isSent ? 'sent' : 'received'}`;
+ div.className = `message ${isSent ? 'sent' : 'received'}`;
             div.dataset.messageId = msg.id || '';
             const canManageMessage = !!msg.id
                 && !!currentUser
@@ -9235,7 +9236,7 @@ function renderMessages(messages, options = {}) {
                 } else {
                     div.innerHTML = `
                         ${replyReference}
-                        <p>Imagem indisponï¿½vel.</p>
+                        <p>Imagem indisponvel.</p>
                         ${meta}
                     `;
                 }
@@ -9244,7 +9245,7 @@ function renderMessages(messages, options = {}) {
                 if (videoUrl) {
                     div.innerHTML = `
                         ${replyReference}
-                        <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vï¿½deo">
+                        <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vdeo">
                             <video class="chat-media-video" src="${videoUrl}" playsinline preload="metadata" muted></video>
                             <span class="chat-media-video-play" aria-hidden="true">&#9658;</span>
                         </div>
@@ -9259,7 +9260,7 @@ function renderMessages(messages, options = {}) {
                     if (videoThumb && !isSelectionMode) {
                         const openVideo = (event) => {
                             if (shouldBlockMessagePrimaryAction(event)) return;
-                            openAttachmentInNewTab(msg, videoEl?.currentSrc || videoEl?.src || videoUrl);
+                            openAttachmentInNewTab(msg, videoEl.currentSrc || videoEl.src || videoUrl);
                         };
                         videoThumb.addEventListener('click', openVideo);
                         videoThumb.addEventListener('keydown', (event) => {
@@ -9272,7 +9273,7 @@ function renderMessages(messages, options = {}) {
                 } else {
                     div.innerHTML = `
                         ${replyReference}
-                        <p>Vï¿½deo indisponï¿½vel.</p>
+                        <p>Vdeo indisponvel.</p>
                         ${meta}
                     `;
                 }
@@ -9291,14 +9292,14 @@ function renderMessages(messages, options = {}) {
                 } else {
                     div.innerHTML = `
                         ${replyReference}
-                        <p>ï¿½udio indisponï¿½vel.</p>
+                        <p>udio indisponvel.</p>
                         ${meta}
                     `;
                 }
             } else if (messageType === 'file') {
                 const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || getMessageFileUrl(msg) || '#');
                 const fileName = escapeHtml(msg.fileName || 'Arquivo');
-                const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
+ const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
                 const thumbInfo = buildDocumentThumbInfo(msg, fileUrl);
                 div.innerHTML = `
                     ${replyReference}
@@ -9364,7 +9365,7 @@ function renderMessages(messages, options = {}) {
             console.warn('Falha ao renderizar mensagem:', error, msg);
             div.className = 'message received';
             div.innerHTML = `
-                <p>Mensagem indisponï¿½vel para visualizaï¿½ï¿½o.</p>
+                <p>Mensagem indisponvel para visualizao.</p>
             `;
         }
 
@@ -9394,7 +9395,7 @@ function formatFileSize(bytes) {
     if (bytes === 0 || !bytes) return '';
     const units = ['B', 'KB', 'MB', 'GB'];
     const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-    const size = (bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1);
+ const size = (bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1);
     return `${size} ${units[index]}`;
 }
 
@@ -9404,12 +9405,12 @@ function setOnlineStatusClass(element, isOnline) {
 }
 
 async function saveEditedMessage(text) {
-    if (!editingMessage?.id || !currentUser || !selectedUserId) return;
+    if (!editingMessage.id || !currentUser || !selectedUserId) return;
 
     const latestMessage = currentConversationMessages.find((msg) => msg.id === editingMessage.id) || editingMessage;
     if (!canEditMessage(latestMessage)) {
         clearEditingMessage();
-        alert('O prazo de 30 minutos para editar essa mensagem jï¿½ expirou.');
+        alert('O prazo de 30 minutos para editar essa mensagem j expirou.');
         return;
     }
 
@@ -9444,7 +9445,7 @@ async function updateConversationLastMessage(conversationId, payload) {
     const update = {
         lastMessageAt: lastMessageAt,
         lastMessageType: payload.type || 'text',
-        lastMessageSenderId: payload.senderId || currentUser?.uid || '',
+        lastMessageSenderId: payload.senderId || currentUser.uid || '',
         lastMessageReceiverId: payload.receiverId || selectedUserId || '',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -9463,7 +9464,7 @@ async function sendTextMessageToFriend(text, targetUid, targetFriend) {
 
     const conversationId = getConversationId(currentUser.uid, targetUid);
     const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
-    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
+ const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
 
     const messagePayload = {
         text: messageText,
@@ -9473,7 +9474,7 @@ async function sendTextMessageToFriend(text, targetUid, targetFriend) {
         type: 'text',
         read: false,
         delivered: delivered,
-        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+ deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
         replyTo: null
     };
 
@@ -9489,7 +9490,7 @@ async function submitTextComposerMessage() {
     const text = messageInput.value.trim();
     if (!text || !selectedUserId) return;
     if (isFriendBlocked(selectedUserId)) {
-        alert('Vocï¿½ bloqueou este usuï¿½rio.');
+        alert('Voc bloqueou este usurio.');
         return;
     }
 
@@ -9515,7 +9516,7 @@ async function submitTextComposerMessage() {
             type: 'text',
             read: false,
             delivered: delivered,
-            deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+ deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
             replyTo: replyPayload || null
         };
 
@@ -9542,7 +9543,7 @@ function getDefaultChatPartnerStatus() {
 }
 
 function getChatPartnerActivityLabel(state) {
-    const displayName = selectedFriendData ? getFriendDisplayName(selectedFriendData) : (chatPartnerName?.textContent || 'Usu\u00e1rio');
+ const displayName = selectedFriendData ? getFriendDisplayName(selectedFriendData) : (chatPartnerName.textContent || 'Usu\u00e1rio');
     if (state === 'recording') {
         return formatUiText('recordingActivity', { name: displayName });
     }
@@ -9601,15 +9602,15 @@ function updateCallButtonsAvailability() {
 }
 
 function setChatPartnerActivity(state) {
-    remoteTypingState = state === 'typing' || state === 'recording' ? state : null;
+ remoteTypingState = state === 'typing' || state === 'recording' ? state : null;
     renderChatPartnerStatus();
 }
 
 function setRemoteUserActivity(activity) {
-    const state = activity?.state;
-    const targetUid = activity?.targetUid;
-    const updatedAt = activity?.updatedAt?.toDate ? activity.updatedAt.toDate() : null;
-    const isFresh = updatedAt ? (Date.now() - updatedAt.getTime() <= 8000) : true;
+    const state = activity.state;
+    const targetUid = activity.targetUid;
+ const updatedAt = activity.updatedAt.toDate ? activity.updatedAt.toDate() : null;
+ const isFresh = updatedAt ? (Date.now() - updatedAt.getTime() <= 8000) : true;
     const isValidState = state === 'typing' || state === 'recording';
 
     if (!currentUser || targetUid !== currentUser.uid || !isValidState || !isFresh) {
@@ -9661,9 +9662,9 @@ function listenTypingStatus(otherUid) {
         .onSnapshot((doc) => {
             const data = doc.data() || {};
             const entry = data.typing && data.typing[otherUid];
-            const state = entry?.state || null;
-            const updatedAt = entry?.updatedAt?.toDate ? entry.updatedAt.toDate() : null;
-            const isStale = updatedAt ? (Date.now() - updatedAt.getTime() > 8000) : false;
+            const state = entry.state || null;
+ const updatedAt = entry.updatedAt.toDate ? entry.updatedAt.toDate() : null;
+ const isStale = updatedAt ? (Date.now() - updatedAt.getTime() > 8000) : false;
             if (!state || isStale) {
                 setChatPartnerActivity(null);
                 return;
@@ -9698,7 +9699,7 @@ function updateTypingState(state, force = false) {
         .doc(conversationId)
         .set(payload, { merge: true })
         .catch((error) => {
-            console.warn('Falha ao atualizar status de digitaï¿½ï¿½o.', error);
+            console.warn('Falha ao atualizar status de digitao.', error);
         });
 
     const activityPayload = {};
@@ -9715,7 +9716,7 @@ function updateTypingState(state, force = false) {
         .doc(currentUser.uid)
         .set(activityPayload, { merge: true })
         .catch((error) => {
-            console.warn('Falha ao atualizar atividade do usuï¿½rio.', error);
+            console.warn('Falha ao atualizar atividade do usurio.', error);
         });
 
 }
@@ -9740,7 +9741,7 @@ function subscribeToFriendDoc(uid) {
             }
 
             if (chatPartnerPhoto) {
-                applyProfilePhoto(chatPartnerPhoto, data, 'https://via.placeholder.com/45/cccccc/666666?text=User');
+                applyProfilePhoto(chatPartnerPhoto, data, 'https://via.placeholder.com/45/cccccc/666666text=User');
             }
 
             setRemoteUserActivity(data.activity || null);
@@ -9780,8 +9781,8 @@ function clearLocalTypingState() {
 function buildMessageMeta(msg, isSent) {
     const time = formatTime(msg.timestamp);
     const editedLabel = isMessageEdited(msg)
-        ? '<span class="message-edited">editada</span>'
-        : '';
+          ? '<span class="message-edited">editada</span>'
+ : '';
     if (!isSent) {
         return `
             <small class="message-meta">
@@ -9791,15 +9792,15 @@ function buildMessageMeta(msg, isSent) {
         `;
     }
     let statusClass = 'status-sent';
-    let ticks = '?';
+    let ticks = '';
     let title = 'Enviado';
     if (msg.read) {
         statusClass = 'status-read';
-        ticks = '??';
+        ticks = '';
         title = 'Lido';
     } else if (msg.delivered) {
         statusClass = 'status-delivered';
-        ticks = '??';
+        ticks = '';
         title = 'Entregue';
     }
     return `
@@ -9849,11 +9850,11 @@ function openAttachInput(input) {
 async function openCameraModal(preferredMode = '') {
     if (!cameraModal) return;
     if (!selectedUserId) {
-        alert('Selecione um usuï¿½rio para conversar.');
+        alert('Selecione um usurio para conversar.');
         return;
     }
     if (isFriendBlocked(selectedUserId)) {
-        alert('Vocï¿½ bloqueou este usuï¿½rio.');
+        alert('Voc bloqueou este usurio.');
         return;
     }
     closeAttachMenu();
@@ -9863,7 +9864,7 @@ async function openCameraModal(preferredMode = '') {
     currentCameraFacing = 'environment';
     updateCameraSwitchVisibility();
     syncCameraActionIcons();
-    if (cameraStatus) cameraStatus.textContent = 'Abrindo cï¿½mera...';
+    if (cameraStatus) cameraStatus.textContent = 'Abrindo cmera...';
     await startCameraStream();
     if (!cameraStream && preferredMode) {
         closeCameraModal();
@@ -9894,9 +9895,9 @@ function resetCameraState() {
 
 function syncCameraActionIcons() {
     if (btnCameraSwitch) btnCameraSwitch.innerHTML = CAMERA_ICON_SWITCH;
-    if (btnCameraFlash) btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
+ if (btnCameraFlash) btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
     if (btnCameraCapture) btnCameraCapture.innerHTML = CAMERA_ICON_PHOTO;
-    if (btnCameraRecord) btnCameraRecord.innerHTML = isCameraRecording ? CAMERA_ICON_STOP : CAMERA_ICON_VIDEO;
+ if (btnCameraRecord) btnCameraRecord.innerHTML = isCameraRecording ? CAMERA_ICON_STOP : CAMERA_ICON_VIDEO;
     if (btnCameraCancel) btnCameraCancel.innerHTML = CAMERA_ICON_CLOSE;
 }
 
@@ -9908,18 +9909,18 @@ function getActiveCameraTrack() {
 function updateCameraFlashButton() {
     if (!btnCameraFlash) return;
     const track = getActiveCameraTrack();
-    const caps = track?.getCapabilities ? track.getCapabilities() : null;
-    const supportsTorch = !!caps?.torch;
+ const caps = track.getCapabilities ? track.getCapabilities() : null;
+    const supportsTorch = !!caps.torch;
     btnCameraFlash.classList.toggle('hidden', !supportsTorch);
     btnCameraFlash.disabled = !supportsTorch;
     btnCameraFlash.classList.toggle('active', isCameraTorchOn);
-    btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
+ btnCameraFlash.innerHTML = isCameraTorchOn ? CAMERA_ICON_FLASH_ON : CAMERA_ICON_FLASH_OFF;
 }
 
 async function setCameraTorch(enabled) {
     const track = getActiveCameraTrack();
-    const caps = track?.getCapabilities ? track.getCapabilities() : null;
-    if (!caps?.torch) {
+ const caps = track.getCapabilities ? track.getCapabilities() : null;
+    if (!caps.torch) {
         updateCameraFlashButton();
         return false;
     }
@@ -9962,16 +9963,16 @@ function updateCameraSwitchVisibility() {
 
 async function switchCameraFacing() {
     if (isCameraRecording) return;
-    currentCameraFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
+ currentCameraFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
     isCameraTorchOn = false;
     stopCameraStream();
-    if (cameraStatus) cameraStatus.textContent = 'Alternando cï¿½mera...';
+    if (cameraStatus) cameraStatus.textContent = 'Alternando cmera...';
     await startCameraStream();
 }
 
 async function startCameraStream() {
-    if (!cameraPreview || !navigator.mediaDevices?.getUserMedia) {
-        if (cameraStatus) cameraStatus.textContent = 'Cï¿½mera nï¿½o suportada.';
+    if (!cameraPreview || !navigator.mediaDevices.getUserMedia) {
+        if (cameraStatus) cameraStatus.textContent = 'Cmera no suportada.';
         return;
     }
     if (cameraStream) return;
@@ -9991,7 +9992,7 @@ async function startCameraStream() {
                 audio: false
             });
             if (cameraStatus) {
-                cameraStatus.textContent = 'Cï¿½mera aberta (sem ï¿½udio).';
+                cameraStatus.textContent = 'Cmera aberta (sem udio).';
             }
         } catch (fallbackError) {
             try {
@@ -10000,15 +10001,15 @@ async function startCameraStream() {
                     audio: false
                 });
             } catch (finalError) {
-                if (cameraStatus) cameraStatus.textContent = 'Nï¿½o foi possï¿½vel acessar a cï¿½mera.';
-                alert('Nï¿½o foi possï¿½vel acessar a cï¿½mera.');
+                if (cameraStatus) cameraStatus.textContent = 'No foi possvel acessar a cmera.';
+                alert('No foi possvel acessar a cmera.');
                 closeCameraModal();
                 return;
             }
         }
     }
     cameraPreview.srcObject = cameraStream;
-    if (cameraStatus && cameraStatus.textContent === 'Abrindo cï¿½mera...') {
+    if (cameraStatus && cameraStatus.textContent === 'Abrindo cmera...') {
         cameraStatus.textContent = 'Pronto para capturar.';
     }
     isCameraTorchOn = false;
@@ -10059,8 +10060,8 @@ async function toggleCameraRecording() {
     const mimeType = getPreferredVideoMimeType();
     try {
         cameraRecorder = mimeType
-            ? new MediaRecorder(cameraStream, { mimeType, ...CAMERA_RECORDING_OPTIONS })
-            : new MediaRecorder(cameraStream, { ...CAMERA_RECORDING_OPTIONS });
+              ? new MediaRecorder(cameraStream, { mimeType, ...CAMERA_RECORDING_OPTIONS })
+ : new MediaRecorder(cameraStream, { ...CAMERA_RECORDING_OPTIONS });
     } catch (error) {
         cameraRecorder = new MediaRecorder(cameraStream);
     }
@@ -10073,7 +10074,7 @@ async function toggleCameraRecording() {
     };
     cameraRecorder.onstop = async () => {
         cameraRecorder = null;
-        const chosenMime = recorder?.mimeType || mimeType || 'video/webm';
+        const chosenMime = recorder.mimeType || mimeType || 'video/webm';
         const blob = new Blob(cameraRecorderChunks, { type: chosenMime });
         cameraRecorderChunks = [];
         isCameraRecording = false;
@@ -10089,23 +10090,23 @@ async function toggleCameraRecording() {
         try {
             await handleChatFile(file);
         } catch (error) {
-            console.warn('Falha ao enviar vï¿½deo gravado.', error);
-            alert('Nï¿½o foi possï¿½vel enviar o vï¿½deo gravado.');
+            console.warn('Falha ao enviar vdeo gravado.', error);
+            alert('No foi possvel enviar o vdeo gravado.');
         }
         closeCameraModal();
     };
     try {
         cameraRecorder.start();
     } catch (error) {
-        console.warn('Falha ao iniciar gravaï¿½ï¿½o de vï¿½deo.', error);
+        console.warn('Falha ao iniciar gravao de vdeo.', error);
         cameraRecorder = null;
         cameraRecorderChunks = [];
-        alert('Nï¿½o foi possï¿½vel iniciar a gravaï¿½ï¿½o de vï¿½deo.');
+        alert('No foi possvel iniciar a gravao de vdeo.');
         return;
     }
     isCameraRecording = true;
     syncCameraActionIcons();
-    if (cameraStatus) cameraStatus.textContent = 'Gravando vï¿½deo...';
+    if (cameraStatus) cameraStatus.textContent = 'Gravando vdeo...';
 }
 
 function getPreferredAudioMimeType() {
@@ -10176,8 +10177,8 @@ function updateComposerPrimaryAction() {
 function updateVoiceButtonUI() {
     if (!btnVoice) return;
     btnVoice.classList.toggle('recording', isRecordingAudio);
-    btnVoice.title = isRecordingAudio ? 'Parar gravaï¿½ï¿½o' : 'Enviar ï¿½udio';
-    btnVoice.innerHTML = isRecordingAudio ? VOICE_ICON_RECORDING : VOICE_ICON_IDLE;
+ btnVoice.title = isRecordingAudio ? 'Parar gravao' : 'Enviar udio';
+ btnVoice.innerHTML = isRecordingAudio ? VOICE_ICON_RECORDING : VOICE_ICON_IDLE;
     if (voiceRecordingStatus) {
         voiceRecordingStatus.classList.toggle('hidden', !isRecordingAudio);
     }
@@ -10246,19 +10247,19 @@ async function stopAudioRecording(sendAfterStop = true) {
 
 async function startAudioRecording() {
     if (!selectedUserId) {
-        alert('Selecione um usuï¿½rio para conversar.');
+        alert('Selecione um usurio para conversar.');
         return;
     }
     if (isFriendBlocked(selectedUserId)) {
-        alert('Vocï¿½ bloqueou este usuï¿½rio.');
+        alert('Voc bloqueou este usurio.');
         return;
     }
     if (!window.isSecureContext) {
-        alert('A gravaï¿½ï¿½o de ï¿½udio requer HTTPS.');
+        alert('A gravao de udio requer HTTPS.');
         return;
     }
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-        alert('Seu navegador nï¿½o suporta gravaï¿½ï¿½o de ï¿½udio.');
+    if (!navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+        alert('Seu navegador no suporta gravao de udio.');
         return;
     }
     if (isRecordingAudio) {
@@ -10271,18 +10272,18 @@ async function startAudioRecording() {
     try {
         audioRecorderStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel acessar o microfone.');
+        alert('No foi possvel acessar o microfone.');
         return;
     }
 
     const mimeType = getPreferredAudioMimeType();
     try {
-        audioRecorder = mimeType ? new MediaRecorder(audioRecorderStream, { mimeType }) : new MediaRecorder(audioRecorderStream);
+ audioRecorder = mimeType ? new MediaRecorder(audioRecorderStream, { mimeType }) : new MediaRecorder(audioRecorderStream);
     } catch (error) {
         try {
             audioRecorder = new MediaRecorder(audioRecorderStream);
         } catch (finalError) {
-            alert('Nï¿½o foi possï¿½vel iniciar a gravaï¿½ï¿½o.');
+            alert('No foi possvel iniciar a gravao.');
             audioRecorderStream.getTracks().forEach(track => track.stop());
             audioRecorderStream = null;
             return;
@@ -10311,7 +10312,7 @@ async function startAudioRecording() {
             audioRecorderChunks = [];
             return;
         }
-        const blob = new Blob(audioRecorderChunks, { type: recorder?.mimeType || mimeType || 'audio/webm' });
+        const blob = new Blob(audioRecorderChunks, { type: recorder.mimeType || mimeType || 'audio/webm' });
         audioRecorderChunks = [];
         if (!blob.size) return;
         const extension = getAudioFileExtension(blob.type);
@@ -10319,14 +10320,14 @@ async function startAudioRecording() {
         try {
             await handleChatFile(file);
         } catch (error) {
-            console.warn('Falha ao enviar ï¿½udio gravado.', error);
-            alert('Nï¿½o foi possï¿½vel enviar o ï¿½udio gravado.');
+            console.warn('Falha ao enviar udio gravado.', error);
+            alert('No foi possvel enviar o udio gravado.');
         }
     };
     try {
         audioRecorder.start();
     } catch (error) {
-        alert('Nï¿½o foi possï¿½vel iniciar a gravaï¿½ï¿½o.');
+        alert('No foi possvel iniciar a gravao.');
         audioRecorderStream.getTracks().forEach(track => track.stop());
         audioRecorderStream = null;
         audioRecorder = null;
@@ -10343,13 +10344,13 @@ async function startAudioRecording() {
 async function handleChatFile(file, targetUid = selectedUserId, targetFriend = selectedFriendData) {
     if (!file || !targetUid) return;
     if (isFriendBlocked(targetUid)) {
-        alert('Vocï¿½ bloqueou este usuï¿½rio.');
+        alert('Voc bloqueou este usurio.');
         return;
     }
 
     const maxSize = MAX_CHAT_FILE_SIZE_BYTES;
     if (file.size > maxSize) {
-        alert(`O arquivo deve ter no mï¿½ximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
+        alert(`O arquivo deve ter no mximo ${MAX_CHAT_FILE_SIZE_MB}MB.`);
         return;
     }
 
@@ -10362,8 +10363,8 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
     if (isVideo) messageType = 'video';
     if (isAudio) messageType = 'audio';
     const resolvedFriend = targetFriend || getCachedUserByUid(targetUid);
-    const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
-    const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
+ const delivered = resolvedFriend ? isUserEffectivelyOnline(resolvedFriend) : false;
+ const replyPayload = targetUid === selectedUserId ? getPendingReplyPayload() : null;
 
     try {
         const fileUrl = await uploadChatFile(file, { uid: currentUser.uid });
@@ -10378,14 +10379,14 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
             fileName: file.name,
             fileType: file.type || 'application/octet-stream',
             fileSize: file.size,
-            imageUrl: isImage ? fileUrl : null,
+ imageUrl: isImage ? fileUrl : null,
             senderId: currentUser.uid,
             receiverId: targetUid,
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             type: messageType,
             read: false,
             delivered: delivered,
-            deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+ deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
             replyTo: replyPayload || null
         };
 
@@ -10402,7 +10403,7 @@ async function handleChatFile(file, targetUid = selectedUserId, targetFriend = s
 }
 
 async function handleFileInputChange(input) {
-    const files = Array.from(input?.files || []);
+    const files = Array.from(input.files || []);
     if (input) input.value = '';
     if (!files.length) return;
     await Promise.allSettled(files.map(file => handleChatFile(file)));
@@ -10450,8 +10451,8 @@ function clearActiveConversation() {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
                 <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
-                <h3>Bem-vindo ao CameChat! ??</h3>
-                <p>Selecione um usuï¿½rio para comeï¿½ar a conversar.</p>
+                <h3>Bem-vindo ao CameChat! </h3>
+                <p>Selecione um usurio para comear a conversar.</p>
             </div>
         `;
     }
@@ -10459,7 +10460,7 @@ function clearActiveConversation() {
     ensureVoiceRecordingBanner();
     resetMessageSelectionState();
 
-    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usuï¿½rio';
+    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usurio';
     if (chatPartnerStatus) {
         chatPartnerStatus.textContent = '';
         chatPartnerStatus.classList.remove('chat-partner-status-activity');
@@ -10529,7 +10530,7 @@ function handleAndroidBackPress() {
         resetFriendSelectionState();
         return true;
     }
-    if (app?.classList.contains('sidebar-open')) {
+    if (app.classList.contains('sidebar-open')) {
         setSidebarOpen(false);
         return true;
     }
@@ -10552,8 +10553,8 @@ function resetChatUI() {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
                 <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
-                <h3>Bem-vindo ao CameChat! ??</h3>
-                <p>Selecione um usuï¿½rio para comeï¿½ar a conversar.</p>
+                <h3>Bem-vindo ao CameChat! </h3>
+                <p>Selecione um usurio para comear a conversar.</p>
             </div>
         `;
     }
@@ -10577,7 +10578,7 @@ function resetChatUI() {
     if (messageInput) messageInput.value = '';
     if (searchUser) searchUser.value = '';
     if (friendEmailInput) friendEmailInput.value = '';
-    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usuï¿½rio';
+    if (chatPartnerName) chatPartnerName.textContent = 'Selecione um usurio';
     if (chatPartnerStatus) {
         chatPartnerStatus.textContent = '';
         chatPartnerStatus.classList.remove('chat-partner-status-activity');
@@ -10635,7 +10636,7 @@ function resetProfileModal() {
 
 function openProfileModal() {
     if (!profileModal) return;
-    const currentPhoto = currentUserProfile?.photoData || currentUserProfile?.photoURL || userPhoto?.src || '';
+    const currentPhoto = currentUserProfile.photoData || currentUserProfile.photoURL || userPhoto.src || '';
     renderCurrentUserIdentity(currentUserProfile);
     if (currentPhoto) {
         loadCropImage(currentPhoto);
@@ -10652,7 +10653,7 @@ function closeProfileModal() {
 function openFriendModal() {
     if (!friendModal || !selectedFriendData) return;
     if (friendPreviewImage) {
-        applyProfilePhoto(friendPreviewImage, selectedFriendData, 'https://via.placeholder.com/120/cccccc/666666?text=User');
+        applyProfilePhoto(friendPreviewImage, selectedFriendData, 'https://via.placeholder.com/120/cccccc/666666text=User');
     }
     if (friendDetailName) friendDetailName.textContent = getFriendDisplayName(selectedFriendData);
     if (friendDetailHandle) friendDetailHandle.textContent = getUserTagValue(selectedFriendData);
@@ -10682,7 +10683,7 @@ function renderFriendDetailStatus(friend) {
 
 function updateFriendModalState() {
     if (!selectedFriendData) return;
-    const blockedSet = new Set(currentUserProfile?.blocked || []);
+    const blockedSet = new Set(currentUserProfile.blocked || []);
     const isBlocked = blockedSet.has(selectedFriendData.uid);
     const isSelf = currentUser && selectedFriendData.uid === currentUser.uid;
 
@@ -10701,7 +10702,7 @@ function updateFriendModalState() {
 }
 
 function isFriendBlocked(friendId) {
-    return (currentUserProfile?.blocked || []).includes(friendId);
+    return (currentUserProfile.blocked || []).includes(friendId);
 }
 
 // Enviar mensagem de texto
@@ -10914,7 +10915,7 @@ if (btnCameraFlash) {
     btnCameraFlash.addEventListener('click', async () => {
         const success = await setCameraTorch(!isCameraTorchOn);
         if (!success) {
-            alert('Flash indisponï¿½vel para esta cï¿½mera.');
+            alert('Flash indisponvel para esta cmera.');
         }
     });
 }
@@ -10939,9 +10940,9 @@ if (emojiPicker) {
 
 if (btnAddFriend) {
     btnAddFriend.addEventListener('click', async () => {
-        const email = friendEmailInput ? friendEmailInput.value.trim() : '';
+ const email = friendEmailInput ? friendEmailInput.value.trim() : '';
         if (!email) {
-            alert('Digite o e-mail ou @primeironome do usuï¿½rio.');
+            alert('Digite o e-mail ou @primeironome do usurio.');
             return;
         }
         try {
@@ -10957,7 +10958,7 @@ if (friendEmailInput) {
     friendEmailInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            btnAddFriend?.click();
+            btnAddFriend.click();
         }
     });
 }
@@ -11019,7 +11020,7 @@ if (userTagMatchClose) {
 if (friendRemoveBtn) {
     friendRemoveBtn.addEventListener('click', async () => {
         if (!selectedFriendData) return;
-        const confirmed = confirm('Deseja remover este amigo da sua lista?');
+        const confirmed = confirm('Deseja remover este amigo da sua lista');
         if (!confirmed) return;
         try {
             await removeFriend(selectedFriendData.uid);
@@ -11033,12 +11034,12 @@ if (friendRemoveBtn) {
 if (friendBlockBtn) {
     friendBlockBtn.addEventListener('click', async () => {
         if (!selectedFriendData) return;
-        const confirmed = confirm('Deseja bloquear este amigo? Ele nï¿½o aparecerï¿½ mais na sua lista.');
+        const confirmed = confirm('Deseja bloquear este amigo Ele no aparecer mais na sua lista.');
         if (!confirmed) return;
         try {
             await blockFriend(selectedFriendData.uid);
             if (!currentUserProfile) currentUserProfile = {};
-            currentUserProfile.blocked = Array.isArray(currentUserProfile.blocked) ? currentUserProfile.blocked : [];
+ currentUserProfile.blocked = Array.isArray(currentUserProfile.blocked) ? currentUserProfile.blocked : [];
             if (!currentUserProfile.blocked.includes(selectedFriendData.uid)) {
                 currentUserProfile.blocked.push(selectedFriendData.uid);
             }
@@ -11058,7 +11059,7 @@ if (friendUnblockBtn) {
         if (!selectedFriendData) return;
         try {
             await unblockFriend(selectedFriendData.uid);
-            if (currentUserProfile?.blocked) {
+            if (currentUserProfile.blocked) {
                 currentUserProfile.blocked = currentUserProfile.blocked.filter(id => id !== selectedFriendData.uid);
             }
             updateFriendModalState();
@@ -11461,7 +11462,7 @@ if (callMini) {
     callMini.addEventListener('pointerdown', (event) => {
         if (callMini.classList.contains('hidden')) return;
         if (event.button !== undefined && event.button !== 0) return;
-        if (event.target?.closest?.('button')) return;
+        if (event.target.closest?.('button')) return;
         callMiniDragPointerId = event.pointerId;
         startCallMiniDrag(event.clientX, event.clientY);
         if (typeof callMini.setPointerCapture === 'function') {
@@ -11477,7 +11478,7 @@ if (callMini) {
         callMini.addEventListener('touchstart', (event) => {
             if (callMini.classList.contains('hidden')) return;
             if (!event.touches || event.touches.length !== 1) return;
-            if (event.target?.closest?.('button')) return;
+            if (event.target.closest?.('button')) return;
             const touch = event.touches[0];
             callMiniDragTouchId = touch.identifier;
             startCallMiniDrag(touch.clientX, touch.clientY);
@@ -11623,7 +11624,7 @@ if (btnThemeToggle) {
     btnThemeToggle.addEventListener('click', (event) => {
         event.stopPropagation();
         const isDark = document.body.classList.contains('theme-dark');
-        applyTheme(isDark ? 'light' : 'dark', true);
+ applyTheme(isDark ? 'light' : 'dark', true);
     });
 }
 
@@ -11638,7 +11639,7 @@ if (btnMessageTone) {
     btnMessageTone.addEventListener('click', (event) => {
         event.stopPropagation();
         if (messageToneDataUrl) {
-            const shouldReset = confirm('Deseja voltar ao toque padrï¿½o? Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
+            const shouldReset = confirm('Deseja voltar ao toque padro Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
             if (shouldReset) {
                 applyMessageToneSetting('', true);
                 return;
@@ -11660,7 +11661,7 @@ if (messageToneInput) {
             const dataUrl = await readToneFileAsDataUrl(file);
             applyMessageToneSetting(dataUrl, true);
         } catch (error) {
-            alert('Nï¿½o foi possï¿½vel aplicar o toque de mensagem.');
+            alert('No foi possvel aplicar o toque de mensagem.');
         }
     });
 }
@@ -11669,7 +11670,7 @@ if (btnCallTone) {
     btnCallTone.addEventListener('click', (event) => {
         event.stopPropagation();
         if (callToneDataUrl) {
-            const shouldReset = confirm('Deseja voltar ao toque padrï¿½o? Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
+            const shouldReset = confirm('Deseja voltar ao toque padro Clique em OK para restaurar ou Cancelar para escolher outro arquivo.');
             if (shouldReset) {
                 applyCallToneSetting('', true);
                 return;
@@ -11691,7 +11692,7 @@ if (callToneInput) {
             const dataUrl = await readToneFileAsDataUrl(file);
             applyCallToneSetting(dataUrl, true);
         } catch (error) {
-            alert('Nï¿½o foi possï¿½vel aplicar o toque de chamada.');
+            alert('No foi possvel aplicar o toque de chamada.');
         }
     });
 }
@@ -11731,7 +11732,7 @@ if (btnDesktopNotificationsToggle) {
         } else {
             applyDesktopNotificationsSetting(false, true);
             if (permission === 'denied') {
-                alert('Notificaï¿½ï¿½es bloqueadas pelo navegador. Libere nas configuraï¿½ï¿½es do site para ativar.');
+                alert('Notificaes bloqueadas pelo navegador. Libere nas configuraes do site para ativar.');
             }
         }
     });
@@ -11749,7 +11750,7 @@ if (btnOnlineStatusToggle) {
 if (btnChatFontToggle) {
     btnChatFontToggle.addEventListener('click', (event) => {
         event.stopPropagation();
-        const nextSize = chatFontSizePreference === 'large' ? 'normal' : 'large';
+ const nextSize = chatFontSizePreference === 'large' ? 'normal' : 'large';
         applyChatFontSizeSetting(nextSize, true);
     });
 }
@@ -11772,7 +11773,7 @@ if (chatBackgroundUpload) {
             return;
         }
         if (file.size > 20 * 1024 * 1024) {
-            alert('A imagem deve ter no mï¿½ximo 20MB.');
+            alert('A imagem deve ter no mximo 20MB.');
             return;
         }
 
@@ -11780,7 +11781,7 @@ if (chatBackgroundUpload) {
             const dataUrl = await buildChatBackgroundDataUrl(file);
             applyChatBackground(dataUrl, true);
         } catch (error) {
-            alert('Nï¿½o foi possï¿½vel aplicar este plano de fundo.');
+            alert('No foi possvel aplicar este plano de fundo.');
         }
     });
 }
@@ -11821,7 +11822,7 @@ if (btnLastSeenToggle) {
 if (btnLanguageToggle) {
     btnLanguageToggle.addEventListener('click', (event) => {
         event.stopPropagation();
-        const nextLanguage = selectedLanguage === 'en-US' ? 'pt-BR' : 'en-US';
+ const nextLanguage = selectedLanguage === 'en-US' ? 'pt-BR' : 'en-US';
         applyLanguageSetting(nextLanguage, true);
     });
 }
@@ -11883,7 +11884,7 @@ if (profilePhotoInput) {
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            alert('A foto deve ter no mï¿½ximo 5MB.');
+            alert('A foto deve ter no mximo 5MB.');
             profilePhotoInput.value = '';
             pendingProfilePhotoFile = null;
             return;
@@ -11904,19 +11905,19 @@ if (profileSaveBtn) {
 
         const canvas = createCroppedCanvas(256);
         if (!canvas) {
-            alert('Nï¿½o foi possï¿½vel processar a foto. Tente outra imagem.');
+            alert('No foi possvel processar a foto. Tente outra imagem.');
             return;
         }
 
         const photoData = canvas.toDataURL('image/jpeg', 0.85);
         const blob = await canvasToBlob(canvas, 'image/jpeg', 0.85);
-        const croppedFile = blob ? new File([blob], 'profile.jpg', { type: 'image/jpeg' }) : null;
+ const croppedFile = blob ? new File([blob], 'profile.jpg', { type: 'image/jpeg' }) : null;
 
         let photoUrl = '';
         if (croppedFile) {
             try {
                 photoUrl = await uploadProfilePhotoViaBackend(croppedFile, {
-                    displayName: currentUserProfile?.name || currentUser.displayName || 'usuario',
+                    displayName: currentUserProfile.name || currentUser.displayName || 'usuario',
                     uid: currentUser.uid
                 });
             } catch (error) {
@@ -11935,7 +11936,7 @@ if (profileSaveBtn) {
                 await currentUser.updateProfile({ photoURL: photoUrl });
             }
 
-            const fallbackPhoto = photoData || 'https://via.placeholder.com/45/002776/ffffff?text=User';
+            const fallbackPhoto = photoData || 'https://via.placeholder.com/45/002776/fffffftext=User';
             userPhoto.src = fallbackPhoto;
             if (photoUrl) hydratePhotoFromUrl(userPhoto, photoUrl, fallbackPhoto);
 
