@@ -2014,6 +2014,7 @@ function clearMediaViewerContent() {
     });
     mediaViewerContent.innerHTML = '';
     mediaViewerContent.classList.remove('media-viewer-image-mode');
+    mediaViewerContent.classList.remove('media-viewer-doc-mode');
     if (mediaViewerModal) mediaViewerModal.classList.remove('media-viewer-fullscreen');
     resetMediaViewerImageState();
     mediaViewerActiveMessage = null;
@@ -2059,6 +2060,16 @@ function buildMediaViewerFallback(fileName, resolvedUrl) {
                 <a class="media-viewer-file-open" href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
                 <a class="media-viewer-file-download" href="${safeUrl}" download>Baixar arquivo</a>
             </div>
+        </div>
+    `;
+}
+
+function buildMediaViewerFileActions(resolvedUrl) {
+    const safeUrl = escapeHtml(resolvedUrl);
+    return `
+        <div class="media-viewer-file-actions media-viewer-file-actions-inline">
+            <a class="media-viewer-file-open" href="${safeUrl}" target="_self" rel="noopener">Abrir arquivo</a>
+            <a class="media-viewer-file-download" href="${safeUrl}" download>Baixar arquivo</a>
         </div>
     `;
 }
@@ -2114,14 +2125,24 @@ function getFileExtensionInfo(msg, url) {
     return ext;
 }
 
-function getDocumentPreviewUrl(absoluteUrl, msg) {
+function isDocumentLike(msg, absoluteUrl) {
+    if (isPdfFile(msg, absoluteUrl)) return true;
     const ext = getFileExtensionInfo(msg, absoluteUrl);
     const fileType = String(msg?.fileType || '').toLowerCase();
     const docExt = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'odt', 'odp', 'ods', 'rtf', 'txt']);
-    if (docExt.has(ext) || fileType.includes('pdf') || fileType.includes('officedocument') || fileType.includes('msword') || fileType.includes('ms-powerpoint') || fileType.includes('ms-excel')) {
-        return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(absoluteUrl)}`;
-    }
-    return '';
+    if (docExt.has(ext)) return true;
+    return fileType.includes('officedocument')
+        || fileType.includes('msword')
+        || fileType.includes('ms-powerpoint')
+        || fileType.includes('ms-excel')
+        || fileType.includes('spreadsheet')
+        || fileType.includes('presentation')
+        || fileType.includes('pdf');
+}
+
+function getDocumentPreviewUrl(absoluteUrl, msg) {
+    if (!isDocumentLike(msg, absoluteUrl)) return '';
+    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(absoluteUrl)}`;
 }
 
 function buildDocumentThumbInfo(msg, absoluteUrl) {
@@ -2186,24 +2207,28 @@ function openMediaViewer(msg, resolvedUrl) {
         audio.autoplay = true;
         mediaViewerContent.appendChild(audio);
     } else if (isPdfFile(msg, resolvedUrl)) {
-        if (isAndroidWebViewRuntime()) {
-            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento PDF', resolvedUrl);
-            bindMediaViewerFileActions(resolvedUrl, msg);
-        } else {
-            const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg) || resolvedUrl;
+        const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg) || resolvedUrl;
+        if (previewUrl) {
+            mediaViewerContent.classList.add('media-viewer-doc-mode');
             const iframe = document.createElement('iframe');
             iframe.src = previewUrl;
             iframe.title = msg?.fileName || 'Documento PDF';
             mediaViewerContent.appendChild(iframe);
+            mediaViewerContent.insertAdjacentHTML('beforeend', buildMediaViewerFileActions(resolvedUrl));
+            bindMediaViewerFileActions(resolvedUrl, msg);
+        } else {
+            mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento PDF', resolvedUrl);
             bindMediaViewerFileActions(resolvedUrl, msg);
         }
     } else {
         const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg);
         if (previewUrl) {
+            mediaViewerContent.classList.add('media-viewer-doc-mode');
             const iframe = document.createElement('iframe');
             iframe.src = previewUrl;
             iframe.title = msg?.fileName || 'Documento';
             mediaViewerContent.appendChild(iframe);
+            mediaViewerContent.insertAdjacentHTML('beforeend', buildMediaViewerFileActions(resolvedUrl));
             bindMediaViewerFileActions(resolvedUrl, msg);
         } else {
             mediaViewerContent.innerHTML = buildMediaViewerFallback(msg?.fileName || 'Documento', resolvedUrl);
@@ -2224,20 +2249,11 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
     }
     const absoluteUrl = ensureAbsoluteUrl(resolvedUrl);
     const messageType = resolveMessageType(msg);
-    const inferredName = msg?.fileName || extractFileNameFromUrl(absoluteUrl);
-    const inferredMime = msg?.fileType || inferMimeTypeFromFileName(inferredName || '');
     const previewUrl = getDocumentPreviewUrl(absoluteUrl, msg);
 
-    if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, absoluteUrl))) {
-        const targetUrl = previewUrl || absoluteUrl;
-        if (!String(targetUrl).startsWith('blob:')) {
-            const opened = callAndroidBridgeMethod('openExternalFile', targetUrl, inferredMime, inferredName || '');
-            if (opened) return;
-            if (previewUrl && previewUrl !== absoluteUrl) {
-                const openedDirect = callAndroidBridgeMethod('openExternalFile', absoluteUrl, inferredMime, inferredName || '');
-                if (openedDirect) return;
-            }
-        }
+    if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, absoluteUrl) || isDocumentLike(msg, absoluteUrl))) {
+        openMediaViewer(msg, previewUrl || absoluteUrl);
+        return;
     }
 
     if (messageType === 'file' && !isPdfFile(msg, absoluteUrl) && !previewUrl) {
@@ -9305,7 +9321,8 @@ function renderMessages(messages, options = {}) {
 // Formatar hora
 function formatTime(timestamp) {
     if (!timestamp) return '';
-    const date = timestamp.toDate();
+    const date = timestampToDate(timestamp);
+    if (!date) return '';
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
