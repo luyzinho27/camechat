@@ -1596,6 +1596,35 @@ function buildFirebaseMediaUrl(storagePath) {
     return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(storagePath)}?alt=media`;
 }
 
+function getMessageFileUrl(msg) {
+    if (!msg) return '';
+    return String(
+        msg.fileUrl
+        || msg.fileURL
+        || msg.downloadURL
+        || msg.downloadUrl
+        || msg.mediaUrl
+        || msg.mediaURL
+        || msg.url
+        || msg.attachmentUrl
+        || msg.attachmentURL
+        || ''
+    ).trim();
+}
+
+function getMessageImageUrl(msg) {
+    if (!msg) return '';
+    return String(
+        msg.imageUrl
+        || msg.imageURL
+        || msg.photoUrl
+        || msg.photoURL
+        || msg.thumbnailUrl
+        || msg.thumbnailURL
+        || ''
+    ).trim();
+}
+
 function getAttachmentDownloadCandidates(msg) {
     if (!msg) return [];
     const type = resolveMessageType(msg);
