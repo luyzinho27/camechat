@@ -41,16 +41,16 @@
             <div class="auth-header">
                 <img src="images/camechat_logo.png" alt="Logo do CameChat" class="auth-brand-logo">
                 <h1>CameChat</h1>
-                <p class="subtitle">Fa?a login ou crie sua conta</p>
+                <p class="subtitle">Faça login ou crie sua conta</p>
             </div>
             
-            <!-- Abas de navega??o -->
+            <!-- Abas de navegação -->
             <div class="auth-tabs">
                 <button id="tab-login" class="auth-tab active">Entrar</button>
                 <button id="tab-register" class="auth-tab">Cadastrar</button>
             </div>
             
-            <!-- Formul?rio de Login -->
+            <!-- Formulário de Login -->
             <form id="login-form" class="auth-form active">
                 <div class="form-group">
                     <label for="login-email">E-mail</label>
@@ -67,7 +67,7 @@
                         <span class="checkmark"></span>
                         Lembrar-me
                     </label>
-                    <a href="#" id="forgot-password" class="forgot-link">Esqueceu a senha</a>
+                    <a href="#" id="forgot-password" class="forgot-link">Esqueceu a senha?</a>
                 </div>
                 
                 <button type="submit" class="btn-primary">Entrar</button>
@@ -82,13 +82,13 @@
                 </button>
             </form>
             
-            <!-- Formul?rio de Cadastro -->
+            <!-- Formulário de Cadastro -->
             <form id="register-form" class="auth-form">
                 <div class="form-group">
                     <label for="register-photo">Foto de perfil</label>
                     <input type="file" id="register-photo" accept="image/*" required>
                     <div class="photo-preview">
-                        <img id="register-photo-preview" src="" alt="Prvia da foto">
+                        <img id="register-photo-preview" src="" alt="Prévia da foto">
                     </div>
                 </div>
                 <div class="form-group">
@@ -101,19 +101,19 @@
                 </div>
                 <div class="form-group">
                     <label for="register-password">Senha</label>
-                    <input type="password" id="register-password" placeholder="Mnimo 6 caracteres" required>
+                    <input type="password" id="register-password" placeholder="Mínimo 6 caracteres" required>
                 </div>
                 <div class="form-group">
                     <label for="register-confirm-password">Confirmar senha</label>
                     <input type="password" id="register-confirm-password" placeholder="Digite novamente" required>
                 </div>
                 <div class="form-group">
-                    <label for="register-role">Tipo de usurio</label>
+                    <label for="register-role">Tipo de usuário</label>
                     <select id="register-role" required>
-                        <option value="user_chat" selected>Usurio do chat</option>
+                        <option value="user_chat" selected>Usuário do chat</option>
                         <option value="administrador" id="register-role-admin">Administrador</option>
                     </select>
-                    <small class="form-hint">O primeiro cadastro ser administrador automaticamente.</small>
+                    <small class="form-hint">O primeiro cadastro será administrador automaticamente.</small>
                 </div>
                 
                 <button type="submit" class="btn-primary">Criar conta</button>
@@ -128,12 +128,12 @@
                 </button>
             </form>
             
-            <!-- Modal de recuperao de senha -->
+            <!-- Modal de recuperação de senha -->
             <div id="forgot-modal" class="modal">
                 <div class="modal-content">
                     <span id="forgot-close-modal" class="close-modal">&times;</span>
                     <h3>Recuperar senha</h3>
-                    <p>Digite seu e-mail para receber o link de redefinio:</p>
+                    <p>Digite seu e-mail para receber o link de redefinição:</p>
                     <input type="email" id="reset-email" placeholder="seu@email.com" class="modal-input">
                     <button id="btn-reset-password" class="btn-primary">Enviar link</button>
                 </div>
@@ -166,7 +166,7 @@
             </header>
             
             <div class="search-box">
-                <input type="text" id="search-user" placeholder="Buscar usurio...">
+                <input type="text" id="search-user" placeholder="Buscar usuário...">
             </div>
 
             <div class="add-friend-box">
@@ -188,29 +188,29 @@
                 <div id="settings-menu" class="settings-menu hidden">
                     <button id="btn-theme-toggle" class="settings-item" type="button" aria-pressed="false">Tema escuro</button>
                     <button id="btn-sound-toggle" class="settings-item" type="button" aria-pressed="true">Som: ligado</button>
-                    <button id="btn-message-tone" class="settings-item" type="button">Toque de mensagem: padro</button>
+                    <button id="btn-message-tone" class="settings-item" type="button">Toque de mensagem: padrão</button>
                     <input type="file" id="message-tone-input" accept="audio/mpeg,audio/mp3" class="hidden">
-                    <button id="btn-call-tone" class="settings-item" type="button">Toque de chamada: padro</button>
+                    <button id="btn-call-tone" class="settings-item" type="button">Toque de chamada: padrão</button>
                     <input type="file" id="call-tone-input" accept="audio/mpeg,audio/mp3" class="hidden">
-                    <button id="btn-desktop-notifications-toggle" class="settings-item" type="button" aria-pressed="false">Notifica??es: desligadas</button>
+                    <button id="btn-desktop-notifications-toggle" class="settings-item" type="button" aria-pressed="false">Notificações: desligadas</button>
                     <button id="btn-read-receipts-toggle" class="settings-item" type="button" aria-pressed="true">Leitura: ligada</button>
-                    <button id="btn-online-status-toggle" class="settings-item" type="button" aria-pressed="true">Status: visvel</button>
+                    <button id="btn-online-status-toggle" class="settings-item" type="button" aria-pressed="true">Status: visível</button>
                     <button id="btn-chat-font-toggle" class="settings-item" type="button" aria-pressed="false">Fonte do chat: normal</button>
                     <button id="btn-chat-background" class="settings-item" type="button">Plano de fundo do chat</button>
                     <input type="file" id="chat-background-upload" accept="image/*" class="hidden">
-                    <button id="btn-media-save-mode-toggle" class="settings-item" type="button" aria-pressed="true">Salvamento de m?dia: autom?tico</button>
-                    <button id="btn-media-folder-pc" class="settings-item hidden" type="button">Pasta de m?dia (PC): configurar</button>
+                    <button id="btn-media-save-mode-toggle" class="settings-item" type="button" aria-pressed="true">Salvamento de mídia: automático</button>
+                    <button id="btn-media-folder-pc" class="settings-item hidden" type="button">Pasta de mídia (PC): configurar</button>
                     <button id="btn-call-block-toggle" class="settings-item" type="button" aria-pressed="false">Chamadas: permitidas</button>
-                    <button id="btn-last-seen-toggle" class="settings-item" type="button" aria-pressed="true">Visto por ltimo: visvel</button>
-                    <button id="btn-language-toggle" class="settings-item" type="button" aria-pressed="false">Idioma: portugus</button>
+                    <button id="btn-last-seen-toggle" class="settings-item" type="button" aria-pressed="true">Visto por último: visível</button>
+                    <button id="btn-language-toggle" class="settings-item" type="button" aria-pressed="false">Idioma: português</button>
                     <button id="btn-about" class="settings-item" type="button">Sobre</button>
                     <button id="btn-logout" class="settings-item logout-btn" type="button">Sair</button>
                 </div>
-                <button id="btn-settings" class="settings-btn" type="button" title="Configura??es" aria-label="Configura??es">&#9881;</button>
+                <button id="btn-settings" class="settings-btn" type="button" title="Configurações" aria-label="Configurações">&#9881;</button>
             </div>
         </aside>
 
-        <!-- rea de chat -->
+        <!-- Área de chat -->
         <div class="main-panel">
             <main id="chat-panel" class="chat-area">
                 <header class="chat-header" id="chat-header">
@@ -220,12 +220,12 @@
                     </div>
                     <img id="chat-partner-photo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" data-default-src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" alt="foto" class="partner-avatar clickable">
                     <div class="chat-partner-info clickable">
-                        <span id="chat-partner-name">Selecione um usurio</span>
+                        <span id="chat-partner-name">Selecione um usuário</span>
                         <small id="chat-partner-status"></small>
                         <small id="chat-partner-activity" class="chat-partner-activity hidden"></small>
                         <span id="call-indicator" class="call-indicator hidden">Em chamada</span>
                     </div>
-                    <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de vdeo">&#128249;</button>
+                    <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de vídeo">&#128249;</button>
                     <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">&#128222;</button>
                     <button id="btn-edit-selected" class="btn-icon btn-edit-selected hidden" disabled title="Editar mensagem selecionada">&#9998;</button>
                     <button id="btn-delete-selected" class="btn-icon btn-delete-selected hidden" disabled title="Excluir selecionadas">&#128465;</button>
@@ -260,7 +260,7 @@
                         <small id="edit-preview-label">Editando mensagem</small>
                         <p id="edit-preview-text"></p>
                     </div>
-                    <button id="btn-edit-cancel" class="btn-icon btn-reply-cancel" type="button" title="Cancelar edio" aria-label="Cancelar edio">&#10006;</button>
+                    <button id="btn-edit-cancel" class="btn-icon btn-reply-cancel" type="button" title="Cancelar edição" aria-label="Cancelar edição">&#10006;</button>
                 </div>
 
                 <div class="message-input-area">
@@ -273,9 +273,9 @@
                     <input type="file" id="file-upload-document" style="display: none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple>
                     <button id="btn-attach" class="btn-icon" disabled title="Anexar arquivo">&#128206;</button>
                     <button id="btn-emoji" class="btn-icon" disabled title="Emojis">&#128522;</button>
-                    <button id="btn-voice" class="btn-icon btn-voice" disabled title="Enviar udio"></button>
+                    <button id="btn-voice" class="btn-icon btn-voice" disabled title="Enviar áudio"></button>
                     <span id="voice-recording-status" class="voice-recording-status hidden">00:00</span>
-                    <button id="btn-camera-quick" class="btn-icon btn-camera-quick" disabled title="Abrir cmera">&#128247;</button>
+                    <button id="btn-camera-quick" class="btn-icon btn-camera-quick" disabled title="Abrir câmera">&#128247;</button>
                     <button id="btn-send" class="btn-icon btn-send" disabled title="Enviar mensagem">&#10148;</button>
                 </div>
                 <emoji-picker id="emoji-picker" class="emoji-picker hidden"></emoji-picker>
@@ -286,11 +286,11 @@
                     </button>
                     <button type="button" class="attach-option" data-attach="camera">
                         <span class="attach-icon" aria-hidden="true">&#128247;</span>
-                        Cmera
+                        Câmera
                     </button>
                     <button type="button" class="attach-option" data-attach="audio">
                         <span class="attach-icon" aria-hidden="true">&#127908;</span>
-                        udio
+                        Áudio
                     </button>
                     <button type="button" class="attach-option" data-attach="document">
                         <span class="attach-icon" aria-hidden="true">&#128196;</span>
@@ -304,7 +304,7 @@
                 <header class="admin-header">
                     <div>
                         <h2>Painel do Administrador</h2>
-                        <p>Gerencie usurios e visualize mtricas do sistema.</p>
+                        <p>Gerencie usuários e visualize métricas do sistema.</p>
                     </div>
                 </header>
 
@@ -317,7 +317,7 @@
                 <div id="admin-metrics-section" class="admin-section">
                     <div class="admin-metrics">
                     <div class="metric-card">
-                        <span class="metric-label">Total de usurios</span>
+                        <span class="metric-label">Total de usuários</span>
                         <strong id="metric-total-users">0</strong>
                     </div>
                     <div class="metric-card">
@@ -325,7 +325,7 @@
                         <strong id="metric-total-admins">0</strong>
                     </div>
                     <div class="metric-card">
-                        <span class="metric-label">Usurios online</span>
+                        <span class="metric-label">Usuários online</span>
                         <strong id="metric-online-users">0</strong>
                     </div>
                 </div>
@@ -334,12 +334,12 @@
 
                 <div class="admin-grid">
                     <div id="admin-users-section" class="admin-section admin-users">
-                        <h3>Usurios cadastrados</h3>
+                        <h3>Usuários cadastrados</h3>
                         <ul id="admin-users-list" class="admin-users-list"></ul>
                     </div>
 
                     <div id="admin-create-section" class="admin-section admin-create">
-                        <h3>Criar usurio</h3>
+                        <h3>Criar usuário</h3>
                         <form id="admin-create-form">
                             <div class="form-group">
                                 <label for="admin-create-name">Nome</label>
@@ -351,16 +351,16 @@
                             </div>
                             <div class="form-group">
                                 <label for="admin-create-password">Senha</label>
-                                <input type="password" id="admin-create-password" placeholder="Mnimo 6 caracteres" required>
+                                <input type="password" id="admin-create-password" placeholder="Mínimo 6 caracteres" required>
                             </div>
                             <div class="form-group">
-                                <label for="admin-create-role">Tipo de usurio</label>
+                                <label for="admin-create-role">Tipo de usuário</label>
                                 <select id="admin-create-role" required>
-                                    <option value="user_chat" selected>Usurio do chat</option>
+                                    <option value="user_chat" selected>Usuário do chat</option>
                                     <option value="administrador">Administrador</option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn-primary">Criar usurio</button>
+                            <button type="submit" class="btn-primary">Criar usuário</button>
                         </form>
                     </div>
                 </div>
@@ -368,7 +368,7 @@
                 <div id="admin-edit-modal" class="modal">
                     <div class="modal-content">
                         <span id="admin-edit-close" class="close-modal">&times;</span>
-                        <h3>Editar usurio</h3>
+                        <h3>Editar usuário</h3>
                         <div class="form-group">
                             <label for="admin-edit-name">Nome</label>
                             <input type="text" id="admin-edit-name" required>
@@ -378,13 +378,13 @@
                             <input type="email" id="admin-edit-email" readonly>
                         </div>
                         <div class="form-group">
-                            <label for="admin-edit-role">Tipo de usurio</label>
+                            <label for="admin-edit-role">Tipo de usuário</label>
                             <select id="admin-edit-role" required>
-                                <option value="user_chat">Usurio do chat</option>
+                                <option value="user_chat">Usuário do chat</option>
                                 <option value="administrador">Administrador</option>
                             </select>
                         </div>
-                        <button id="admin-edit-save" class="btn-primary">Salvar altera??es</button>
+                        <button id="admin-edit-save" class="btn-primary">Salvar alterações</button>
                     </div>
                 </div>
             </section>
@@ -442,7 +442,7 @@
         <div class="modal-content friend-alias-modal-content">
             <span id="friend-alias-close" class="close-modal">&times;</span>
             <h3>Editar nome do contato</h3>
-            <p>Escolha como este amigo vai aparecer para voc.</p>
+            <p>Escolha como este amigo vai aparecer para você.</p>
             <input id="friend-alias-input" class="modal-input" type="text" placeholder="Nome do contato">
             <div class="profile-actions">
                 <button id="friend-alias-save" class="btn-primary" type="button">Concluir</button>
@@ -461,13 +461,13 @@
     <div id="user-tag-match-modal" class="modal">
         <div class="modal-content user-tag-match-modal-content">
             <span id="user-tag-match-close" class="close-modal">&times;</span>
-            <h3>Escolher usurio</h3>
-            <p id="user-tag-match-text">Mais de um usurio foi encontrado com esse identificador.</p>
+            <h3>Escolher usuário</h3>
+            <p id="user-tag-match-text">Mais de um usuário foi encontrado com esse identificador.</p>
             <ul id="user-tag-match-list" class="share-message-friends-list user-tag-match-list"></ul>
         </div>
     </div>
 
-    <!-- Modal da cmera -->
+    <!-- Modal da câmera -->
     <div id="camera-modal" class="modal">
         <div class="modal-content camera-modal-content">
             <div class="camera-preview">
@@ -475,10 +475,10 @@
             </div>
             <p id="camera-status" class="camera-status">Pronto para capturar.</p>
             <div class="camera-actions">
-                <button id="btn-camera-switch" class="btn-camera-control" type="button" title="Virar cmera" aria-label="Virar cmera"></button>
+                <button id="btn-camera-switch" class="btn-camera-control" type="button" title="Virar câmera" aria-label="Virar câmera"></button>
                 <button id="btn-camera-flash" class="btn-camera-control" type="button" title="Flash" aria-label="Flash"></button>
                 <button id="btn-camera-capture" class="btn-camera-control btn-camera-primary" type="button" title="Tirar foto" aria-label="Tirar foto"></button>
-                <button id="btn-camera-record" class="btn-camera-control" type="button" title="Gravar vdeo" aria-label="Gravar vdeo"></button>
+                <button id="btn-camera-record" class="btn-camera-control" type="button" title="Gravar vídeo" aria-label="Gravar vídeo"></button>
                 <button id="btn-camera-cancel" class="btn-camera-control" type="button" title="Fechar" aria-label="Fechar"></button>
             </div>
         </div>
@@ -511,13 +511,13 @@
                 <button id="btn-call-mute" class="btn-icon btn-call-mute hidden" type="button" title="Desativar microfone" aria-label="Desativar microfone" aria-pressed="false">
                     <span class="call-icon" aria-hidden="true"></span>
                 </button>
-                <button id="btn-call-video-toggle" class="btn-icon btn-call-video-toggle hidden" type="button" title="Desativar vdeo" aria-label="Desativar vdeo" aria-pressed="false">
+                <button id="btn-call-video-toggle" class="btn-icon btn-call-video-toggle hidden" type="button" title="Desativar vídeo" aria-label="Desativar vídeo" aria-pressed="false">
                     <span class="call-icon" aria-hidden="true"></span>
                 </button>
-                <button id="btn-call-camera-switch" class="btn-icon btn-call-camera-switch hidden" type="button" title="Alternar cmera" aria-label="Alternar cmera">
+                <button id="btn-call-camera-switch" class="btn-icon btn-call-camera-switch hidden" type="button" title="Alternar câmera" aria-label="Alternar câmera">
                     <span class="call-icon" aria-hidden="true"></span>
                 </button>
-                <button id="btn-call-switch-video" class="btn-icon btn-call-switch-video hidden" type="button" title="Mudar para chamada de vdeo" aria-label="Mudar para chamada de vdeo">
+                <button id="btn-call-switch-video" class="btn-icon btn-call-switch-video hidden" type="button" title="Mudar para chamada de vídeo" aria-label="Mudar para chamada de vídeo">
                     <span class="call-icon" aria-hidden="true"></span>
                 </button>
                 <button id="btn-call-switch-audio" class="btn-icon btn-call-switch-audio hidden" type="button" title="Mudar para chamada de voz" aria-label="Mudar para chamada de voz">
@@ -535,7 +535,7 @@
 
     <div id="call-mini" class="call-mini hidden">
         <div id="call-mini-header" class="call-mini-header">
-            <span class="call-mini-title">Chamada de vdeo</span>
+            <span class="call-mini-title">Chamada de vídeo</span>
             <div class="call-mini-buttons">
                 <button id="btn-call-restore" class="btn-icon btn-call-restore" type="button" title="Restaurar">&#8634;</button>
                 <button id="btn-call-mini-hangup" class="btn-icon btn-call-mini-hangup" type="button" title="Desligar">&#128222;</button>
@@ -552,7 +552,7 @@
             <h3>Excluir item</h3>
             <p id="delete-message-modal-text">Escolha como deseja excluir.</p>
             <div class="delete-message-actions">
-                <button id="btn-delete-message-me" class="btn-primary" type="button">Excluir s para mim</button>
+                <button id="btn-delete-message-me" class="btn-primary" type="button">Excluir só para mim</button>
                 <button id="btn-delete-message-all" class="btn-google hidden" type="button">Excluir para todos</button>
             </div>
             <button id="btn-delete-message-cancel" class="btn-icon btn-delete-message-cancel" type="button" title="Cancelar" aria-label="Cancelar">&#10006;</button>
@@ -571,13 +571,13 @@
         </div>
     </div>
 
-    <div id="media-viewer-modal" class="media-viewer-modal hidden" role="dialog" aria-modal="true" aria-label="Visualizador de m?dia">
-        <button id="btn-media-viewer-save" class="btn-icon btn-media-viewer-save hidden" type="button" title="Salvar m?dia" aria-label="Salvar m?dia">&#11015;</button>
-        <button id="btn-media-viewer-close" class="btn-icon btn-media-viewer-close" type="button" title="Fechar" aria-label="Fechar visualiza??o">&#10006;</button>
+    <div id="media-viewer-modal" class="media-viewer-modal hidden" role="dialog" aria-modal="true" aria-label="Visualizador de mídia">
+        <button id="btn-media-viewer-save" class="btn-icon btn-media-viewer-save hidden" type="button" title="Salvar mídia" aria-label="Salvar mídia">&#11015;</button>
+        <button id="btn-media-viewer-close" class="btn-icon btn-media-viewer-close" type="button" title="Fechar" aria-label="Fechar visualização">&#10006;</button>
         <div id="media-viewer-content" class="media-viewer-content"></div>
     </div>
 
-    <div id="message-action-menu" class="message-action-menu hidden" role="menu" aria-label="A??es da mensagem">
+    <div id="message-action-menu" class="message-action-menu hidden" role="menu" aria-label="Ações da mensagem">
         <button id="message-action-reply" class="message-action-btn" type="button" role="menuitem">&#8617; Responder</button>
         <button id="message-action-copy" class="message-action-btn" type="button" role="menuitem">&#128203; Copiar</button>
         <button id="message-action-edit" class="message-action-btn" type="button" role="menuitem">&#9998; Editar</button>
@@ -587,6 +587,6 @@
     <audio id="local-audio" autoplay muted></audio>
     <audio id="remote-audio" autoplay></audio>
 
-    <script src="script.js?v=20260411-09"></script>
+    <script src="script.js?v=20260411-02"></script>
 </body>
 </html>
