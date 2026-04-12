@@ -7581,6 +7581,25 @@ function resetMessageSelectionState() {
     updateMessageSelectionUI();
 }
 
+function resolveMessageType(msg) {
+    if (!msg) return 'text';
+    const rawType = String(msg.type || '').toLowerCase().trim();
+    if (['text', 'image', 'video', 'audio', 'file'].includes(rawType)) {
+        return rawType;
+    }
+
+    const fileType = String(msg.fileType || '').toLowerCase();
+    const hasImageUrl = !!(msg.imageUrl || msg.imageURL);
+    if (fileType.startsWith('image/') || hasImageUrl) return 'image';
+    if (fileType.startsWith('video/')) return 'video';
+    if (fileType.startsWith('audio/')) return 'audio';
+
+    const fileUrl = getMessageFileUrl(msg);
+    if (fileUrl || fileType) return 'file';
+
+    return 'text';
+}
+
 function getMessageType(msg) {
     return msg?.type || (msg?.imageUrl ? 'image' : 'text');
 }
