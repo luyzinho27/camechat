@@ -21,6 +21,16 @@ const RTC_CONFIG = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const isAndroidWebViewAgent = /Android/i.test(navigator.userAgent || '') && /\bwv\b/i.test(navigator.userAgent || '');
+try {
+    db.settings({
+        experimentalAutoDetectLongPolling: true,
+        experimentalForceLongPolling: isAndroidWebViewAgent,
+        useFetchStreams: false
+    });
+} catch (error) {
+    // ignore
+}
 db.enablePersistence({ synchronizeTabs: true }).catch((error) => {
     console.warn('Persistência offline do Firestore indisponível.', error);
 });
