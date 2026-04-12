@@ -6709,7 +6709,11 @@ function loadUsers() {
         .where('uid', '!=', currentUser.uid)
         .onSnapshot((snapshot) => {
             const users = [];
-            snapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+            snapshot.forEach(doc => {
+                const data = doc.data() || {};
+                const uid = data.uid || doc.id;
+                users.push({ id: doc.id, ...data, uid });
+            });
             if (snapshot.empty) {
                 if (snapshot.metadata?.fromCache) {
                     if (allUsersCache.length === 0 && cachedUsers.length > 0) {
@@ -6732,7 +6736,18 @@ function renderFriendUsers() {
     if (!Array.isArray(allUsersCache)) return;
     const friendSet = new Set(currentFriends || []);
     const blockedSet = new Set(currentUserProfile?.blocked || []);
-    const friends = allUsersCache.filter(user => friendSet.has(user.uid) && !user.disabled && !blockedSet.has(user.uid));
+    const friends = allUsersCache
+        .map((user) => {
+            if (!user) return null;
+            if (!user.uid && user.id) {
+                return { ...user, uid: user.id };
+            }
+            return user;
+        })
+        .filter((user) => {
+            if (!user?.uid) return false;
+            return friendSet.has(user.uid) && !user.disabled && !blockedSet.has(user.uid);
+        });
 
     if (currentUser && friendSet.has(currentUser.uid)) {
         const selfUser = {
@@ -6833,7 +6848,10 @@ function renderFriendUsers() {
 }
 
 function bindFriendSelectionInteractions(friendEl, user) {
-    if (!friendEl || !user?.uid) return;
+    if (!friendEl || !user) return;
+    const resolvedUid = user.uid || user.id;
+    if (!resolvedUid) return;
+    const resolvedUser = user.uid ? user : { ...user, uid: resolvedUid };
 
     let longPressTimer = null;
     let longPressTriggered = false;
@@ -6862,7 +6880,7 @@ function bindFriendSelectionInteractions(friendEl, user) {
 
         longPressTimer = setTimeout(() => {
             longPressTriggered = true;
-            activateFriendSelectionByLongPress(user.uid);
+            activateFriendSelectionByLongPress(resolvedUid);
             suppressMediaOpenUntil = Date.now() + 900;
         }, MESSAGE_LONG_PRESS_MS);
     };
@@ -6899,11 +6917,11 @@ function bindFriendSelectionInteractions(friendEl, user) {
         if (isFriendSelectionMode) {
             event.preventDefault();
             event.stopPropagation();
-            toggleFriendSelection(user.uid);
+            toggleFriendSelection(resolvedUid);
             return;
         }
 
-        selectUser(user);
+        selectUser(resolvedUser);
     });
 }
 
@@ -6926,6 +6944,10 @@ function renderUsers(users) {
     }
 
     users.forEach(user => {
+        if (!user) return;
+        if (!user.uid && user.id) {
+            user = { ...user, uid: user.id };
+        }
         const li = document.createElement('li');
         li.className = `user-item ${selectedUserId === user.uid ? 'active' : ''}`;
         if (isFriendSelectionMode) {
@@ -7201,6 +7223,11 @@ searchUser.addEventListener('input', (e) => {
 
 // Selecionar usuário para conversar
 async function selectUser(user) {
+    if (!user) return;
+    if (!user.uid && user.id) {
+        user = { ...user, uid: user.id };
+    }
+    if (!user.uid) return;
     clearLocalTypingState();
     clearEditingMessage();
     if (isFriendSelectionMode) {
@@ -7263,12 +7290,19 @@ async function loadMessages(otherUid) {
     let hasLoadedInitialSnapshot = false;
 
     listenTypingStatus(otherUid);
-    
-    messagesUnsubscribe = db.collection('conversations')
-        .doc(conversationId)
-        .collection('messages')
-        .orderBy('timestamp', 'asc')
-        .onSnapshot((snapshot) => {
+
+    const attachMessagesListener = (useOrderBy) => {
+        if (messagesUnsubscribe) {
+            messagesUnsubscribe();
+            messagesUnsubscribe = null;
+        }
+
+        const baseRef = db.collection('conversations')
+            .doc(conversationId)
+            .collection('messages');
+        const queryRef = useOrderBy ? baseRef.orderBy('timestamp', 'asc') : baseRef;
+
+        messagesUnsubscribe = queryRef.onSnapshot((snapshot) => {
             if (hasLoadedInitialSnapshot) {
                 const incomingChanges = snapshot.docChanges().filter((change) => {
                     if (change.type !== 'added') return false;
@@ -7295,6 +7329,15 @@ async function loadMessages(otherUid) {
                 if (isMessageHiddenForCurrentUser(data)) return;
                 messages.push(data);
             });
+
+            if (!useOrderBy) {
+                messages.sort((a, b) => {
+                    const delta = getMessageTimestampMs(a) - getMessageTimestampMs(b);
+                    if (delta !== 0) return delta;
+                    return String(a.id || '').localeCompare(String(b.id || ''));
+                });
+            }
+
             currentConversationMessages = messages;
             if (editingMessage?.id) {
                 const latestEditingMessage = messages.find((msg) => msg.id === editingMessage.id);
@@ -7324,6 +7367,11 @@ async function loadMessages(otherUid) {
             markMessagesAsRead(conversationId);
             hasLoadedInitialSnapshot = true;
         }, (error) => {
+            if (useOrderBy) {
+                console.warn('Falha ao carregar mensagens ordenadas. Tentando fallback.', error);
+                attachMessagesListener(false);
+                return;
+            }
             console.warn('Falha ao carregar mensagens.', error);
             if (messagesContainer) {
                 messagesContainer.innerHTML = `
@@ -7335,6 +7383,9 @@ async function loadMessages(otherUid) {
             }
             hasLoadedInitialSnapshot = true;
         });
+    };
+
+    attachMessagesListener(true);
 }
 
 // Gerar ID da conversa
@@ -9172,184 +9223,201 @@ function renderMessages(messages, options = {}) {
 
     messages.forEach(msg => {
         if (!msg) return;
-        const isSent = msg.senderId === currentUser?.uid;
-        const row = document.createElement('div');
-        row.className = `message-row ${isSent ? 'sent' : 'received'}`;
-        row.dataset.messageId = msg.id || '';
-        const div = document.createElement('div');
-        div.className = `message ${isSent ? 'sent' : 'received'}`;
-        div.dataset.messageId = msg.id || '';
-        const canManageMessage = !!msg.id
-            && !!currentUser
-            && (msg.senderId === currentUser.uid || msg.receiverId === currentUser.uid);
-        if (isSelectionMode && canManageMessage) {
-            row.classList.toggle('message-row-selected', selectedMessageIds.has(msg.id));
-            div.classList.add('message-select-mode');
-            div.classList.toggle('message-selected', selectedMessageIds.has(msg.id));
-        }
-        let meta = '';
-        let replyReference = '';
         try {
-            meta = buildMessageMeta(msg, isSent);
-        } catch (error) {
-            meta = '';
-        }
-        try {
-            replyReference = renderReplyReferenceHtml(msg.replyTo);
-        } catch (error) {
-            replyReference = '';
-        }
-        
-        const messageType = getMessageType(msg);
-        if (messageType === 'image') {
-            const imageUrl = getAttachmentDownloadUrl(msg);
-            if (imageUrl) {
+            const isSent = msg.senderId === currentUser?.uid;
+            const row = document.createElement('div');
+            row.className = `message-row ${isSent ? 'sent' : 'received'}`;
+            row.dataset.messageId = msg.id || '';
+            const div = document.createElement('div');
+            div.className = `message ${isSent ? 'sent' : 'received'}`;
+            div.dataset.messageId = msg.id || '';
+            const canManageMessage = !!msg.id
+                && !!currentUser
+                && (msg.senderId === currentUser.uid || msg.receiverId === currentUser.uid);
+            if (isSelectionMode && canManageMessage) {
+                row.classList.toggle('message-row-selected', selectedMessageIds.has(msg.id));
+                div.classList.add('message-select-mode');
+                div.classList.toggle('message-selected', selectedMessageIds.has(msg.id));
+            }
+            let meta = '';
+            let replyReference = '';
+            try {
+                meta = buildMessageMeta(msg, isSent);
+            } catch (error) {
+                meta = '';
+            }
+            try {
+                replyReference = renderReplyReferenceHtml(msg.replyTo);
+            } catch (error) {
+                replyReference = '';
+            }
+            
+            const messageType = getMessageType(msg);
+            if (messageType === 'image') {
+                const imageUrl = getAttachmentDownloadUrl(msg);
+                if (imageUrl) {
+                    div.innerHTML = `
+                        ${replyReference}
+                        <img class="chat-media-image" src="${imageUrl}" alt="imagem" style="max-width: 200px;">
+                        ${meta}
+                    `;
+                    const imageEl = div.querySelector('.chat-media-image');
+                    if (imageEl) {
+                        attachMediaFallbackHandlers(imageEl, msg);
+                        if (!isSelectionMode) {
+                            imageEl.addEventListener('click', (event) => {
+                                if (shouldBlockMessagePrimaryAction(event)) return;
+                                openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
+                            });
+                        }
+                    }
+                } else {
+                    div.innerHTML = `
+                        ${replyReference}
+                        <p>Imagem indisponível.</p>
+                        ${meta}
+                    `;
+                }
+            } else if (messageType === 'video') {
+                const videoUrl = getAttachmentDownloadUrl(msg);
+                if (videoUrl) {
+                    div.innerHTML = `
+                        ${replyReference}
+                        <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vídeo">
+                            <video class="chat-media-video" src="${videoUrl}" playsinline preload="metadata" muted></video>
+                            <span class="chat-media-video-play" aria-hidden="true">&#9658;</span>
+                        </div>
+                        ${meta}
+                    `;
+                    const videoEl = div.querySelector('.chat-media-video');
+                    if (videoEl) {
+                        attachMediaFallbackHandlers(videoEl, msg);
+                        prepareVideoThumbnail(videoEl);
+                    }
+                    const videoThumb = div.querySelector('.chat-media-video-thumb');
+                    if (videoThumb && !isSelectionMode) {
+                        const openVideo = (event) => {
+                            if (shouldBlockMessagePrimaryAction(event)) return;
+                            openAttachmentInNewTab(msg, videoEl?.currentSrc || videoEl?.src || videoUrl);
+                        };
+                        videoThumb.addEventListener('click', openVideo);
+                        videoThumb.addEventListener('keydown', (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                openVideo(event);
+                            }
+                        });
+                    }
+                } else {
+                    div.innerHTML = `
+                        ${replyReference}
+                        <p>Vídeo indisponível.</p>
+                        ${meta}
+                    `;
+                }
+            } else if (messageType === 'audio') {
+                const audioUrl = getAttachmentDownloadUrl(msg);
+                if (audioUrl) {
+                    div.innerHTML = `
+                        ${replyReference}
+                        <audio class="chat-media-audio" src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
+                        ${meta}
+                    `;
+                    const audioEl = div.querySelector('.chat-media-audio');
+                    if (audioEl) {
+                        attachMediaFallbackHandlers(audioEl, msg);
+                    }
+                } else {
+                    div.innerHTML = `
+                        ${replyReference}
+                        <p>Áudio indisponível.</p>
+                        ${meta}
+                    `;
+                }
+            } else if (messageType === 'file') {
+                const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || getMessageFileUrl(msg) || '#');
+                const fileName = escapeHtml(msg.fileName || 'Arquivo');
+                const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
+                const thumbInfo = buildDocumentThumbInfo(msg, fileUrl);
                 div.innerHTML = `
                     ${replyReference}
-                    <img class="chat-media-image" src="${imageUrl}" alt="imagem" style="max-width: 200px;">
+                    <div class="file-attachment">
+                        <span class="file-icon">&#128206;</span>
+                        <span class="file-attachment-thumb file-attachment-thumb-${thumbInfo.theme}">${thumbInfo.label}</span>
+                        <div class="file-info">
+                            <a class="chat-media-file-link" href="${fileUrl}" target="_self" rel="noopener">${fileName}</a>
+                            <small>${fileSize}</small>
+                        </div>
+                    </div>
                     ${meta}
                 `;
-                const imageEl = div.querySelector('.chat-media-image');
-                if (imageEl) {
-                    attachMediaFallbackHandlers(imageEl, msg);
+                const fileLink = div.querySelector('.chat-media-file-link');
+                if (fileLink) {
                     if (!isSelectionMode) {
-                        imageEl.addEventListener('click', (event) => {
+                        fileLink.addEventListener('click', (event) => {
                             if (shouldBlockMessagePrimaryAction(event)) return;
-                            openAttachmentInNewTab(msg, imageEl.currentSrc || imageEl.src);
+                            event.preventDefault();
+                            openAttachmentInNewTab(msg, fileLink.href);
                         });
                     }
                 }
             } else {
+                const linkPreviewHtml = renderLinkPreviewHtml(msg.text || '');
                 div.innerHTML = `
                     ${replyReference}
-                    <p>Imagem indisponível.</p>
+                    <p>${linkifyMessageText(msg.text || '')}</p>
+                    ${linkPreviewHtml}
                     ${meta}
                 `;
-            }
-        } else if (messageType === 'video') {
-            const videoUrl = getAttachmentDownloadUrl(msg);
-            if (videoUrl) {
-                div.innerHTML = `
-                    ${replyReference}
-                    <div class="chat-media-video-thumb" role="button" tabindex="0" aria-label="Abrir vídeo">
-                        <video class="chat-media-video" src="${videoUrl}" playsinline preload="metadata" muted></video>
-                        <span class="chat-media-video-play" aria-hidden="true">&#9658;</span>
-                    </div>
-                    ${meta}
-                `;
-                const videoEl = div.querySelector('.chat-media-video');
-                if (videoEl) {
-                    attachMediaFallbackHandlers(videoEl, msg);
-                    prepareVideoThumbnail(videoEl);
-                }
-                const videoThumb = div.querySelector('.chat-media-video-thumb');
-                if (videoThumb && !isSelectionMode) {
-                    const openVideo = (event) => {
+                const textLinks = div.querySelectorAll('.chat-text-link');
+                textLinks.forEach((link) => {
+                    link.addEventListener('click', (event) => {
                         if (shouldBlockMessagePrimaryAction(event)) return;
-                        openAttachmentInNewTab(msg, videoEl?.currentSrc || videoEl?.src || videoUrl);
-                    };
-                    videoThumb.addEventListener('click', openVideo);
-                    videoThumb.addEventListener('keydown', (event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            openVideo(event);
+                        event.stopPropagation();
+                    });
+                });
+                const previewLink = div.querySelector('.message-link-preview');
+                if (previewLink) {
+                    previewLink.addEventListener('click', (event) => {
+                        if (shouldBlockMessagePrimaryAction(event)) return;
+                        event.stopPropagation();
+                    });
+                }
+                const previewThumbImage = div.querySelector('.message-link-preview-thumb-image');
+                if (previewThumbImage) {
+                    previewThumbImage.addEventListener('error', () => {
+                        const thumbWrap = previewThumbImage.closest('.message-link-preview-thumb');
+                        if (thumbWrap) {
+                            thumbWrap.classList.add('no-thumb');
+                            thumbWrap.innerHTML = '';
                         }
                     });
                 }
-            } else {
+            }
+
+            if (canManageMessage) {
+                bindMessageSelectionInteractions(row, msg.id, { message: msg, bubbleEl: div });
+            }
+            bindMessageSwipeToReply(div, msg);
+
+            row.appendChild(div);
+            messagesContainer.appendChild(row);
+        } catch (error) {
+            console.warn('Falha ao renderizar mensagem.', error);
+            try {
+                const row = document.createElement('div');
+                row.className = 'message-row received';
+                const div = document.createElement('div');
+                div.className = 'message received';
                 div.innerHTML = `
-                    ${replyReference}
-                    <p>Vídeo indisponível.</p>
-                    ${meta}
+                    <p>Mensagem indisponível.</p>
                 `;
-            }
-        } else if (messageType === 'audio') {
-            const audioUrl = getAttachmentDownloadUrl(msg);
-            if (audioUrl) {
-                div.innerHTML = `
-                    ${replyReference}
-                    <audio class="chat-media-audio" src="${audioUrl}" controls preload="metadata" style="width: 220px;"></audio>
-                    ${meta}
-                `;
-                const audioEl = div.querySelector('.chat-media-audio');
-                if (audioEl) {
-                    attachMediaFallbackHandlers(audioEl, msg);
-                }
-            } else {
-                div.innerHTML = `
-                    ${replyReference}
-                    <p>Áudio indisponível.</p>
-                    ${meta}
-                `;
-            }
-        } else if (messageType === 'file') {
-            const fileUrl = ensureAbsoluteUrl(getAttachmentDownloadUrl(msg) || getMessageFileUrl(msg) || '#');
-            const fileName = escapeHtml(msg.fileName || 'Arquivo');
-            const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
-            const thumbInfo = buildDocumentThumbInfo(msg, fileUrl);
-            div.innerHTML = `
-                ${replyReference}
-                <div class="file-attachment">
-                    <span class="file-icon">&#128206;</span>
-                    <span class="file-attachment-thumb file-attachment-thumb-${thumbInfo.theme}">${thumbInfo.label}</span>
-                    <div class="file-info">
-                        <a class="chat-media-file-link" href="${fileUrl}" target="_self" rel="noopener">${fileName}</a>
-                        <small>${fileSize}</small>
-                    </div>
-                </div>
-                ${meta}
-            `;
-            const fileLink = div.querySelector('.chat-media-file-link');
-            if (fileLink) {
-                if (!isSelectionMode) {
-                    fileLink.addEventListener('click', (event) => {
-                        if (shouldBlockMessagePrimaryAction(event)) return;
-                        event.preventDefault();
-                        openAttachmentInNewTab(msg, fileLink.href);
-                    });
-                }
-            }
-        } else {
-            const linkPreviewHtml = renderLinkPreviewHtml(msg.text || '');
-            div.innerHTML = `
-                ${replyReference}
-                <p>${linkifyMessageText(msg.text || '')}</p>
-                ${linkPreviewHtml}
-                ${meta}
-            `;
-            const textLinks = div.querySelectorAll('.chat-text-link');
-            textLinks.forEach((link) => {
-                link.addEventListener('click', (event) => {
-                    if (shouldBlockMessagePrimaryAction(event)) return;
-                    event.stopPropagation();
-                });
-            });
-            const previewLink = div.querySelector('.message-link-preview');
-            if (previewLink) {
-                previewLink.addEventListener('click', (event) => {
-                    if (shouldBlockMessagePrimaryAction(event)) return;
-                    event.stopPropagation();
-                });
-            }
-            const previewThumbImage = div.querySelector('.message-link-preview-thumb-image');
-            if (previewThumbImage) {
-                previewThumbImage.addEventListener('error', () => {
-                    const thumbWrap = previewThumbImage.closest('.message-link-preview-thumb');
-                    if (thumbWrap) {
-                        thumbWrap.classList.add('no-thumb');
-                        thumbWrap.innerHTML = '';
-                    }
-                });
+                row.appendChild(div);
+                messagesContainer.appendChild(row);
+            } catch (secondaryError) {
+                // ignore
             }
         }
-
-        if (canManageMessage) {
-            bindMessageSelectionInteractions(row, msg.id, { message: msg, bubbleEl: div });
-        }
-        bindMessageSwipeToReply(div, msg);
-
-        row.appendChild(div);
-        messagesContainer.appendChild(row);
     });
     
     ensureVoiceRecordingBanner();
@@ -9713,6 +9781,9 @@ function subscribeToFriendDoc(uid) {
         .onSnapshot((doc) => {
             if (!doc.exists) return;
             const data = { id: doc.id, ...doc.data() };
+            if (!data.uid && data.id) {
+                data.uid = data.id;
+            }
             if (selectedUserId !== data.uid) return;
             selectedFriendData = data;
 
