@@ -2152,7 +2152,10 @@ function isDocumentLike(msg, absoluteUrl) {
 
 function getDocumentPreviewUrl(absoluteUrl, msg) {
     if (!isDocumentLike(msg, absoluteUrl)) return '';
-    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(absoluteUrl)}`;
+    if (isPdfFile(msg, absoluteUrl)) {
+        return absoluteUrl;
+    }
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(absoluteUrl)}`;
 }
 
 function buildDocumentThumbInfo(msg, absoluteUrl) {
@@ -2218,7 +2221,8 @@ function openMediaViewer(msg, resolvedUrl) {
         mediaViewerContent.appendChild(audio);
     } else if (isPdfFile(msg, resolvedUrl)) {
         const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg) || resolvedUrl;
-        if (previewUrl) {
+        const allowDocPreview = !isAndroidWebViewRuntime();
+        if (previewUrl && allowDocPreview) {
             mediaViewerContent.classList.add('media-viewer-doc-mode');
             const iframe = document.createElement('iframe');
             iframe.src = previewUrl;
@@ -2232,7 +2236,8 @@ function openMediaViewer(msg, resolvedUrl) {
         }
     } else {
         const previewUrl = getDocumentPreviewUrl(resolvedUrl, msg);
-        if (previewUrl) {
+        const allowDocPreview = !isAndroidWebViewRuntime();
+        if (previewUrl && allowDocPreview) {
             mediaViewerContent.classList.add('media-viewer-doc-mode');
             const iframe = document.createElement('iframe');
             iframe.src = previewUrl;
@@ -2259,14 +2264,9 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
     }
     const absoluteUrl = ensureAbsoluteUrl(resolvedUrl);
     const messageType = resolveMessageType(msg);
-    const previewUrl = getDocumentPreviewUrl(absoluteUrl, msg);
+    const isDocLike = isDocumentLike(msg, absoluteUrl);
 
-    if (isAndroidWebViewRuntime() && (messageType === 'file' || isPdfFile(msg, absoluteUrl) || isDocumentLike(msg, absoluteUrl))) {
-        openMediaViewer(msg, previewUrl || absoluteUrl);
-        return;
-    }
-
-    if (messageType === 'file' && !isPdfFile(msg, absoluteUrl) && !previewUrl) {
+    if (messageType === 'file' && !isDocLike) {
         if (!mediaViewerModal || !mediaViewerContent) {
             window.location.href = absoluteUrl;
             return;
@@ -2281,7 +2281,7 @@ async function openAttachmentInNewTab(msg, preferredUrl = '') {
         return;
     }
 
-    openMediaViewer(msg, previewUrl || absoluteUrl);
+    openMediaViewer(msg, absoluteUrl);
 }
 
 async function saveAttachmentToDevice(msg, preferredUrl = '', options = {}) {
@@ -2620,7 +2620,9 @@ function triggerDirectUrlDownload(url, fileName, msg = null, mimeType = '', opti
     const anchor = document.createElement('a');
     const scope = resolveLocalMediaScope(msg, options.scope);
     const scopedUrl = appendDownloadScopeParam(url, scope);
-    if (isAndroidWebViewRuntime() && callAndroidBridgeMethod('downloadMedia', scopedUrl, fileName, mimeType, scope)) {
+    const safeUrl = String(scopedUrl || '');
+    const isBlobLike = /^blob:|^data:/i.test(safeUrl);
+    if (!isBlobLike && isAndroidWebViewRuntime() && callAndroidBridgeMethod('downloadMedia', safeUrl, fileName, mimeType, scope)) {
         return;
     }
     anchor.href = scopedUrl;
