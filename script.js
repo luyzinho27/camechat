@@ -6973,6 +6973,18 @@ function timestampToDate(value) {
     if (!value) return null;
     if (value instanceof Date) return value;
     if (value?.toDate) return value.toDate();
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return new Date(value);
+    }
+    if (typeof value === 'string') {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+    const seconds = value?.seconds ?? value?._seconds;
+    if (typeof seconds === 'number' && Number.isFinite(seconds)) {
+        const nanos = value?.nanoseconds ?? value?._nanoseconds ?? 0;
+        return new Date(seconds * 1000 + Math.round(nanos / 1e6));
+    }
     return null;
 }
 
@@ -7300,6 +7312,17 @@ async function loadMessages(otherUid) {
             
             // Marcar mensagens como lidas
             markMessagesAsRead(conversationId);
+            hasLoadedInitialSnapshot = true;
+        }, (error) => {
+            console.warn('Falha ao carregar mensagens.', error);
+            if (messagesContainer) {
+                messagesContainer.innerHTML = `
+                    <div class="welcome-message">
+                        <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
+                        <p>Não foi possível carregar as mensagens. Verifique sua conexão.</p>
+                    </div>
+                `;
+            }
             hasLoadedInitialSnapshot = true;
         });
 }
@@ -9118,12 +9141,13 @@ function bindMessageSwipeToReply(messageEl, msg) {
 
 // Renderizar mensagens
 function renderMessages(messages, options = {}) {
+    if (!messagesContainer) return;
     const previousScrollTop = messagesContainer.scrollTop;
     const previousScrollHeight = messagesContainer.scrollHeight;
     const preserveScroll = !!options.preserveScroll;
     messagesContainer.innerHTML = '';
     
-    if (messages.length === 0) {
+    if (!Array.isArray(messages) || messages.length === 0) {
         messagesContainer.innerHTML = `
             <div class="welcome-message">
                 <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
@@ -9137,7 +9161,8 @@ function renderMessages(messages, options = {}) {
     const isSelectionMode = isMessageSelectionMode;
 
     messages.forEach(msg => {
-        const isSent = msg.senderId === currentUser.uid;
+        if (!msg) return;
+        const isSent = msg.senderId === currentUser?.uid;
         const row = document.createElement('div');
         row.className = `message-row ${isSent ? 'sent' : 'received'}`;
         row.dataset.messageId = msg.id || '';
@@ -9152,8 +9177,18 @@ function renderMessages(messages, options = {}) {
             div.classList.add('message-select-mode');
             div.classList.toggle('message-selected', selectedMessageIds.has(msg.id));
         }
-        const meta = buildMessageMeta(msg, isSent);
-        const replyReference = renderReplyReferenceHtml(msg.replyTo);
+        let meta = '';
+        let replyReference = '';
+        try {
+            meta = buildMessageMeta(msg, isSent);
+        } catch (error) {
+            meta = '';
+        }
+        try {
+            replyReference = renderReplyReferenceHtml(msg.replyTo);
+        } catch (error) {
+            replyReference = '';
+        }
         
         const messageType = getMessageType(msg);
         if (messageType === 'image') {
