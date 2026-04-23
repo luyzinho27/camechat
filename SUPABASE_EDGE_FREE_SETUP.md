@@ -46,6 +46,13 @@ Por isso este projeto foi ajustado para `50 MB` como limite maximo de anexo.
 2. Em `Storage`, crie um bucket publico chamado `camechat-media`.
 3. Em `Edge Functions`, mantenha os secrets padrao do projeto.
 
+Observacao:
+
+- fotos de perfil novas vao para `profile/`
+- anexos novos do chat vao para `upload/`
+
+Isso reaproveita o prefixo `upload/` que voce ja tem no bucket.
+
 ## Passo 2: configurar secrets adicionais
 
 No dashboard do Supabase, adicione estes secrets:
