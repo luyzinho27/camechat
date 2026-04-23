@@ -303,12 +303,12 @@ const uploadProfileMemory = multer({
 
 const uploadChatDisk = multer({
     storage: chatStorageDisk,
-    limits: { fileSize: 60 * 1024 * 1024 }
+    limits: { fileSize: 50 * 1024 * 1024 }
 });
 
 const uploadChatMemory = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 60 * 1024 * 1024 }
+    limits: { fileSize: 50 * 1024 * 1024 }
 });
 
 app.use(cors());
