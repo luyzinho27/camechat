@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CameChat</string>
+    <string name="file_chooser_title">Escolher arquivo</string>
+    <string name="download_starting">Baixando arquivo...</string>
+    <string name="download_started">Download iniciado</string>
+    <string name="download_failed">Falha no download.</string>
+    <string name="splash_loading">Abrindo suas conversas...</string>
+    <string name="google_web_client_id">405074774387-4idtfl6q6liptfhdfakfie12qpfrresc.apps.googleusercontent.com</string>
+    <string name="call_accept">Atender</string>
+    <string name="call_reject">Recusar</string>
+    <string name="call_incoming_voice">Ligação de voz recebida</string>
+    <string name="call_incoming_video">Ligação de vídeo recebida</string>
+    <string name="call_channel_name">Chamadas</string>
+    <string name="call_channel_description">Alertas de chamadas recebidas</string>
+</resources>
