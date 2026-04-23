@@ -11,19 +11,17 @@ Este projeto inclui um app Android nativo em `android/` que reutiliza o frontend
 
 ## Ajustar URLs do CameChat
 
-No arquivo `android/app/build.gradle`, altere:
+No arquivo `android/app/build.gradle`, use:
 
 ```gradle
-buildConfigField "String", "START_URL", "\"https://camechat.onrender.com\""
-buildConfigField "String", "BACKEND_URL", "\"https://camechat.onrender.com\""
+buildConfigField "String", "START_URL", "\"https://camechat-4fb88.web.app\""
+buildConfigField "String", "BACKEND_URL", "\"https://vkbqoqmyxesprbnzwcff.supabase.co/functions/v1/camechat-api\""
 ```
 
 Use:
 
-- `START_URL`: a URL publica onde o seu `index.html` esta rodando
-- `BACKEND_URL`: a URL base da API online
-
-Se voce migrar o backend para Supabase Edge Functions, `START_URL` e `BACKEND_URL` provavelmente serao diferentes.
+- `START_URL`: a URL publica do frontend no Firebase Hosting
+- `BACKEND_URL`: a URL base da Edge Function no Supabase
 
 ## Gerar APK no Android Studio
 
