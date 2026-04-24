@@ -1,4 +1,4 @@
-﻿// Configuração do Firebase
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls",
     authDomain: "camechat-4fb88.firebaseapp.com",
@@ -8371,6 +8371,40 @@ async function handleAndroidCallAction(rawPayload) {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
         return;
+    }
+
+    const callerId = String(payload.callerId || payload.caller_id || data.callerId || '').trim();
+    if (callerId) {
+        let friend = getCachedUserByUid(callerId);
+        if (!friend) {
+            try {
+                const doc = await db.collection('users').doc(callerId).get();
+                if (doc.exists) {
+                    friend = { uid: doc.id, ...doc.data() };
+                    if (!Array.isArray(allUsersCache)) {
+                        allUsersCache = [];
+                    }
+                    if (!allUsersCache.find((user) => user.uid === friend.uid)) {
+                        allUsersCache.push(friend);
+                    }
+                }
+            } catch (error) {
+                // continua para usar fallback da notificação
+            }
+        }
+
+        if (!friend) {
+            friend = {
+                uid: callerId,
+                name: payload.callerName || data.callerName || 'Usuário',
+                photoURL: payload.callerPhoto || data.callerPhotoURL || null,
+                photoData: data.callerPhotoData || null
+            };
+        }
+
+        if (friend && !isFriendBlocked(friend.uid) && selectedUserId !== friend.uid) {
+            await selectUser(friend);
+        }
     }
 
     if (currentCallId === callId && callPhase === 'incoming') {
