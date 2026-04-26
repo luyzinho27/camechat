@@ -1,0 +1,29 @@
+{
+  "name": "camechat",
+  "version": "1.0.0",
+  "description": "CameChat - Aplicação de Chat em Tempo Real com Firebase e Supabase",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "firebase deploy --only hosting"
+  },
+  "keywords": [
+    "chat",
+    "firebase",
+    "supabase",
+    "real-time",
+    "communication"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "firebase": "^10.8.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "firebase-tools": "^13.5.0"
+  }
+}
