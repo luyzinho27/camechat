@@ -1,11 +1,11 @@
 ﻿// Configuração do Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyAkgAtJjpVMuNFu3N413J--JGXrU2q4WEQ",
-  authDomain: "camechat-4fb88.firebaseapp.com",
-  projectId: "camechat-4fb88",
-  storageBucket: "camechat-4fb88.firebasestorage.app",
-  messagingSenderId: "405074774387",
-  appId: "1:405074774387:web:90dae3b977a7fff9c1dd06"
+  apiKey: "AIzaSyBkk35zijG29c6Yw0Zz9afTjhzYaobtV8o",
+  authDomain: "cametachat.firebaseapp.com",
+  projectId: "cametachat",
+  storageBucket: "cametachat.firebasestorage.app",
+  messagingSenderId: "268705300",
+  appId: "1:268705300:web:54ae982b6855e50be19101"
 };
 
 const BACKEND_BASE_URL = (window.CAMECHAT_BACKEND_URL || '').replace(/\/$/, '');
