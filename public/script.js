@@ -1,6 +1,8 @@
-// Configuração do Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyDGclwLGfGVlpKNjUhenZ5nN1vK_mrdjls",
+// Configuração do Firebase - Lida de variáveis de ambiente via config.js
+// NÃO hardcode chaves aqui! Use .env.local ou variáveis de ambiente
+// Para desenvolvimento: Copie .env.example para .env.local e preencha com suas chaves
+const firebaseConfig = window.firebaseConfig || {
+    apiKey: "", // Será preenchido via variáveis de ambiente
     authDomain: "camechat-4fb88.firebaseapp.com",
     projectId: "camechat-4fb88",
     storageBucket: "camechat-4fb88.firebasestorage.app",
