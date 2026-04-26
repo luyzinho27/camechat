@@ -1,0 +1,4 @@
+project_id = "camechat"
+
+[functions.camechat-api]
+verify_jwt = false

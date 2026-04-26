@@ -1,0 +1,597 @@
+﻿
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CameChat - Conectando Pessoas</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/camechat_logo.png">
+    <link rel="apple-touch-icon" href="images/camechat_logo.png">
+    <link rel="stylesheet" href="style.css?v=20260411-01">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+    <script>
+        // Defina a URL do backend quando estiver online
+        // Ex.: https://vkbqoqmyxesprbnzwcff.supabase.co/functions/v1/camechat-api
+        window.CAMECHAT_BACKEND_URL = 'https://vkbqoqmyxesprbnzwcff.supabase.co/functions/v1/camechat-api';
+
+    </script>
+    <!-- Configuração segura (carregada antes do script.js) -->
+    <script src="config.js"></script>
+</head>
+<body>
+    <div id="app-launch-splash" class="app-launch-splash">
+        <div class="app-launch-splash-shell">
+            <div class="app-launch-splash-logo-wrap">
+                <img src="images/camechat_logo.png" alt="Logo do CameChat" class="app-launch-splash-logo">
+                <span class="app-launch-splash-pulse app-launch-splash-pulse-one"></span>
+                <span class="app-launch-splash-pulse app-launch-splash-pulse-two"></span>
+            </div>
+            <h2>CameChat</h2>
+            <p>Abrindo suas conversas...</p>
+            <div class="app-launch-splash-dots" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Login/Cadastro -->
+    <div id="auth-container" class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <img src="images/camechat_logo.png" alt="Logo do CameChat" class="auth-brand-logo">
+                <h1>CameChat</h1>
+                <p class="subtitle">Faça login ou crie sua conta</p>
+            </div>
+            
+            <!-- Abas de navegação -->
+            <div class="auth-tabs">
+                <button id="tab-login" class="auth-tab active">Entrar</button>
+                <button id="tab-register" class="auth-tab">Cadastrar</button>
+            </div>
+            
+            <!-- Formulário de Login -->
+            <form id="login-form" class="auth-form active">
+                <div class="form-group">
+                    <label for="login-email">E-mail</label>
+                    <input type="email" id="login-email" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Senha</label>
+                    <input type="password" id="login-password" placeholder="Digite sua senha" required>
+                </div>
+                
+                <div class="form-options">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="remember-me">
+                        <span class="checkmark"></span>
+                        Lembrar-me
+                    </label>
+                    <a href="#" id="forgot-password" class="forgot-link">Esqueceu a senha?</a>
+                </div>
+                
+                <button type="submit" class="btn-primary">Entrar</button>
+                
+                <div class="divider">
+                    <span>ou</span>
+                </div>
+                
+                <button type="button" id="btn-google-login" class="btn-google">
+                    <img src="https://www.google.com/favicon.ico" alt="Google" class="google-icon">
+                    Entrar com Google
+                </button>
+            </form>
+            
+            <!-- Formulário de Cadastro -->
+            <form id="register-form" class="auth-form">
+                <div class="form-group">
+                    <label for="register-photo">Foto de perfil</label>
+                    <input type="file" id="register-photo" accept="image/*" required>
+                    <div class="photo-preview">
+                        <img id="register-photo-preview" src="" alt="Prévia da foto">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="register-name">Nome completo</label>
+                    <input type="text" id="register-name" placeholder="Seu nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">E-mail</label>
+                    <input type="email" id="register-email" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Senha</label>
+                    <input type="password" id="register-password" placeholder="Mínimo 6 caracteres" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password">Confirmar senha</label>
+                    <input type="password" id="register-confirm-password" placeholder="Digite novamente" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-role">Tipo de usuário</label>
+                    <select id="register-role" required>
+                        <option value="user_chat" selected>Usuário do chat</option>
+                        <option value="administrador" id="register-role-admin">Administrador</option>
+                    </select>
+                    <small class="form-hint">O primeiro cadastro será administrador automaticamente.</small>
+                </div>
+                
+                <button type="submit" class="btn-primary">Criar conta</button>
+                
+                <div class="divider">
+                    <span>ou</span>
+                </div>
+                
+                <button type="button" id="btn-google-register" class="btn-google">
+                    <img src="https://www.google.com/favicon.ico" alt="Google" class="google-icon">
+                    Cadastrar com Google
+                </button>
+            </form>
+            
+            <!-- Modal de recuperação de senha -->
+            <div id="forgot-modal" class="modal">
+                <div class="modal-content">
+                    <span id="forgot-close-modal" class="close-modal">&times;</span>
+                    <h3>Recuperar senha</h3>
+                    <p>Digite seu e-mail para receber o link de redefinição:</p>
+                    <input type="email" id="reset-email" placeholder="seu@email.com" class="modal-input">
+                    <button id="btn-reset-password" class="btn-primary">Enviar link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App principal -->
+    <div id="app" class="app hidden">
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <img id="user-photo" src="" alt="foto" class="user-avatar">
+                <div class="user-info-header">
+                    <span id="user-name"></span>
+                    <small id="user-status">Online</small>
+                    <small id="user-handle" class="user-handle"></small>
+                    <span id="user-role-badge" class="role-badge hidden">Administrador</span>
+                </div>
+                <div id="friend-selection-toolbar" class="friend-selection-toolbar hidden">
+                    <span id="friend-selection-count" class="friend-selection-count">0</span>
+                    <button id="btn-friend-mute-selected" class="btn-icon friend-selection-btn" type="button" title="Silenciar" aria-label="Silenciar" aria-pressed="false">&#128263;</button>
+                    <button id="btn-friend-block-selected" class="btn-icon friend-selection-btn" type="button" title="Bloquear" aria-label="Bloquear">&#128683;</button>
+                    <button id="btn-friend-remove-selected" class="btn-icon friend-selection-btn" type="button" title="Excluir amigo" aria-label="Excluir amigo">&#128465;</button>
+                </div>
+                <div class="sidebar-actions">
+                    <button id="btn-admin-panel" class="admin-btn hidden">Admin</button>
+                </div>
+            </header>
+            
+            <div class="search-box">
+                <input type="text" id="search-user" placeholder="Buscar usuário...">
+            </div>
+
+            <div class="add-friend-box">
+                <input type="text" id="friend-email" placeholder="E-mail ou @primeironome">
+                <button id="btn-add-friend" class="btn-add-friend" type="button">Adicionar</button>
+            </div>
+            
+            <div class="users-header">
+                <div class="users-header-title">
+                    <img src="images/camechat_logo.png" alt="Logo do CameChat" class="users-header-logo">
+                    <h3>Conversas</h3>
+                </div>
+                <span id="total-users"></span>
+            </div>
+            
+            <ul id="users-list" class="users-list"></ul>
+
+            <div id="sidebar-settings" class="sidebar-settings">
+                <div id="settings-menu" class="settings-menu hidden">
+                    <button id="btn-theme-toggle" class="settings-item" type="button" aria-pressed="false">Tema escuro</button>
+                    <button id="btn-sound-toggle" class="settings-item" type="button" aria-pressed="true">Som: ligado</button>
+                    <button id="btn-message-tone" class="settings-item" type="button">Toque de mensagem: padrão</button>
+                    <input type="file" id="message-tone-input" accept="audio/mpeg,audio/mp3" class="hidden">
+                    <button id="btn-call-tone" class="settings-item" type="button">Toque de chamada: padrão</button>
+                    <input type="file" id="call-tone-input" accept="audio/mpeg,audio/mp3" class="hidden">
+                    <button id="btn-desktop-notifications-toggle" class="settings-item" type="button" aria-pressed="false">Notificações: desligadas</button>
+                    <button id="btn-read-receipts-toggle" class="settings-item" type="button" aria-pressed="true">Leitura: ligada</button>
+                    <button id="btn-online-status-toggle" class="settings-item" type="button" aria-pressed="true">Status: visível</button>
+                    <button id="btn-chat-font-toggle" class="settings-item" type="button" aria-pressed="false">Fonte do chat: normal</button>
+                    <button id="btn-chat-background" class="settings-item" type="button">Plano de fundo do chat</button>
+                    <input type="file" id="chat-background-upload" accept="image/*" class="hidden">
+                    <button id="btn-media-save-mode-toggle" class="settings-item" type="button" aria-pressed="true">Salvamento de mídia: automático</button>
+                    <button id="btn-media-folder-pc" class="settings-item hidden" type="button">Pasta de mídia (PC): configurar</button>
+                    <button id="btn-call-block-toggle" class="settings-item" type="button" aria-pressed="false">Chamadas: permitidas</button>
+                    <button id="btn-last-seen-toggle" class="settings-item" type="button" aria-pressed="true">Visto por último: visível</button>
+                    <button id="btn-language-toggle" class="settings-item" type="button" aria-pressed="false">Idioma: português</button>
+                    <button id="btn-about" class="settings-item" type="button">Sobre</button>
+                    <button id="btn-logout" class="settings-item logout-btn" type="button">Sair</button>
+                </div>
+                <button id="btn-settings" class="settings-btn" type="button" title="Configurações" aria-label="Configurações">&#9881;</button>
+            </div>
+        </aside>
+
+        <!-- Área de chat -->
+        <div class="main-panel">
+            <main id="chat-panel" class="chat-area">
+                <header class="chat-header" id="chat-header">
+                    <button id="btn-toggle-sidebar" class="btn-icon btn-toggle-sidebar" title="Contatos">&#9776;</button>
+                    <div id="chat-selection-summary" class="chat-selection-summary hidden">
+                        <span id="chat-selection-count">0</span>
+                    </div>
+                    <img id="chat-partner-photo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" data-default-src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e8f0fe'/><circle cx='32' cy='24' r='12' fill='%23002776'/><path d='M12 58c4-12 16-18 20-18s16 6 20 18' fill='%23002776'/></svg>" alt="foto" class="partner-avatar clickable">
+                    <div class="chat-partner-info clickable">
+                        <span id="chat-partner-name">Selecione um usuário</span>
+                        <small id="chat-partner-status"></small>
+                        <small id="chat-partner-activity" class="chat-partner-activity hidden"></small>
+                        <span id="call-indicator" class="call-indicator hidden">Em chamada</span>
+                    </div>
+                    <button id="btn-video-call" class="btn-icon btn-video-call" disabled title="Chamada de vídeo">&#128249;</button>
+                    <button id="btn-call" class="btn-icon btn-call" disabled title="Ligar">&#128222;</button>
+                    <button id="btn-edit-selected" class="btn-icon btn-edit-selected hidden" disabled title="Editar mensagem selecionada">&#9998;</button>
+                    <button id="btn-delete-selected" class="btn-icon btn-delete-selected hidden" disabled title="Excluir selecionadas">&#128465;</button>
+                    <button id="btn-copy-selected" class="btn-icon btn-copy-selected hidden" disabled title="Copiar selecionadas">&#128203;</button>
+                    <button id="btn-share-selected" class="btn-icon btn-share-selected hidden" disabled title="Compartilhar selecionadas">&#10150;</button>
+                </header>
+                
+                <div id="messages-container" class="messages-container">
+                    <div class="welcome-message">
+                        <img src="images/camechat_logo.png" alt="Logo do CameChat" class="welcome-logo">
+                        <h3>Bem-vindo ao CameChat! &#128075;</h3>
+                        <p>Selecione um usu&#225;rio para come&#231;ar a conversar.</p>
+                    </div>
+                    <div id="voice-recording-banner" class="voice-recording-banner hidden">
+                        <span class="voice-recording-dot"></span>
+                        <span id="voice-recording-text">Gravando... 00:00</span>
+                        <button id="btn-voice-cancel" class="btn-google btn-voice-cancel" type="button" disabled>Cancelar</button>
+                    </div>
+                </div>
+
+                <div id="reply-preview" class="reply-preview hidden">
+                    <div class="reply-preview-main">
+                        <small id="reply-preview-label">Respondendo</small>
+                        <p id="reply-preview-text"></p>
+                    </div>
+                    <div id="reply-preview-thumb" class="reply-preview-thumb hidden"></div>
+                    <button id="btn-reply-cancel" class="btn-icon btn-reply-cancel" type="button" title="Cancelar resposta" aria-label="Cancelar resposta">&#10006;</button>
+                </div>
+
+                <div id="edit-preview" class="reply-preview edit-preview hidden">
+                    <div class="reply-preview-main">
+                        <small id="edit-preview-label">Editando mensagem</small>
+                        <p id="edit-preview-text"></p>
+                    </div>
+                    <button id="btn-edit-cancel" class="btn-icon btn-reply-cancel" type="button" title="Cancelar edição" aria-label="Cancelar edição">&#10006;</button>
+                </div>
+
+                <div class="message-input-area">
+                    <textarea id="message-input" placeholder="Digite sua mensagem..." enterkeyhint="enter" rows="1" disabled></textarea>
+                    <input type="file" id="file-upload" style="display: none;" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar">
+                    <input type="file" id="file-upload-gallery" style="display: none;" accept="image/*,video/*" multiple>
+                    <input type="file" id="file-upload-camera-photo" style="display: none;" accept="image/*" capture="environment" multiple>
+                    <input type="file" id="file-upload-camera-video" style="display: none;" accept="video/*" capture="environment" multiple>
+                    <input type="file" id="file-upload-audio" style="display: none;" accept="audio/*" capture="microphone" multiple>
+                    <input type="file" id="file-upload-document" style="display: none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple>
+                    <button id="btn-attach" class="btn-icon" disabled title="Anexar arquivo">&#128206;</button>
+                    <button id="btn-emoji" class="btn-icon" disabled title="Emojis">&#128522;</button>
+                    <button id="btn-voice" class="btn-icon btn-voice" disabled title="Enviar áudio"></button>
+                    <span id="voice-recording-status" class="voice-recording-status hidden">00:00</span>
+                    <button id="btn-camera-quick" class="btn-icon btn-camera-quick" disabled title="Abrir câmera">&#128247;</button>
+                    <button id="btn-send" class="btn-icon btn-send" disabled title="Enviar mensagem">&#10148;</button>
+                </div>
+                <emoji-picker id="emoji-picker" class="emoji-picker hidden"></emoji-picker>
+                <div id="attach-menu" class="attach-menu hidden">
+                    <button type="button" class="attach-option" data-attach="gallery">
+                        <span class="attach-icon" aria-hidden="true">&#128444;&#65039;</span>
+                        Galeria
+                    </button>
+                    <button type="button" class="attach-option" data-attach="camera">
+                        <span class="attach-icon" aria-hidden="true">&#128247;</span>
+                        Câmera
+                    </button>
+                    <button type="button" class="attach-option" data-attach="audio">
+                        <span class="attach-icon" aria-hidden="true">&#127908;</span>
+                        Áudio
+                    </button>
+                    <button type="button" class="attach-option" data-attach="document">
+                        <span class="attach-icon" aria-hidden="true">&#128196;</span>
+                        Documento
+                    </button>
+                </div>
+                <div id="upload-progress-list" class="upload-progress-list hidden"></div>
+            </main>
+
+            <section id="admin-panel" class="admin-panel hidden">
+                <header class="admin-header">
+                    <div>
+                        <h2>Painel do Administrador</h2>
+                        <p>Gerencie usuários e visualize métricas do sistema.</p>
+                    </div>
+                </header>
+
+                <div id="admin-tabs" class="admin-tabs">
+                    <button class="admin-tab active" type="button" data-tab="metrics">M&eacute;tricas</button>
+                    <button class="admin-tab" type="button" data-tab="users">Usu&aacute;rios</button>
+                    <button class="admin-tab" type="button" data-tab="create">Novo</button>
+                </div>
+
+                <div id="admin-metrics-section" class="admin-section">
+                    <div class="admin-metrics">
+                    <div class="metric-card">
+                        <span class="metric-label">Total de usuários</span>
+                        <strong id="metric-total-users">0</strong>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Administradores</span>
+                        <strong id="metric-total-admins">0</strong>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Usuários online</span>
+                        <strong id="metric-online-users">0</strong>
+                    </div>
+                </div>
+
+                </div>
+
+                <div class="admin-grid">
+                    <div id="admin-users-section" class="admin-section admin-users">
+                        <h3>Usuários cadastrados</h3>
+                        <ul id="admin-users-list" class="admin-users-list"></ul>
+                    </div>
+
+                    <div id="admin-create-section" class="admin-section admin-create">
+                        <h3>Criar usuário</h3>
+                        <form id="admin-create-form">
+                            <div class="form-group">
+                                <label for="admin-create-name">Nome</label>
+                                <input type="text" id="admin-create-name" placeholder="Nome completo" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="admin-create-email">E-mail</label>
+                                <input type="email" id="admin-create-email" placeholder="email@dominio.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="admin-create-password">Senha</label>
+                                <input type="password" id="admin-create-password" placeholder="Mínimo 6 caracteres" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="admin-create-role">Tipo de usuário</label>
+                                <select id="admin-create-role" required>
+                                    <option value="user_chat" selected>Usuário do chat</option>
+                                    <option value="administrador">Administrador</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary">Criar usuário</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="admin-edit-modal" class="modal">
+                    <div class="modal-content">
+                        <span id="admin-edit-close" class="close-modal">&times;</span>
+                        <h3>Editar usuário</h3>
+                        <div class="form-group">
+                            <label for="admin-edit-name">Nome</label>
+                            <input type="text" id="admin-edit-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-edit-email">E-mail</label>
+                            <input type="email" id="admin-edit-email" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-edit-role">Tipo de usuário</label>
+                            <select id="admin-edit-role" required>
+                                <option value="user_chat">Usuário do chat</option>
+                                <option value="administrador">Administrador</option>
+                            </select>
+                        </div>
+                        <button id="admin-edit-save" class="btn-primary">Salvar alterações</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal de foto de perfil -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content profile-modal-content">
+            <span id="profile-close-modal" class="close-modal">&times;</span>
+            <h3>Foto de perfil</h3>
+            <p class="profile-handle-row"><strong>Seu identificador:</strong> <span id="profile-handle"></span></p>
+            <div class="profile-cropper">
+                <div id="profile-crop-frame" class="crop-frame">
+                    <img id="profile-crop-image" src="" alt="Foto de perfil">
+                </div>
+            </div>
+            <div class="crop-controls">
+                <label for="profile-zoom">Zoom</label>
+                <input type="range" id="profile-zoom" min="1" max="3" step="0.01" value="1">
+                <button id="profile-center-btn" class="btn-google" type="button">Centralizar</button>
+            </div>
+            <input type="file" id="profile-photo-input" accept="image/*" class="modal-input">
+            <div class="profile-actions">
+                <button id="profile-save-btn" class="btn-primary">Salvar</button>
+                <button id="profile-cancel-btn" class="btn-google" type="button">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de dados do amigo -->
+    <div id="friend-modal" class="modal">
+        <div class="modal-content friend-modal-content">
+            <span id="friend-close-modal" class="close-modal">&times;</span>
+            <h3>Dados do amigo</h3>
+            <div class="friend-preview">
+                <img id="friend-preview-image" src="" alt="Foto do amigo">
+            </div>
+            <div class="friend-details">
+                <p><strong>Nome:</strong> <span id="friend-detail-name"></span></p>
+                <p><strong>Identificador:</strong> <span id="friend-detail-handle"></span></p>
+                <p><strong>E-mail:</strong> <span id="friend-detail-email"></span></p>
+                <p><strong>Status:</strong> <span id="friend-detail-status"></span> <span id="friend-blocked-badge" class="blocked-badge hidden">Bloqueado</span></p>
+            </div>
+            <div class="friend-actions">
+                <button id="friend-alias-edit" class="btn-google" type="button">Editar nome do contato</button>
+                <button id="friend-remove-btn" class="btn-google" type="button">Excluir amigo</button>
+                <button id="friend-block-btn" class="btn-primary" type="button">Bloquear amigo</button>
+                <button id="friend-unblock-btn" class="btn-google hidden" type="button">Desbloquear amigo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="friend-alias-modal" class="modal">
+        <div class="modal-content friend-alias-modal-content">
+            <span id="friend-alias-close" class="close-modal">&times;</span>
+            <h3>Editar nome do contato</h3>
+            <p>Escolha como este amigo vai aparecer para você.</p>
+            <input id="friend-alias-input" class="modal-input" type="text" placeholder="Nome do contato">
+            <div class="profile-actions">
+                <button id="friend-alias-save" class="btn-primary" type="button">Concluir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="about-modal" class="modal">
+        <div class="modal-content about-modal-content">
+            <span id="about-close" class="close-modal">&times;</span>
+            <h3>Sobre</h3>
+            <div id="about-content" class="about-content"></div>
+        </div>
+    </div>
+
+    <div id="user-tag-match-modal" class="modal">
+        <div class="modal-content user-tag-match-modal-content">
+            <span id="user-tag-match-close" class="close-modal">&times;</span>
+            <h3>Escolher usuário</h3>
+            <p id="user-tag-match-text">Mais de um usuário foi encontrado com esse identificador.</p>
+            <ul id="user-tag-match-list" class="share-message-friends-list user-tag-match-list"></ul>
+        </div>
+    </div>
+
+    <!-- Modal da câmera -->
+    <div id="camera-modal" class="modal">
+        <div class="modal-content camera-modal-content">
+            <div class="camera-preview">
+                <video id="camera-preview" autoplay playsinline muted></video>
+            </div>
+            <p id="camera-status" class="camera-status">Pronto para capturar.</p>
+            <div class="camera-actions">
+                <button id="btn-camera-switch" class="btn-camera-control" type="button" title="Virar câmera" aria-label="Virar câmera"></button>
+                <button id="btn-camera-flash" class="btn-camera-control" type="button" title="Flash" aria-label="Flash"></button>
+                <button id="btn-camera-capture" class="btn-camera-control btn-camera-primary" type="button" title="Tirar foto" aria-label="Tirar foto"></button>
+                <button id="btn-camera-record" class="btn-camera-control" type="button" title="Gravar vídeo" aria-label="Gravar vídeo"></button>
+                <button id="btn-camera-cancel" class="btn-camera-control" type="button" title="Fechar" aria-label="Fechar"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de chamada de voz -->
+    <div id="call-modal" class="modal">
+        <div class="modal-content call-modal-content">
+            <h3 id="call-title">Chamada de voz</h3>
+            <p id="call-status">Chamando...</p>
+            <div id="call-renegotiation" class="call-renegotiation hidden">
+                <span class="spinner" aria-hidden="true"></span>
+                <span class="renegotiation-text">Alterando chamada...</span>
+            </div>
+            <p id="call-countdown" class="call-countdown hidden">40s</p>
+            <div class="call-user">
+                <img id="call-user-photo" src="" alt="Foto do amigo">
+                <strong id="call-user-name"></strong>
+            </div>
+            <div id="call-media-container" class="call-media-container">
+                <div id="call-media" class="call-media hidden">
+                    <video id="remote-video" autoplay playsinline></video>
+                    <video id="local-video" autoplay muted playsinline></video>
+                </div>
+            </div>
+            <div class="call-actions">
+                <button id="btn-call-speaker" class="btn-icon btn-call-speaker hidden" type="button" title="Ativar viva-voz" aria-label="Ativar viva-voz" aria-pressed="false">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-mute" class="btn-icon btn-call-mute hidden" type="button" title="Desativar microfone" aria-label="Desativar microfone" aria-pressed="false">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-video-toggle" class="btn-icon btn-call-video-toggle hidden" type="button" title="Desativar vídeo" aria-label="Desativar vídeo" aria-pressed="false">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-camera-switch" class="btn-icon btn-call-camera-switch hidden" type="button" title="Alternar câmera" aria-label="Alternar câmera">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-switch-video" class="btn-icon btn-call-switch-video hidden" type="button" title="Mudar para chamada de vídeo" aria-label="Mudar para chamada de vídeo">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-switch-audio" class="btn-icon btn-call-switch-audio hidden" type="button" title="Mudar para chamada de voz" aria-label="Mudar para chamada de voz">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="btn-call-minimize" class="btn-icon btn-call-minimize hidden" type="button" title="Minimizar chamada" aria-label="Minimizar chamada">
+                    <span class="call-icon" aria-hidden="true"></span>
+                </button>
+                <button id="call-accept-btn" class="btn-primary" type="button">Atender</button>
+                <button id="call-reject-btn" class="btn-google" type="button">Recusar</button>
+                <button id="call-hangup-btn" class="btn-google" type="button">Desligar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="call-mini" class="call-mini hidden">
+        <div id="call-mini-header" class="call-mini-header">
+            <span class="call-mini-title">Chamada de vídeo</span>
+            <div class="call-mini-buttons">
+                <button id="btn-call-restore" class="btn-icon btn-call-restore" type="button" title="Restaurar">&#8634;</button>
+                <button id="btn-call-mini-hangup" class="btn-icon btn-call-mini-hangup" type="button" title="Desligar">&#128222;</button>
+            </div>
+        </div>
+        <div id="call-mini-body" class="call-mini-body"></div>
+    </div>
+
+    <div id="call-toast" class="call-toast hidden">Chamada encerrada. Recarregando...</div>
+    <div id="proximity-overlay" class="proximity-overlay hidden" aria-hidden="true"></div>
+
+    <div id="delete-message-modal" class="modal">
+        <div class="modal-content delete-message-modal-content">
+            <h3>Excluir item</h3>
+            <p id="delete-message-modal-text">Escolha como deseja excluir.</p>
+            <div class="delete-message-actions">
+                <button id="btn-delete-message-me" class="btn-primary" type="button">Excluir só para mim</button>
+                <button id="btn-delete-message-all" class="btn-google hidden" type="button">Excluir para todos</button>
+            </div>
+            <button id="btn-delete-message-cancel" class="btn-icon btn-delete-message-cancel" type="button" title="Cancelar" aria-label="Cancelar">&#10006;</button>
+        </div>
+    </div>
+
+    <div id="share-message-modal" class="modal">
+        <div class="modal-content share-message-modal-content">
+            <h3>Compartilhar mensagem</h3>
+            <p>Escolha um ou mais amigos para compartilhar os itens selecionados.</p>
+            <ul id="share-message-friends-list" class="share-message-friends-list"></ul>
+            <div class="share-message-actions">
+                <button id="btn-share-message-confirm" class="btn-primary" type="button" disabled>Compartilhar</button>
+            </div>
+            <button id="btn-share-message-cancel" class="btn-icon btn-share-message-cancel" type="button" title="Cancelar" aria-label="Cancelar">&#10006;</button>
+        </div>
+    </div>
+
+    <div id="media-viewer-modal" class="media-viewer-modal hidden" role="dialog" aria-modal="true" aria-label="Visualizador de mídia">
+        <button id="btn-media-viewer-save" class="btn-icon btn-media-viewer-save hidden" type="button" title="Salvar mídia" aria-label="Salvar mídia">&#11015;</button>
+        <button id="btn-media-viewer-close" class="btn-icon btn-media-viewer-close" type="button" title="Fechar" aria-label="Fechar visualização">&#10006;</button>
+        <div id="media-viewer-content" class="media-viewer-content"></div>
+    </div>
+
+    <div id="message-action-menu" class="message-action-menu hidden" role="menu" aria-label="Ações da mensagem">
+        <button id="message-action-reply" class="message-action-btn" type="button" role="menuitem">&#8617; Responder</button>
+        <button id="message-action-copy" class="message-action-btn" type="button" role="menuitem">&#128203; Copiar</button>
+        <button id="message-action-edit" class="message-action-btn" type="button" role="menuitem">&#9998; Editar</button>
+        <button id="message-action-delete" class="message-action-btn danger" type="button" role="menuitem">&#128465; Excluir</button>
+    </div>
+
+    <audio id="local-audio" autoplay muted></audio>
+    <audio id="remote-audio" autoplay></audio>
+
+    <script src="script.js?v=20260411-09"></script>
+</body>
+</html>

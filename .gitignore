@@ -1,0 +1,44 @@
+# Firebase Hosting
+.firebase/
+firebase-debug.log*
+firebase-debug.*.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env*.example
+
+# Editor and OS files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android local files and build output
+android/local.properties
+android/.gradle/
+android/.gradle-local/
+android/.gradle-user-home/
+android/.idea/
+android/build/
+android/app/build/
+android/app/debug/
+*.apk
+*.aab
+
+# Runtime media generated outside source control
+public/images/profile/
+public/images/uploads/
+
+# Supabase local state
+supabase/.temp/
+supabase/.branches/
+supabase/functions/.cache/
