@@ -1,6 +1,6 @@
 ﻿// Configuração do Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyDYnYP2nAGpW-V4l0wnLntQxgsPKyL09oE",
+  apiKey: "AIzaSyAkgAtJjpVMuNFu3N413J--JGXrU2q4WEQ",
   authDomain: "camechat-4fb88.firebaseapp.com",
   projectId: "camechat-4fb88",
   storageBucket: "camechat-4fb88.firebasestorage.app",
