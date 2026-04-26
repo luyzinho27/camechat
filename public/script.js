@@ -5,7 +5,7 @@ const firebaseConfig = {
   projectId: "camechat-4fb88",
   storageBucket: "camechat-4fb88.firebasestorage.app",
   messagingSenderId: "405074774387",
-  appId: "1:405074774387:web:6193615093160d58c1dd06"
+  appId: "1:405074774387:web:90dae3b977a7fff9c1dd06"
 };
 
 const BACKEND_BASE_URL = (window.CAMECHAT_BACKEND_URL || '').replace(/\/$/, '');
