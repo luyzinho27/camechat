@@ -1,9 +1,0 @@
-plugins {
-<<<<<<< HEAD
-    id 'com.android.application' version '8.12.3' apply false
-=======
-    id 'com.android.application' version '8.5.2' apply false
->>>>>>> e1c89c8f9bd2519ffea7e90c41c46e4c3a2b0f07
-    id 'org.jetbrains.kotlin.android' version '1.9.24' apply false
-    id 'com.google.gms.google-services' version '4.4.2' apply false
-}
