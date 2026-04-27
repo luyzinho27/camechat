@@ -1,0 +1,5 @@
+project_id = "cametachat"
+
+[functions.cametachat-api]
+verify_jwt = false
+
