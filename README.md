@@ -1,6 +1,6 @@
 # CametaChat
 
-CametaChat Ã© uma aplicaÃ§Ã£o de mensagens em tempo real com suporte a texto, mÃ­dias e chamadas, disponÃ­vel na Web e no Android (WebView).
+CametaChat é uma aplicação de mensagens em tempo real com suporte a texto, mí­dias e chamadas, disponí­vel na Web e no Android (WebView).
 
 ## Funcionalidades
 
